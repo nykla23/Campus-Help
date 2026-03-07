@@ -1,0 +1,11 @@
+# Node
+node_modules/
+npm-debug.log
+.env
+
+# macOS
+.DS_Store
+
+# 微信小程序
+miniprogram_npm/
+dist/
