@@ -19,3 +19,7 @@
 - **前端**：微信小程序
 - **后端**：Node.js + Express框架（RESTful API，JWT用户认证）
 - **数据库**：MySQL（存储用户、任务、评价等核心数据）
+
+
+## Figma链接
+https://www.figma.com/proto/Fo9HimWMMdRRbA6XvoMvqs/Campus-Help?node-id=2003-2735&t=Jty6wM9adEQb1E0T-1
