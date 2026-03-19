@@ -37,8 +37,9 @@ frontend/
 │   │   └── index.wxss
 │   ├── task/                    # 任务详情页
 │   ├── publish/                 # 发布任务页
-│   ├── user/                    # 个人中心页
-│   ├── chat/                    # 聊天列表/详情页
+│   ├── profile/                 # 个人中心页
+│   ├── chat/                    # 聊天列表
+|   ├── message/                 # 详情页
 │   ├── login/                   # 登录页
 │   └── register/                # 注册页
 ├── components/                   # 公共组件
