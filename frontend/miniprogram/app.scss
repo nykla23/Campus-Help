@@ -8,3 +8,45 @@
   padding: 200rpx 0;
   box-sizing: border-box;
 } 
+page {
+  --primary-color: #3EB1F4;    /* 主色：校园蓝 */
+  --accent-color: #FF7D00;     /* 强调色：橙色（状态标签） */
+  --bg-light: #F5F7FA;         /* 浅灰背景 */
+  --text-main: #1D2129;        /* 正文深灰 */
+  --text-aux: #86909C;         /* 辅助文字中灰 */
+  --border-color: #E5E6EB;     /* 分割线浅灰 */
+  --tag-green: #86E57F;        /* 任务类型标签绿 */
+  --tag-blue: #E6F0FF;         /* 任务类型标签蓝 */
+  --status-orange: #FF7D00;    /* 状态标签橙（待接单/进行中） */
+
+  font-family: PingFang SC, Source Han Sans CN, sans-serif;
+  font-size: 16px;
+  background-color: #FFFFFF;
+  color: var(--text-main);  
+}
+/* 通用类 */
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--text-main);
+}
+.aux-text {
+  font-size: 14px;
+  color: var(--text-aux);
+}
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 8px;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  font-size: 16px;
+}
+.input-box {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 16px;
+}
