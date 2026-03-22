@@ -1,2 +1,49 @@
-<!--pages/publish/publish.wxml-->
-<text>pages/publish/publish.wxml</text>
+<view class="publish-container">
+  <!-- 顶部导航 -->
+  <view class="nav-bar">
+    <image src="/images/icon-back.png" class="back-icon" bindtap="goBack" />
+    <text class="nav-title">发布任务</text>
+    <view class="publish-btn" bindtap="submitTask">发布</view>
+  </view>
+
+  <!-- 任务类型 -->
+  <view class="section">
+    <text class="section-title">任务类型</text>
+    <view class="type-tabs">
+      <view class="type-tab {{activeType === 0 ? 'active' : ''}}" bindtap="changeType" data-index="0">取件代送</view>
+      <view class="type-tab {{activeType === 1 ? 'active' : ''}}" bindtap="changeType" data-index="1">跑腿代办</view>
+      <view class="type-tab {{activeType === 2 ? 'active' : ''}}" bindtap="changeType" data-index="2">学习辅导</view>
+      <view class="type-tab {{activeType === 3 ? 'active' : ''}}" bindtap="changeType" data-index="3">其他</view>
+    </view>
+  </view>
+
+  <!-- 表单 -->
+  <view class="form-list">
+    <view class="form-item">
+      <text class="form-label">任务标题</text>
+      <input class="input-box" placeholder="简要描述你需要的帮助..." value="{{title}}" bindinput="onInput" data-name="title" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">详细描述</text>
+      <textarea class="textarea-box" placeholder="详细说明任务时间、地点等信息..." value="{{desc}}" bindinput="onInput" data-name="desc"></textarea>
+    </view>
+    <view class="form-item">
+      <text class="form-label">委托金额</text>
+      <input class="input-box" type="number" placeholder="输入委托虚拟币数..." value="{{coin}}" bindinput="onInput" data-name="coin" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">地点（可选）</text>
+      <input class="input-box" placeholder="任务地址或取送地址..." value="{{location}}" bindinput="onInput" data-name="location" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">截止时间（可选）</text>
+      <input class="input-box" placeholder="YYYY/MM/日 ----" value="{{deadline}}" bindinput="onInput" data-name="deadline" />
+    </view>
+  </view>
+
+  <!-- 提示 -->
+  <view class="tip-box">
+    <image src="/images/icon-tip.png" class="tip-icon" />
+    <text class="tip-text">发布任务后，悬赏金额将暂时冻结。任务完成后，悬赏将自动转给接单者。任务取消后，悬赏将退还给您。</text>
+  </view>
+</view>
