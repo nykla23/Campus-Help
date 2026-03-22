@@ -5,7 +5,37 @@ Page({
    * 页面的初始数据
    */
   data: {
+    activeType: 0,
+    title: "",
+    desc: "",
+    coin: "",
+    location: "",
+    deadline: ""
 
+  },
+
+  goBack() {
+    wx.navigateBack();
+  },
+  
+  changeType(e: WechatMiniprogram.TouchEvent) {
+    const index = parseInt(e.currentTarget.dataset.index as string);
+    this.setData({ activeType: index });
+  },
+
+  onInput(e: WechatMiniprogram.InputEvent) {
+    const name = e.currentTarget.dataset.name as string;
+    this.setData({ [name]: e.detail.value });
+  },
+
+  submitTask() {
+    const { title, desc, coin } = this.data;
+    if (!title || !desc || !coin) {
+      wx.showToast({ title: "请填写必填项", icon: "none" });
+      return;
+    }
+    wx.showToast({ title: "发布成功" });
+    wx.switchTab({ url: "/pages/index/index" });
   },
 
   /**
