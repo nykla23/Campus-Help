@@ -8,6 +8,13 @@ Page({
 
   },
 
+  goBack() {
+    wx.navigateBack();
+  },
+  toChat() {
+    wx.navigateTo({ url: "/pages/chat/chat?id=1" });
+  },
+
   /**
    * 生命周期函数--监听页面加载
    */
