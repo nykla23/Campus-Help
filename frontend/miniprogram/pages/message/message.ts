@@ -5,7 +5,15 @@ Page({
    * 页面的初始数据
    */
   data: {
+    msgList: [
+      { id: 1, avatar: "/images/lisi.png", nickname: "李四", preview: "好的，我马上去买。", time: "2天前" },
+      { id: 2, avatar: "/images/wangwu.png", nickname: "王五", preview: "好的，我马上去取。", time: "2小时前" }
+    ]
+  },
 
+  toChat(e: WechatMiniprogram.TouchEvent) {
+    const id = e.currentTarget.dataset.id as string;
+    wx.navigateTo({ url: `/pages/chat/chat?id=${id}` });
   },
 
   /**
