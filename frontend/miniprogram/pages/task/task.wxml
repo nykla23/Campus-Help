@@ -1,2 +1,45 @@
-<!--pages/task/task.wxml-->
-<text>pages/task/task.wxml</text>
+<view class="task-container">
+  <view class="nav-bar">
+    <image src="/images/icon-back.png" class="back-icon" bindtap="goBack" />
+    <text class="nav-title">任务详情</text>
+    <view></view>
+  </view>
+
+  <view class="task-info-card">
+    <view class="task-tags">
+      <view class="task-tag green">跑腿代办</view>
+      <view class="status-tag orange">进行中</view>
+    </view>
+    <text class="task-title">代买午餐</text>
+    <text class="task-coin">⭐ 5 虚拟币</text>
+    <view class="divider"></view>
+    <text class="section-subtitle">任务描述</text>
+    <text class="task-desc">在食堂帮我带一份红烧肉套餐和一瓶矿泉水到图书馆门口，中午12点半前送达</text>
+    <view class="task-location">📍 食堂 → 图书馆</view>
+    <view class="task-time-item">⏱️ 截止时间：3/11 12:15</view>
+    <view class="task-time-item">⏱️ 发布时间：3/11 10:00</view>
+  </view>
+
+  <view class="user-card">
+    <text class="section-title">发布者</text>
+    <view class="user-info">
+      <image src="/images/avatar-zhangsan.png" class="avatar" />
+      <view>
+        <view class="user-name">张三</view>
+        <view class="credit-score">⭐ 信用分 100</view>
+      </view>
+      <view class="private-btn" bindtap="toChat">私信</view>
+    </view>
+  </view>
+
+  <view class="user-card">
+    <text class="section-title">接单者</text>
+    <view class="user-info">
+      <image src="/images/avatar-lisi.png" class="avatar" />
+      <view>
+        <view class="user-name">李四</view>
+        <view class="credit-score">⭐ 信用分 100</view>
+      </view>
+    </view>
+  </view>
+</view>
