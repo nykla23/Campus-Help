@@ -5,7 +5,27 @@ Page({
    * 页面的初始数据
    */
   data: {
+      username: "",
+      password: ""
 
+  },
+  onInputChange(e: WechatMiniprogram.InputEvent) {
+    const name = e.currentTarget.dataset.name as string;
+    this.setData({ [name]: e.detail.value });
+  },
+
+  onLogin() {
+    const { username, password } = this.data;
+    if (!username || !password) {
+      wx.showToast({ title: "请填写完整信息", icon: "none" });
+      return;
+    }
+    wx.showToast({ title: "登录成功" });
+    wx.switchTab({ url: "/pages/index/index" });
+  },
+
+  toRegister() {
+    wx.navigateTo({ url: "/pages/register/register" });
   },
 
   /**

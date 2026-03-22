@@ -1,2 +1,20 @@
-<!--pages/login/login.wxml-->
-<text>pages/login/login.wxml</text>
+<view class="login-container">
+  <view class="logo">
+    <text class="logo-text">校园帮</text>
+    <text class="sub-logo">校园互助平台</text>
+  </view>
+  <view class="login-form">
+    <view class="form-title">登录</view>
+    <view class="form-subtitle">使用您的账号登陆校园帮</view>
+    <view class="form-item">
+      <text class="form-label">用户名：</text>
+      <input class="input-box" placeholder="请输入用户名" value="{{username}}" bindinput="onInputChange" data-name="username" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">密码：</text>
+      <input class="input-box" password placeholder="请输入密码" value="{{password}}" bindinput="onInputChange" data-name="password" />
+    </view>
+    <view class="btn-primary" bindtap="onLogin">登录</view>
+    <view class="link-text">还没有账号？<text class="link" bindtap="toRegister">立即注册</text></view>
+  </view>
+</view>

@@ -8,7 +8,30 @@ Page({
     username: "",
     nickname: "",
     password: "",
-    confirmPassword: ""
+    confirmPwd: ""
+  },
+
+  onInputChange(e: WechatMiniprogram.InputEvent) {
+    const name = e.currentTarget.dataset.name as string;
+    this.setData({ [name]: e.detail.value });
+  },
+
+  onRegister() {
+    const { username, nickname, password, confirmPwd } = this.data;
+    if (!username || !nickname || !password || !confirmPwd) {
+      wx.showToast({ title: "请填写完整信息", icon: "none" });
+      return;
+    }
+    if (password !== confirmPwd) {
+      wx.showToast({ title: "两次密码不一致", icon: "none" });
+      return;
+    }
+    wx.showToast({ title: "注册成功" });
+    wx.redirectTo({ url: "/pages/login/login" });
+  },
+
+  toLogin() {
+    wx.navigateTo({ url: "/pages/login/login" });
   },
 
   /**
