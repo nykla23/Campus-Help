@@ -1,1 +1,119 @@
-/* pages/profile/profile.wxss */
+.profile-container {
+  padding-bottom: 80px;
+}
+.user-header {
+  display: flex;
+  align-items: center;
+  padding: 24px 16px;
+  background-color: white;
+}
+.avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+.user-info {
+  flex: 1;
+}
+.user-name {
+  font-size: 20px;
+  font-weight: bold;
+  display: block;
+}
+.user-tag {
+  font-size: 14px;
+  color: var(--text-aux);
+  margin-top: 4px;
+  display: block;
+}
+.user-actions {
+  display: flex;
+  gap: 12px;
+}
+.action-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.user-stats {
+  display: flex;
+  padding: 16px;
+  background-color: white;
+  border-top: 1px solid var(--border-color);
+}
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+.stat-num {
+  font-size: 20px;
+  font-weight: bold;
+  display: block;
+}
+.stat-label {
+  font-size: 14px;
+  color: var(--text-aux);
+  margin-top: 4px;
+  display: block;
+}
+
+.profile-tabs {
+  display: flex;
+  background-color: white;
+  margin-top: 12px;
+}
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 12px 0;
+  font-size: 16px;
+  color: var(--text-aux);
+  border-bottom: 2px solid transparent;
+}
+.tab-item.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  font-weight: bold;
+}
+
+.content-list {
+  height: calc(100vh - 320px);
+}
+.task-card {
+  margin: 12px;
+  padding: 16px;
+  background-color: white;
+  border-radius: 8px;
+}
+.task-tag.blue {
+  background-color: var(--tag-blue);
+  color: var(--primary-color);
+}
+
+.trade-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+}
+.trade-title {
+  font-size: 16px;
+}
+.trade-time {
+  font-size: 14px;
+  color: var(--text-aux);
+  margin-top: 4px;
+}
+.trade-amount {
+  font-size: 16px;
+  font-weight: bold;
+}
+.trade-amount.income {
+  color: #00C853;
+}
+.trade-amount.expense {
+  color: #D32F2F;
+}
