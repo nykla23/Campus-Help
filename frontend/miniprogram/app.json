@@ -7,12 +7,13 @@
     "pages/profile/profile",
     "pages/chat/chat",
     "pages/task/task",
-    "pages/message/message"
+    "pages/message/message",
+    "pages/logs/logs"
     
   ],
   "tabBar": {
     "color": "#86909C",     
-    "selectedColor": "#1677FF",
+    "selectedColor": "#3EB1F4",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
     "list":[
@@ -27,19 +28,28 @@
       {
         "pagePath": "pages/profile/profile",
         "text": "我的"
+      },
+      {
+        "pagePath": "pages/message/message",
+        "text": "消息"
+      },
+      {
+        "pagePath": "pages/task/task",
+        "text": "任务"
       }
     ]
   },
   "window": {
-    "navigationBarTextStyle": "black",
-    "navigationStyle": "custom"
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#3EB1F4",
+    "navigationBarTitleText": "校园帮",
+    "navigationBarTextStyle": "white"
   },
   "style": "v2",
   "rendererOptions": {
     "skyline": {
       "defaultDisplayBlock": true,
       "defaultContentBox": true,
-      "tagNameStyleIsolation": "legacy",
       "disableABTest": true,
       "sdkVersionBegin": "3.0.0",
       "sdkVersionEnd": "15.255.255"

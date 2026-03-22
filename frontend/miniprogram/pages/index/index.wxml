@@ -1,2 +1,31 @@
-<!--pages/index/index.wxml-->
-<text>pages/index/index.wxml</text>
+<!-- 顶部搜索栏 -->
+<view class="search-bar">
+  <input placeholder="搜索任务" class="search-input" />
+  <image src="/images/message-icon.png" class="message-icon" />
+</view>
+
+<!-- 状态标签栏 -->
+<view class="status-tabs">
+  <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">全部</view>
+  <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">待接单</view>
+  <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">进行中</view>
+  <view class="tab-item {{activeTab === 3 ? 'active' : ''}}" bindtap="changeTab" data-index="3">已完成</view>
+</view>
+
+<!-- 任务列表 -->
+<scroll-view scroll-y class="task-list">
+  <view class="task-card" wx:for="{{taskList}}" wx:key="id" bindtap="toDetail">
+    <!-- 头像+信用分 -->
+    <image src="{{item.avatar}}" class="avatar" />
+    <view class="credit">信用分：{{item.credit}}</view>
+    <!-- 任务信息 -->
+    <view class="task-info">
+      <view class="task-title">{{item.title}}</view>
+      <view class="task-desc">{{item.desc}}</view>
+      <view class="task-price">¥{{item.price}}</view>
+      <view class="task-time">{{item.time}}</view>
+    </view>
+    <!-- 状态标签 -->
+    <view class="status-tag">{{item.status}}</view>
+  </view>
+</scroll-view>
