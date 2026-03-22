@@ -1,1 +1,41 @@
-/* pages/message/message.wxss */
+.message-container {
+  padding: 16px;
+}
+.page-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 16px;
+  display: block;
+}
+.msg-list {
+  height: calc(100vh - 80px);
+}
+.msg-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+.msg-info {
+  flex: 1;
+}
+.msg-name {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.msg-preview {
+  font-size: 14px;
+  color: var(--text-aux);
+}
+.msg-time {
+  font-size: 14px;
+  color: var(--text-aux);
+}
