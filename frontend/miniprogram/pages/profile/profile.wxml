@@ -1,2 +1,91 @@
-<!--pages/profile/profile.wxml-->
-<text>pages/profile/profile.wxml</text>
+<view class="profile-container">
+  <!-- 用户信息 -->
+  <view class="user-header">
+    <image src="/images/avatar-zhangsan.png" class="avatar" />
+    <view class="user-info">
+      <text class="user-name">张三</text>
+      <text class="user-tag">个性标签</text>
+    </view>
+    <view class="user-actions">
+      <image src="/images/icon-setting.png" class="action-icon" />
+      <image src="/images/icon-exit.png" class="action-icon" />
+    </view>
+  </view>
+
+  <view class="user-stats">
+    <view class="stat-item">
+      <text class="stat-num">100</text>
+      <text class="stat-label">虚拟币</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-num">100</text>
+      <text class="stat-label">信用分</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-num">3</text>
+      <text class="stat-label">完成委托</text>
+    </view>
+  </view>
+
+  <!-- 标签切换 -->
+  <view class="profile-tabs">
+    <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">我发布的</view>
+    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">我接单的</view>
+    <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">交易</view>
+  </view>
+
+  <!-- 内容区 -->
+  <scroll-view scroll-y class="content-list" wx:if="{{activeTab === 0}}">
+    <view class="task-card" wx:for="{{publishList}}" wx:key="id">
+      <view class="user-info">
+        <image src="{{item.avatar}}" class="avatar" />
+        <view>
+          <view class="user-name">{{item.nickname}}</view>
+          <view class="credit-score">信用分 {{item.credit}}</view>
+        </view>
+        <view class="status-tag orange">{{item.status}}</view>
+      </view>
+      <view class="task-title">{{item.title}}</view>
+      <view class="task-desc">{{item.desc}}</view>
+      <view class="task-tag-area">
+        <view class="task-tag blue">{{item.tag}}</view>
+        <view class="task-location">📍 {{item.location}}</view>
+      </view>
+      <view class="task-footer">
+        <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
+        <view class="task-time">⏱️ {{item.time}}</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <scroll-view scroll-y class="content-list" wx:if="{{activeTab === 1}}">
+    <view class="task-card" wx:for="{{acceptList}}" wx:key="id">
+      <view class="user-info">
+        <image src="{{item.avatar}}" class="avatar" />
+        <view>
+          <view class="user-name">{{item.nickname}}</view>
+          <view class="credit-score">信用分 {{item.credit}}</view>
+        </view>
+        <view class="status-tag orange">{{item.status}}</view>
+      </view>
+      <view class="task-title">{{item.title}}</view>
+      <view class="task-desc">{{item.desc}}</view>
+      <view class="task-tag-area">
+        <view class="task-tag blue">{{item.tag}}</view>
+        <view class="task-location">📍 {{item.location}}</view>
+      </view>
+      <view class="task-footer">
+        <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
+        <view class="task-time">⏱️ {{item.time}}</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <scroll-view scroll-y class="content-list" wx:if="{{activeTab === 2}}">
+    <view class="trade-item" wx:for="{{tradeList}}" wx:key="id">
+      <view class="trade-title">{{item.title}}</view>
+      <view class="trade-time">{{item.time}}</view>
+      <view class="trade-amount {{item.type === 'income' ? 'income' : 'expense'}}">{{item.amount}}</view>
+    </view>
+  </scroll-view>
+</view>
