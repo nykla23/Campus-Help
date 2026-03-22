@@ -1,0 +1,65 @@
+{
+  "pages": [
+    "pages/register/register",
+    "pages/login/login",
+    "pages/index/index",
+    "pages/publish/publish",
+    "pages/profile/profile",
+    "pages/chat/chat",
+    "pages/task/task",
+    "pages/message/message",
+    "pages/logs/logs"
+    
+  ],
+  "tabBar": {
+    "color": "#86909C",     
+    "selectedColor": "#3EB1F4",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list":[
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/tab/home.png",
+        "selectedIconPath": "images/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/publish/publish",
+        "text": "发布",
+        "iconPath": "images/tab/publish.png",
+        "selectedIconPath": "images/tab/publish-active.png"
+      },
+      {
+        "pagePath": "pages/message/message",
+        "text": "消息",
+        "iconPath": "images/tab/message.png",
+        "selectedIconPath": "images/tab/message-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/tab/profile.png",
+        "selectedIconPath": "images/tab/profile-active.png"
+      }
+    ]
+  },
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#3EB1F4",
+    "navigationBarTitleText": "校园帮",
+    "navigationBarTextStyle": "white"
+  },
+  "style": "v2",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "defaultContentBox": true,
+      "disableABTest": true,
+      "sdkVersionBegin": "3.0.0",
+      "sdkVersionEnd": "15.255.255"
+    }
+  },
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

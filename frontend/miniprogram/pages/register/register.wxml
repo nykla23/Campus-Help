@@ -1,0 +1,28 @@
+<view class="register-container">
+  <view class="logo">
+    <text class="logo-text">校园帮</text>
+    <text class="sub-logo">校园互助平台</text>
+  </view>
+  <view class="register-form">
+    <view class="form-title">注册</view>
+    <view class="form-subtitle">注册您的校园帮账号</view>
+    <view class="form-item">
+      <text class="form-label">用户名：</text>
+      <input class="input-box" placeholder="请输入用户名" value="{{username}}" bindinput="onInputChange" data-name="username" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">昵称：</text>
+      <input class="input-box" placeholder="请输入昵称" value="{{nickname}}" bindinput="onInputChange" data-name="nickname" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">密码：</text>
+      <input class="input-box" password placeholder="请输入密码" value="{{password}}" bindinput="onInputChange" data-name="password" />
+    </view>
+    <view class="form-item">
+      <text class="form-label">确认密码：</text>
+      <input class="input-box" password placeholder="请再次输入密码" value="{{confirmPwd}}" bindinput="onInputChange" data-name="confirmPwd" />
+    </view>
+    <view class="btn-primary" bindtap="onRegister">确认注册</view>
+    <view class="link-text">已有帐号？<text class="link" bindtap="toLogin">立即登录</text></view>
+  </view>
+</view>
