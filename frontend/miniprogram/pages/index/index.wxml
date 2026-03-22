@@ -1,7 +1,8 @@
 <!-- 顶部搜索栏 -->
 <view class="search-bar">
+  <text class="logo-text">校园帮</text>
   <input placeholder="搜索任务" class="search-input" />
-  <image src="/images/message-icon.png" class="message-icon" />
+  <image src="/images/icon-bell.png" class="bell-icon" />
 </view>
 
 <!-- 状态标签栏 -->
@@ -10,22 +11,32 @@
   <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">待接单</view>
   <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">进行中</view>
   <view class="tab-item {{activeTab === 3 ? 'active' : ''}}" bindtap="changeTab" data-index="3">已完成</view>
+  <view class="filter-btn" bindtap="showFilter">
+    <image src="/images/icon-filter.png" class="filter-icon" />
+    <text>筛选</text>
+  </view>
 </view>
 
 <!-- 任务列表 -->
 <scroll-view scroll-y class="task-list">
-  <view class="task-card" wx:for="{{taskList}}" wx:key="id" bindtap="toDetail">
-    <!-- 头像+信用分 -->
-    <image src="{{item.avatar}}" class="avatar" />
-    <view class="credit">信用分：{{item.credit}}</view>
-    <!-- 任务信息 -->
-    <view class="task-info">
-      <view class="task-title">{{item.title}}</view>
-      <view class="task-desc">{{item.desc}}</view>
-      <view class="task-price">¥{{item.price}}</view>
-      <view class="task-time">{{item.time}}</view>
+  <view class="task-card" wx:for="{{taskList}}" wx:key="id" bindtap="toTaskDetail" data-id="{{item.id}}">
+    <view class="user-info">
+      <image src="{{item.avatar}}" class="avatar" />
+      <view>
+        <view class="user-name">{{item.nickname}}</view>
+        <view class="credit-score">信用分 {{item.credit}}</view>
+      </view>
+      <view class="status-tag {{item.status === '待接单' ? 'orange' : ''}}">{{item.status}}</view>
     </view>
-    <!-- 状态标签 -->
-    <view class="status-tag">{{item.status}}</view>
+    <view class="task-title">{{item.title}}</view>
+    <view class="task-desc">{{item.desc}}</view>
+    <view class="task-tag-area">
+      <view class="task-tag {{item.tag === '跑腿代办' ? 'green' : 'blue'}}">{{item.tag}}</view>
+      <view class="task-location">📍 {{item.location}}</view>
+    </view>
+    <view class="task-footer">
+      <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
+      <view class="task-time">⏱️ {{item.time}}</view>
+    </view>
   </view>
 </scroll-view>
