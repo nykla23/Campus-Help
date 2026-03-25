@@ -312,11 +312,13 @@ components:
             type: object
     UserCreate:
       type: object
-      required: [username, password]
+      required: [username, password, confirmPassword]
       properties:
         username:
           type: string
         password:
+          type: string
+        confirmPassword:
           type: string
         nickname:
           type: string
@@ -330,6 +332,8 @@ components:
         avatar:
           type: string
         password:
+          type: string
+        signature:
           type: string
     TaskCreate:
       type: object
