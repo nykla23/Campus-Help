@@ -5,23 +5,44 @@
 
 ```mermaid
 graph TD
-    A[微信小程序前端] -->|HTTPS| B(Node.js + Express API)
-    B --> C[(MySQL数据库)]
-    B --> D[腾讯云IM 即时通讯]
-    B --> E[腾讯云COS 图片存储]
+    A[用户端] --> B[微信小程序 前端]
     
-    subgraph 前端
-        A
+    subgraph 前端架构
+        B1[VS Code 开发<br/>WXML + SCSS + TypeScript]
+        B2[微信开发者工具<br/>预览 / 调试 / 热更新]
+        B3[页面层：登录、首页、任务、消息、个人中心]
+        B4[全局样式 + 状态管理]
+        B1 --- B2
+        B2 --- B3
+        B3 --- B4
     end
     
+    B --> B1
+    B -->|HTTPS 请求| C[Node.js + Express 后端API]
+    
     subgraph 后端服务
-        B
-        C
+        C1[路由模块]
+        C2[中间件：登录校验、错误处理]
+        C3[业务模块：用户、任务、消息、交易]
+        C1 --> C2 --> C3
+    end
+    C --> C1
+    
+    C --> D[(MySQL 8.0+ 数据库)]
+    C --> E[腾讯云IM 即时通讯]
+    C --> F[腾讯云COS 图片存储]
+    
+    subgraph 数据存储
+        D1[users 用户表]
+        D2[tasks 任务表]
+        D3[reviews 评价表]
+        D4[transactions 交易表]
+        D --> D1 & D2 & D3 & D4
     end
     
     subgraph 第三方服务
-        D
         E
+        F
     end
 ```
 ## 技术选型确认
