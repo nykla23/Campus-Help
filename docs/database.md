@@ -17,6 +17,7 @@
 | coins          | INT             | DEFAULT 100                                           | 虚拟币余额       |
 | created_at     | DATETIME        | DEFAULT CURRENT_TIMESTAMP                             | 注册时间         |
 | updated_at     | DATETIME        | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间         |
+|signature       |VARCHAR(200)     |                                                       |个性签名          |
 
 #### 任务表（tasks）
 
@@ -75,7 +76,9 @@ CREATE TABLE users (
     username VARCHAR(50) UNIQUE NOT NULL COMMENT '用户名',
     password VARCHAR(255) NOT NULL COMMENT '加密密码',
     nickname VARCHAR(50) COMMENT '昵称',
-    avatar VARCHAR(255) COMMENT '头像URL',
+    avatar VARCHAR(255) ,
+    signature VARCHAR(200) COMMENT '个性签名',
+    COMMENT '头像URL',
     credit_score INT DEFAULT 100 COMMENT '信用分',
     coins INT DEFAULT 100 COMMENT '虚拟币余额',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
