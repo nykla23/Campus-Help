@@ -74,7 +74,6 @@ CREATE TABLE users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(50) UNIQUE NOT NULL COMMENT '用户名',
     password VARCHAR(255) NOT NULL COMMENT '加密密码',
-    student_id VARCHAR(20) UNIQUE COMMENT '学号',
     nickname VARCHAR(50) COMMENT '昵称',
     avatar VARCHAR(255) COMMENT '头像URL',
     credit_score INT DEFAULT 100 COMMENT '信用分',
