@@ -30,6 +30,7 @@
 | description  | TEXT         |                                                       | 详细描述                                         |
 | reward       | INT          | NOT NULL                                              | 悬赏虚拟币                                       |
 | location     | VARCHAR(100) |                                                       | 地点                                             |
+| type         | TINYINT      | DEFAULT 0                                             | 任务类型：0-全部 1-取件代送 2-跑腿代办 3-学习辅导 4-其他 |
 | status       | TINYINT      | DEFAULT 0                                             | 0-待接单，1-进行中，2-待确认，3-已完成，4-已取消 |
 | deadline     | DATETIME     |                                                       | 截止时间                                         |
 | created_at   | DATETIME     | DEFAULT CURRENT_TIMESTAMP                             | 发布时间                                         |
@@ -95,6 +96,7 @@ CREATE TABLE tasks (
     description TEXT COMMENT '详细描述',
     reward INT NOT NULL COMMENT '悬赏虚拟币',
     location VARCHAR(100) COMMENT '地点',
+    type TINYINT DEFAULT 0 COMMENT '任务类型：0-全部 1-取件代送 2-跑腿代办 3-学习辅导 4-其他', -- 新增字段
     status TINYINT DEFAULT 0 COMMENT '0-待接单 1-进行中 2-待确认 3-已完成 4-已取消',
     deadline DATETIME COMMENT '截止时间',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -102,6 +104,7 @@ CREATE TABLE tasks (
     FOREIGN KEY (publisher_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (acceptor_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_status (status),
+    INDEX idx_type (type), -- 新增类型索引，筛选更快
     INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
