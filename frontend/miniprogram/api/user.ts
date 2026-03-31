@@ -6,8 +6,6 @@ export function register(data: {
   password: string;
   confirmPassword: string;
   nickname?: string;
-  avatar?: string;
-  signature?: string;
 }) {
   return request('/users', 'POST', data, { noAuth: true });
 }
