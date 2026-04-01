@@ -17,8 +17,8 @@ export function getTaskList(params: {
   status?: number;
   type?: number;
   sort?: string;
-  publisher_id?: number;
-  acceptor_id?: number;
+  // publisher_id?: number;
+  // acceptor_id?: number;
 }) {
   return request('/tasks', 'GET', params);
 }

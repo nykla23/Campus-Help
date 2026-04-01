@@ -6,7 +6,7 @@ const db = require('./config/db');
 
 const userRouter = require('./routes/user');
 const authRouter = require('./routes/auth');
-
+const taskRouter = require('./routes/task');
 const app = express();
 
 // 中间件
@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/users', userRouter); // 注册接口路径变为 POST /users
 app.use('/auth', authRouter);  // 新增：给 user 路由挂载 /auth 前缀
-
+app.use('/tasks', taskRouter); // 任务接口路径变为 /tasks
 // 测试数据库连接
 db.getConnection()
     .then(() => console.log('数据库连接成功'))
