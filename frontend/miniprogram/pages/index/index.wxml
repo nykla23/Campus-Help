@@ -7,7 +7,6 @@
     value="{{keyword}}"              
     bindinput="onSearchInput"        
     bindconfirm="onSearchConfirm"
-    bindblur="onSearchBlur"
     confirm-type="search"
 
     />

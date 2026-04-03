@@ -25,25 +25,25 @@ Page({
 
   onSearchInput(e: WechatMiniprogram.Input) {
     console.log('输入了:',e.detail.value);
-    const keyword = e.detail.value;
+    const keyword = e.detail.value.trim();
     this.setData({ keyword });
     this.refreshList();
-    // // 输入时启动防抖，500ms后执行搜索
-    // if (this.searchTimer) clearTimeout(this.searchTimer);
-    // this.searchTimer = setTimeout(() => {
-    //   this.refreshList();
-    // }, 500);
+    // 输入时启动防抖，500ms后执行搜索
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.refreshList();
+    }, 500);
   },
 
   onSearchConfirm() {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.refreshList();
   },
-  onSearchBlur() {
-    setTimeout(() => {
-      this.refreshList();
-    }, 500);
-  },
+  // onSearchBlur() {
+  //   setTimeout(() => {
+  //     this.refreshList();
+  //   }, 500);
+  // },
 
   // 点筛选按钮：出现/收起类型横条
   toggleTypeBar() {
@@ -75,15 +75,18 @@ Page({
     this.setData({ showFilter: true, popupActiveType: this.data.activeType });
   },
   // 遮罩点击：关闭弹窗
-  hideFilter() { this.setData({ showFilter: false });
-    this.refreshList();
+  hideFilter() { 
+    this.setData({ showFilter: false });
+    // this.refreshList();
   },
 
   // 弹窗内类型点击
   popupChangeType(e: WechatMiniprogram.TouchEvent) {
     const type = Number(e.currentTarget.dataset.type || 0);
     // 先设置页面activeType、关弹窗，再刷新列表
-    this.setData({ activeType: type});
+    this.setData({ activeType: type}, () => {
+      this.refreshList();
+    });
   },
 
   // 筛选项点击
@@ -108,16 +111,20 @@ Page({
     else if (activeTab === 3) status = 3;
     let type: number | undefined = activeType === 0 ? undefined : activeType;
     let sort = selectedFilter;
+    let searchKeyword = keyword.trim() || undefined ;
 
-    console.log('请求参数:', {page:1,limit, status, type, sort, keyword})
+    console.log('请求参数:', {page:1,limit, status, type, sort, keyword: searchKeyword})
     this.setData({ page: 1, loading: true });
-    getTaskList({ page: 1, limit, status, type, sort, keyword }).then(res => {
+    getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(res => {
       if (res.code === 0 && res.data) {
         this.setData({
           taskList: this._adaptTaskList(res.data.list),
           total: res.data.total,
           page: 1
         });
+        if (res.data.list.length === 0) {
+          wx.showToast({ title: "没有找到相关任务", icon: "none" });
+        }
       } else {
         wx.showToast({ title: res.message, icon: 'none' });
       }
