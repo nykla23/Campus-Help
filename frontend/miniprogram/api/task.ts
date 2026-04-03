@@ -17,6 +17,7 @@ export function getTaskList(params: {
   status?: number;
   type?: number;
   sort?: string;
+  keyword?: string;
   // publisher_id?: number;
   // acceptor_id?: number;
 }) {
