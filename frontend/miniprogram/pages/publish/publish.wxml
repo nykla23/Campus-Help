@@ -10,10 +10,10 @@
   <view class="section">
     <text class="section-title">任务类型</text>
     <view class="type-tabs">
-      <view class="type-tab {{activeType === 0 ? 'active' : ''}}" bindtap="changeType" data-index="0">取件代送</view>
-      <view class="type-tab {{activeType === 1 ? 'active' : ''}}" bindtap="changeType" data-index="1">跑腿代办</view>
-      <view class="type-tab {{activeType === 2 ? 'active' : ''}}" bindtap="changeType" data-index="2">学习辅导</view>
-      <view class="type-tab {{activeType === 3 ? 'active' : ''}}" bindtap="changeType" data-index="3">其他</view>
+      <view class="type-tab {{activeType === 1 ? 'active' : ''}}" bindtap="changeType" data-index="0">取件代送</view>
+      <view class="type-tab {{activeType === 2 ? 'active' : ''}}" bindtap="changeType" data-index="1">跑腿代办</view>
+      <view class="type-tab {{activeType === 3 ? 'active' : ''}}" bindtap="changeType" data-index="2">学习辅导</view>
+      <view class="type-tab {{activeType === 4 ? 'active' : ''}}" bindtap="changeType" data-index="3">其他</view>
     </view>
   </view>
 
