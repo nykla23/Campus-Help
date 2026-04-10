@@ -214,13 +214,27 @@ Page({
 
   onLoad() {
     this.refreshList();
+
+    const app = getApp();
+    app.globalData.eventEmitter.on('taskPublished', () => {
+      this.refreshList();
+    });
+    
   },
 
   onShow() {
-    
+
     console.log('index onShow 触发')
-    this.refreshList();
-  },  
+    this.setData({
+      activeTab: 0,
+      activeType: 0,
+      keyword: '',
+      selectedFilter: 'time'
+
+    },() => {
+      this.refreshList();
+    });
+  },
 
   
 });
