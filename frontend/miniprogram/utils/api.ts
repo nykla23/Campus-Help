@@ -1,5 +1,13 @@
 const BASE_URL = 'http://localhost:3000/api';
 
+// 定义发布任务的请求参数类型
+
+
+// 定义发布任务的响应类型
+export interface PublishTaskResponse {
+  taskId: string;
+}
+
 function getToken() {
   return wx.getStorageSync('token') || '';
 }
@@ -39,4 +47,16 @@ export function request<T = any>(
       }
     });
   });
+}
+
+// 发布任务
+export function publishTask(data: {
+  type: number;
+  title: string;
+  description: string;
+  reward: number;
+  location?: string;
+  deadline?: string;
+}) {
+  return request('/tasks', 'POST', data);
 }

@@ -1,11 +1,14 @@
 // pages/publish/publish.ts
+
+import { publishTask } from '../../utils/api'; // 引入接口方法
+
 Page({
 
   /**
    * 页面的初始数据
    */
   data: {
-    activeType: 0,
+    activeType: 1,
     title: "",
     desc: "",
     coin: "",
@@ -28,16 +31,54 @@ Page({
     this.setData({ [name]: e.detail.value });
   },
 
-  submitTask() {
-    const { title, desc, coin } = this.data;
-    if (!title || !desc || !coin) {
-      wx.showToast({ title: "请填写必填项", icon: "none" });
+async submitTask() {
+  try {
+    // 1. 前端参数校验
+    const { activeType, title, desc, coin, location, deadline } = this.data;
+    if (!title.trim()) {
+      wx.showToast({ title: "请填写任务标题", icon: "none" });
       return;
     }
-    wx.showToast({ title: "发布成功" });
-    wx.switchTab({ url: "/pages/index/index" });
-  },
+    if (!desc.trim()) {
+      wx.showToast({ title: "请填写任务描述", icon: "none" });
+      return;
+    }
+    const rewardNum = Number(coin);
+    if (isNaN(rewardNum) || rewardNum <= 0) {
+      wx.showToast({ title: "请填写有效的奖励数量", icon: "none" });
+      return;
+    }
 
+    // 2. 构造请求参数（字段名与后端匹配）
+    const requestData = {
+      type: activeType,
+      title: title.trim(),
+      description: desc.trim(),   // ✅ 改为 description
+      reward: rewardNum,          // ✅ 改为 reward，且为数字
+      ...(location && { location: location.trim() }),
+      ...(deadline && { deadline: deadline.trim() })
+    };
+
+    // 3. 调用发布接口
+    wx.showLoading({ title: '发布中...', mask: true });
+
+    console.log('发送数据:', JSON.stringify(requestData));
+    const res = await publishTask(requestData);
+    
+    // 4. 处理成功响应
+    if (res.code === 200) {
+      wx.showToast({ title: res.message || "发布成功" });
+      wx.switchTab({ url: "/pages/index/index" });
+    } else {
+      wx.showToast({ title: res.message || "发布失败", icon: "none" });
+    }
+  } catch (err) {
+    console.error("发布任务失败：", err);
+    wx.showToast({ title: "发布失败，请稍后重试", icon: "none" });
+  } finally {
+    wx.hideLoading();
+  }
+},
   /**
    * 生命周期函数--监听页面加载
    */

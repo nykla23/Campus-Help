@@ -163,6 +163,10 @@ Page({
 
     this.setData({ loading: true });
     getTaskList({ page: nextPage, limit, status, type, sort, keyword }).then(res => {
+
+      console.log('完整响应:', JSON.stringify(res));
+      console.log('任务列表第一项:', res.data.list[0]);
+
       if (res.code === 0 && res.data) {
         this.setData({
           taskList: this.data.taskList.concat(this._adaptTaskList(res.data.list)),
@@ -178,10 +182,10 @@ Page({
   // 字段适配
   _adaptTaskList(list: any[]) {
     return (list || []).map(item => ({
-      id: item.taskId,
-      avatar: item.publisher?.avatar || '/images/default-avatar.png',
-      nickname: item.publisher?.nickname || '',
-      credit: item.publisher?.creditScore || '',
+      id: item.taskId || item.id,
+      avatar: item.avatar || item.publisher?.avatar || '/images/default-avatar.png',
+      nickname: item.nickname || item.publisher?.nickname || '匿名用户',
+      credit: item.credit_score || item.publisher?.creditScore || '0',
       title: item.title,
       desc: item.description,
       tag: this._adaptTaskType(item.type),
@@ -210,5 +214,13 @@ Page({
 
   onLoad() {
     this.refreshList();
-  }
+  },
+
+  onShow() {
+    
+    console.log('index onShow 触发')
+    this.refreshList();
+  },  
+
+  
 });
