@@ -83,3 +83,20 @@ export function publishTask(data: {
 }) {
   return request('/tasks', 'POST', data);
 }
+
+// 个人主页相关接口
+export function getUserProfile() {
+  return request('/user/profile', 'GET');
+}
+
+export function getMyPublishTasks() {
+  return request('/user/tasks/publish', 'GET');
+}
+
+export function getMyReceiveTasks() {
+  return request('/user/tasks/receive', 'GET');
+}
+
+export function getMyTrades() {
+  return request('/user/trades', 'GET');
+}

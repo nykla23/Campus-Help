@@ -2,8 +2,6 @@ const taskModel = require('../models/task');
 
 exports.list = async (req, res) => {
 
-  console.log('收到的查询参数:', req.query);
-  
   try {
     // 支持参数：page/limit/status/type等
     let { page = 1, limit = 10, status, type } = req.query;

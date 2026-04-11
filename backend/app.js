@@ -20,6 +20,9 @@ app.use('/api/users', userRouter); // 注册接口路径变为 POST /users
 app.use('/api/auth', authRouter);  // 新增：给 user 路由挂载 /auth 前缀
 app.use('/api/tasks', taskRouter); // 任务接口路径变为 /tasks
 app.use('/api/tasks', publishRouter); // 发布任务接口路径变为 /tasks POST
+// 个人主页路由
+app.use('/api/user', require('./routes/user'));
+
 // 测试数据库连接
 db.getConnection()
     .then(() => console.log('数据库连接成功'))

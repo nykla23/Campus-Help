@@ -9,8 +9,6 @@ exports.verifyToken = (req, res, next) => {
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    console.log('JWT 解析结果:', decoded);
-
     req.user = {
       ...decoded,
       id: decoded.userId   // 将 userId 赋值给 id
