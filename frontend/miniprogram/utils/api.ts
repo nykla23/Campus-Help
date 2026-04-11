@@ -18,17 +18,40 @@ interface ApiResponse<T = any> {
   message: string;
 }
 
+// 将对象转换为 query string，过滤无效值
+function buildQueryString(params: any): string {
+  const parts: string[] = [];
+  for (const key in params) {
+    const value = params[key];
+    if (value !== undefined && value !== null && value !== '') {
+      parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
+    }
+  }
+  return parts.join('&');
+}
+
 export function request<T = any>(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   data?: any,
   options: { noAuth?: boolean } = {}
 ): Promise<ApiResponse<T>> {
+  let fullUrl = BASE_URL + url;
+  let requestData = data;
+
+  if (method === 'GET' && data) {
+    const query = buildQueryString(data);
+    if (query) {
+      fullUrl += (url.includes('?') ? '&' : '?') + query;
+    }
+    requestData = undefined; // GET 请求没有 body
+  }
+
   return new Promise((resolve, reject) => {
     wx.request({
-      url: BASE_URL + url,
+      url: fullUrl,
       method,
-      data: method === 'GET' ? undefined : data,
+      data: requestData,
       header: {
         'Content-Type': 'application/json',
         ...(options.noAuth ? {} : { Authorization: "Bearer " + getToken() }),
