@@ -1,91 +1,150 @@
 <view class="profile-container">
+  <!-- 设置与退出按钮 - 单独放在个人信息上方 -->
+  <view class="settings-bar">
+    <image src="/images/icon-setting.png" class="action-icon" bindtap="toSetting" />
+    <image src="/images/icon-exit.png" class="action-icon" bindtap="logout" />
+  </view>
+
   <!-- 用户信息 -->
-  <view class="user-header">
-    <image src="/images/avatar-zhangsan.png" class="avatar" />
-    <view class="user-info">
-      <text class="user-name">张三</text>
-      <text class="user-tag">个性标签</text>
-    </view>
-    <view class="user-actions">
-      <image src="/images/icon-setting.png" class="action-icon" />
-      <image src="/images/icon-exit.png" class="action-icon" />
+  <view class="profile-user-header">
+    <image src="{{userInfo.avatar || '/images/default-avatar.png'}}" class="profile-avatar" />
+    <view class="profile-user-details">
+      <text class="profile-username">{{userInfo.nickname || '用户'}}</text>
+      <text class="profile-usertag">{{userInfo.signature || '个性标签'}}</text>
     </view>
   </view>
 
+  <!-- 统计区域：数字左侧添加图标 -->
   <view class="user-stats">
     <view class="stat-item">
-      <text class="stat-num">100</text>
+      <view class="stat-number-wrapper">
+        <text class="stat-icon">💰</text>
+        <text class="stat-num">{{stats.coins}}</text>
+      </view>
       <text class="stat-label">虚拟币</text>
     </view>
     <view class="stat-item">
-      <text class="stat-num">100</text>
+      <view class="stat-number-wrapper">
+        <text class="stat-icon">📊</text>
+        <text class="stat-num">{{stats.credit}}</text>
+      </view>
       <text class="stat-label">信用分</text>
     </view>
     <view class="stat-item">
-      <text class="stat-num">3</text>
+      <view class="stat-number-wrapper">
+        <text class="stat-icon">✅</text>
+        <text class="stat-num">{{stats.finishCount}}</text>
+      </view>
       <text class="stat-label">完成委托</text>
     </view>
   </view>
 
-  <!-- 标签切换 -->
+  <!-- 标签切换：每个标签左侧添加图标 -->
   <view class="profile-tabs">
-    <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">我发布的</view>
-    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">我接单的</view>
-    <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">交易</view>
+    <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">
+      <text class="tab-icon">📝</text>
+      <text>我发布的</text>
+    </view>
+    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">
+      <text class="tab-icon">📋</text>
+      <text>我接单的</text>
+    </view>
+    <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">
+      <text class="tab-icon">💱</text>
+      <text>交易</text>
+    </view>
   </view>
 
-  <!-- 内容区 -->
+  <!-- 内容区：我发布的 -->
   <scroll-view scroll-y class="content-list" wx:if="{{activeTab === 0}}">
-    <view class="task-card" wx:for="{{publishList}}" wx:key="id">
+    <view class="task-card" wx:for="{{publishList}}" wx:key="id" bindtap="toTaskDetail" data-id="{{item.id}}">
       <view class="user-info">
         <image src="{{item.avatar}}" class="avatar" />
         <view>
           <view class="user-name">{{item.nickname}}</view>
           <view class="credit-score">信用分 {{item.credit}}</view>
         </view>
-        <view class="status-tag orange">{{item.status}}</view>
+        <view class="status-tag 
+          {{item.status === '待接单' ? 'orange' : ''}}
+          {{item.status === '进行中' ? 'green' : ''}}
+          {{item.status === '待确认' ? 'blue' : ''}}
+          {{item.status === '已完成' ? 'done' : ''}}
+          {{item.status === '已取消' ? 'cancel' : ''}}
+        ">
+          {{item.status}}
+        </view>
       </view>
       <view class="task-title">{{item.title}}</view>
       <view class="task-desc">{{item.desc}}</view>
       <view class="task-tag-area">
-        <view class="task-tag blue">{{item.tag}}</view>
-        <view class="task-location">📍 {{item.location}}</view>
+        <view class="task-tag 
+          {{item.tag === '跑腿代办' ? 'orange' : ''}}
+          {{item.tag === '取件代送' ? 'blue' : ''}}
+          {{item.tag === '学习辅导' ? 'purple' : ''}}
+          {{item.tag === '其他' ? 'gray' : ''}}
+        ">
+          {{item.tag}}
+        </view>
+        <view wx:if="{{item.location && item.location !== 'null'}}" class="task-location">📍 {{item.location}}</view>
       </view>
       <view class="task-footer">
         <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
         <view class="task-time">⏱️ {{item.time}}</view>
       </view>
     </view>
+    <view wx:if="{{publishList.length === 0}}" class="empty-tip">暂无发布的任务</view>
   </scroll-view>
 
+  <!-- 内容区：我接单的 -->
   <scroll-view scroll-y class="content-list" wx:if="{{activeTab === 1}}">
-    <view class="task-card" wx:for="{{acceptList}}" wx:key="id">
+    <view class="task-card" wx:for="{{acceptList}}" wx:key="id" bindtap="toTaskDetail" data-id="{{item.id}}">
       <view class="user-info">
         <image src="{{item.avatar}}" class="avatar" />
         <view>
           <view class="user-name">{{item.nickname}}</view>
           <view class="credit-score">信用分 {{item.credit}}</view>
         </view>
-        <view class="status-tag orange">{{item.status}}</view>
+        <view class="status-tag 
+          {{item.status === '待接单' ? 'orange' : ''}}
+          {{item.status === '进行中' ? 'green' : ''}}
+          {{item.status === '已完成' ? 'done' : ''}}
+          {{item.status === '已取消' ? 'cancel' : ''}}
+        ">
+          {{item.status}}
+        </view>
       </view>
       <view class="task-title">{{item.title}}</view>
       <view class="task-desc">{{item.desc}}</view>
       <view class="task-tag-area">
-        <view class="task-tag blue">{{item.tag}}</view>
-        <view class="task-location">📍 {{item.location}}</view>
+        <view class="task-tag 
+          {{item.tag === '跑腿代办' ? 'orange' : ''}}
+          {{item.tag === '取件代送' ? 'blue' : ''}}
+          {{item.tag === '学习辅导' ? 'purple' : ''}}
+          {{item.tag === '其他' ? 'gray' : ''}}
+        ">
+          {{item.tag}}
+        </view>
+        <view wx:if="{{item.location && item.location !== 'null'}}" class="task-location">📍 {{item.location}}</view>
       </view>
       <view class="task-footer">
         <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
         <view class="task-time">⏱️ {{item.time}}</view>
       </view>
     </view>
+    <view wx:if="{{acceptList.length === 0}}" class="empty-tip">暂无接单的任务</view>
   </scroll-view>
 
+  <!-- 内容区：交易 -->
   <scroll-view scroll-y class="content-list" wx:if="{{activeTab === 2}}">
     <view class="trade-item" wx:for="{{tradeList}}" wx:key="id">
-      <view class="trade-title">{{item.title}}</view>
-      <view class="trade-time">{{item.time}}</view>
-      <view class="trade-amount {{item.type === 'income' ? 'income' : 'expense'}}">{{item.amount}}</view>
+      <view>
+        <view class="trade-title">{{item.title}}</view>
+        <view class="trade-time">{{item.time}}</view>
+      </view>
+      <view class="trade-amount {{item.type === 'income' ? 'income' : 'expense'}}">
+        {{item.type === 'income' ? '+' : '-'}}{{item.amount}}
+      </view>
     </view>
+    <view wx:if="{{tradeList.length === 0}}" class="empty-tip">暂无交易记录</view>
   </scroll-view>
 </view>

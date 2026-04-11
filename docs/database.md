@@ -87,6 +87,8 @@ CREATE TABLE users (
     INDEX idx_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+ALTER TABLE users ADD signature VARCHAR(255) DEFAULT '';
+
 -- 任务表
 CREATE TABLE tasks (
     id INT PRIMARY KEY AUTO_INCREMENT,

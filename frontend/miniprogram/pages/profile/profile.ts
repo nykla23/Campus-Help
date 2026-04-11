@@ -1,83 +1,119 @@
-// pages/profile/profile.ts
+import { 
+  getUserProfile, 
+  getMyPublishTasks, 
+  getMyReceiveTasks, 
+  getMyTrades 
+} from '../../utils/api';
+
 Page({
-
-  /**
-   * 页面的初始数据
-   */
   data: {
+    // 用户信息
+    userInfo: {
+      avatar: '',
+      nickname: '',
+      signature: '',
+      coins: 0,
+      credit: 0
+    },
+    // 统计数据
+    stats: {
+      coins: 0,
+      credit: 0,
+      finishCount: 0
+    },
+    // 标签切换
     activeTab: 0,
-    publishList: [
-      { id: 1, avatar: "/images/avatar-zhangsan.png", nickname: "张三", credit: 100, title: "帮忙取快递", desc: "菜鸟驿站，一个快递", tag: "快递代取", location: "菜鸟驿站 → 5号楼", coin: 5, time: "已截止 2天前", status: "待接单" },
-      { id: 2, avatar: "/images/avatar-zhangsan.png", nickname: "张三", credit: 100, title: "帮忙打印资料", desc: "需要帮忙打印50页A4资料，黑白单面", tag: "跑腿代办", location: "南门打印店 → 3号楼", coin: 5, time: "已截止 2天前", status: "待接单" }
-    ],
-    acceptList: [
-      { id: 3, avatar: "/images/avatar-lisi.png", nickname: "李四", credit: 100, title: "帮忙取快递", desc: "菜鸟驿站，一个快递", tag: "快递代取", location: "菜鸟驿站 → 10号楼", coin: 5, time: "已截止 2天前", status: "进行中" }
-    ],
-    tradeList: [
-      { id: 1, title: "完成任务：英语口语练习", time: "3/11 12:00", amount: "+10", type: "income" },
-      { id: 2, title: "发布任务：帮忙取快递", time: "3/11 18:30", amount: "-5", type: "expense" }
-    ]
-
+    // 任务列表
+    publishList: [],
+    acceptList: [],
+    // 交易列表
+    tradeList: []
   },
 
+  onLoad() {
+    this.loadProfileData();
+  },
+
+  onShow() {
+    // 每次进入页面刷新数据
+    this.loadProfileData();
+  },
+
+  // 加载个人主页所有数据
+  async loadProfileData() {
+    wx.showLoading({ title: '加载中...' });
+    try {
+      // 1. 加载个人信息+统计
+      const profileRes = await getUserProfile();
+
+      console.log('profileRes 完整数据:', JSON.stringify(profileRes));
+      
+      if (profileRes.code === 200) {
+        console.log('user 对象:', profileRes.data.user);
+        console.log('stats 对象:', profileRes.data.stats);
+        this.setData({
+          userInfo: profileRes.data.user,
+          stats: profileRes.data.stats
+        });
+
+        console.log('赋值后的 userInfo:', this.data.userInfo);
+        console.log('赋值后的 stats:', this.data.stats);
+
+      }
+
+      // 2. 加载我发布的任务
+      const publishRes = await getMyPublishTasks();
+      if (publishRes.code === 200) {
+        this.setData({ publishList: publishRes.data });
+      }
+
+      // 3. 加载我接单的任务
+      const acceptRes = await getMyReceiveTasks();
+      if (acceptRes.code === 200) {
+        this.setData({ acceptList: acceptRes.data });
+      }
+
+      // 4. 加载交易记录
+      const tradeRes = await getMyTrades();
+      if (tradeRes.code === 200) {
+        this.setData({ tradeList: tradeRes.data });
+      }
+    } catch (err) {
+      console.error('加载个人主页失败:', err);
+      wx.showToast({ title: '加载失败', icon: 'none' });
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
+  // 切换标签
   changeTab(e: WechatMiniprogram.TouchEvent) {
-    const index = parseInt(e.currentTarget.dataset.index as string);
+    const index = Number(e.currentTarget.dataset.index);
     this.setData({ activeTab: index });
   },
 
-  /**
-   * 生命周期函数--监听页面加载
-   */
-  onLoad() {
-
+  // 跳转到任务详情
+  toTaskDetail(e: WechatMiniprogram.TouchEvent) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/taskDetail/taskDetail?id=${id}` });
   },
 
-  /**
-   * 生命周期函数--监听页面初次渲染完成
-   */
-  onReady() {
-
+  // 跳转到设置页
+  toSetting() {
+    wx.navigateTo({ url: '/pages/setting/setting' });
   },
 
-  /**
-   * 生命周期函数--监听页面显示
-   */
-  onShow() {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面隐藏
-   */
-  onHide() {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面卸载
-   */
-  onUnload() {
-
-  },
-
-  /**
-   * 页面相关事件处理函数--监听用户下拉动作
-   */
-  onPullDownRefresh() {
-
-  },
-
-  /**
-   * 页面上拉触底事件的处理函数
-   */
-  onReachBottom() {
-
-  },
-
-  /**
-   * 用户点击右上角分享
-   */
-  onShareAppMessage() {
-
+  // 退出登录
+  logout() {
+    wx.showModal({
+      title: '提示',
+      content: '确定要退出登录吗？',
+      success: (res) => {
+        if (res.confirm) {
+          wx.removeStorageSync('token');
+          wx.reLaunch({ url: '/pages/login/login' });
+        }
+      }
+    });
   }
-})
+});

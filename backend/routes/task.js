@@ -9,8 +9,6 @@ router.get('/', taskController.list);
 
 router.post('/', verifyToken, publishTask);
 
-console.log('typeof verifyToken:', typeof verifyToken);
-console.log('typeof publishTask:', typeof publishTask);
 router.post('/', verifyToken, publishTask);
 // ...可补充其它任务相关 API
 module.exports = router;

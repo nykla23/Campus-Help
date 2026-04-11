@@ -67,7 +67,7 @@
       </view>
       <view class="task-footer">
         <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
-        <view class="task-time">{{item.time}}</view>
+        <view class="task-time">⏱️ {{item.time}}</view>
       </view>
     </view>
   </scroll-view>  
