@@ -1,8 +1,10 @@
-import { 
-  getUserProfile, 
-  getMyPublishTasks, 
-  getMyReceiveTasks, 
-  getMyTrades 
+// pages/profile/profile.ts
+
+import {
+  getUserProfile,
+  getMyPublishTasks,
+  getMyReceiveTasks,
+  getMyTrades
 } from '../../utils/api';
 
 Page({
@@ -23,10 +25,10 @@ Page({
     },
     // 标签切换
     activeTab: 0,
-    // 任务列表
+    // 任务列表（适配后的数据）
     publishList: [],
     acceptList: [],
-    // 交易列表
+    // 交易列表（适配后的数据）
     tradeList: []
   },
 
@@ -39,44 +41,87 @@ Page({
     this.loadProfileData();
   },
 
-  // 加载个人主页所有数据
+  // ========== 数据适配函数 ==========
+  // 类型映射（数字 -> 中文）
+  adaptTaskType(type: number): string {
+    const dict = ['取件代送', '跑腿代办', '学习辅导', '其他'];
+    return dict[type] || '其他';
+  },
+
+  // 状态映射（数字 -> 中文）
+  adaptStatus(status: number): string {
+    const dict = ['待接单', '进行中', '待确认', '已完成', '已取消'];
+    return dict[status] || '未知';
+  },
+
+  // 时间格式化
+  formatTime(create: string, deadline: string): string {
+    if (deadline) return `截止 ${deadline.substring(0, 16).replace('T', ' ')}`;
+    if (create) return create.substring(0, 16).replace('T', ' ');
+    return '';
+  },
+
+  // 单个任务数据适配（后端字段 -> 前端卡片字段）
+  adaptTaskItem(item: any): any {
+    return {
+      id: item.id,
+      avatar: item.avatar || '/images/default-avatar.png',
+      nickname: item.nickname || '匿名用户',
+      credit: item.credit_score || 0,
+      status: this.adaptStatus(item.status),
+      title: item.title,
+      desc: item.description,           // 后端 description 映射到 desc
+      tag: this.adaptTaskType(item.type),
+      location: item.location,
+      coin: item.reward,               // 后端 reward 映射到 coin
+      time: this.formatTime(item.created_at, item.deadline)
+    };
+  },
+
+  // 交易记录适配
+  adaptTradeItem(item: any): any {
+    return {
+      id: item.id,
+      title: item.description || '交易',
+      time: item.created_at ? item.created_at.substring(0, 16).replace('T', ' ') : '',
+      type: item.amount > 0 ? 'income' : 'expense',   // 正数收入，负数支出
+      amount: Math.abs(item.amount)
+    };
+  },
+
+  // ========== 数据加载 ==========
   async loadProfileData() {
     wx.showLoading({ title: '加载中...' });
     try {
-      // 1. 加载个人信息+统计
+      // 1. 个人信息 + 统计
       const profileRes = await getUserProfile();
-
-      console.log('profileRes 完整数据:', JSON.stringify(profileRes));
-      
+      console.log('profileRes:', profileRes);
       if (profileRes.code === 200) {
-        console.log('user 对象:', profileRes.data.user);
-        console.log('stats 对象:', profileRes.data.stats);
         this.setData({
           userInfo: profileRes.data.user,
           stats: profileRes.data.stats
         });
-
-        console.log('赋值后的 userInfo:', this.data.userInfo);
-        console.log('赋值后的 stats:', this.data.stats);
-
       }
 
-      // 2. 加载我发布的任务
+      // 2. 我发布的任务（适配后）
       const publishRes = await getMyPublishTasks();
       if (publishRes.code === 200) {
-        this.setData({ publishList: publishRes.data });
+        const adapted = publishRes.data.map((item: any) => this.adaptTaskItem(item));
+        this.setData({ publishList: adapted });
       }
 
-      // 3. 加载我接单的任务
+      // 3. 我接单的任务（适配后）
       const acceptRes = await getMyReceiveTasks();
       if (acceptRes.code === 200) {
-        this.setData({ acceptList: acceptRes.data });
+        const adapted = acceptRes.data.map((item: any) => this.adaptTaskItem(item));
+        this.setData({ acceptList: adapted });
       }
 
-      // 4. 加载交易记录
+      // 4. 交易记录（适配后）
       const tradeRes = await getMyTrades();
       if (tradeRes.code === 200) {
-        this.setData({ tradeList: tradeRes.data });
+        const adapted = tradeRes.data.map((item: any) => this.adaptTradeItem(item));
+        this.setData({ tradeList: adapted });
       }
     } catch (err) {
       console.error('加载个人主页失败:', err);
