@@ -39,11 +39,6 @@ Page({
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.refreshList();
   },
-  // onSearchBlur() {
-  //   setTimeout(() => {
-  //     this.refreshList();
-  //   }, 500);
-  // },
 
   // 点筛选按钮：出现/收起类型横条
   toggleTypeBar() {
@@ -59,7 +54,11 @@ Page({
   // 切换标签
   changeTab(e) {
     const i = Number(e.currentTarget.dataset.index);
-    this.setData({ activeTab: i }, this.refreshList);
+    console.log('切换到 tab:', i);
+    this.setData({ activeTab: i }, () => {
+      console.log('activeTab 已设为:', this.data.activeTab);
+      this.refreshList();
+    });
   },
 
   // 类型筛选
@@ -152,37 +151,53 @@ Page({
 
   // 加载更多（页码增加，带所有筛选）
   loadMore() {
-    const nextPage = this.data.page + 1;
-    const { activeTab, activeType, limit, selectedFilter, keyword } = this.data;
-    let status: number | undefined = undefined;
-    if (activeTab === 1) status = 0;
-    else if (activeTab === 2) status = 1;
-    else if (activeTab === 3) status = 3;
-    let type: number | undefined = activeType === 0 ? undefined : activeType;
-    let sort = selectedFilter;
+    console.log('=== loadMore 被调用 ===');
+    console.log('当前状态: page =', this.data.page, 'total =', this.data.total, 'taskList长度 =', this.data.taskList.length, 'loading =', this.data.loading);
+    
+    if (this.data.taskList.length < this.data.total && !this.data.loading) {
+      console.log('条件满足，准备加载下一页');
+      const nextPage = this.data.page + 1;
+      const { activeTab, activeType, limit, selectedFilter, keyword } = this.data;
+      let status: number | undefined = undefined;
+      if (activeTab === 1) status = 0;
+      else if (activeTab === 2) status = 1;
+      else if (activeTab === 3) status = 3;
+      let type: number | undefined = activeType === 0 ? undefined : activeType;
+      let sort = selectedFilter;
 
-    this.setData({ loading: true });
-    getTaskList({ page: nextPage, limit, status, type, sort, keyword }).then(res => {
-
-      console.log('完整响应:', JSON.stringify(res));
-      console.log('任务列表第一项:', res.data.list[0]);
-
-      if (res.code === 0 && res.data) {
-        this.setData({
-          taskList: this.data.taskList.concat(this._adaptTaskList(res.data.list)),
-          total: res.data.total,
-          page: nextPage
+      console.log('请求参数:', { page: nextPage, limit, status, type, sort, keyword });
+      this.setData({ loading: true });
+      getTaskList({ page: nextPage, limit, status, type, sort, keyword })
+        .then(res => {
+          console.log('loadMore 收到响应:', res);
+          if (res.code === 0 && res.data) {
+            const newTasks = this._adaptTaskList(res.data.list);
+            console.log('新任务数量:', newTasks.length);
+            this.setData({
+              taskList: this.data.taskList.concat(newTasks),
+              total: res.data.total,
+              page: nextPage
+            });
+            console.log('拼接后 taskList 长度:', this.data.taskList.length);
+          } else {
+            console.warn('响应异常:', res);
+          }
+        })
+        .catch(err => {
+          console.error('loadMore 请求失败:', err);
+        })
+        .finally(() => {
+          this.setData({ loading: false });
         });
-      }
-    }).finally(() => {
-      this.setData({ loading: false });
-    });
+    } else {
+      console.log('条件不满足，跳过加载');
+    }
   },
 
   // 字段适配
   _adaptTaskList(list: any[]) {
     return (list || []).map(item => ({
-      id: item.taskId || item.id,
+      id: item.taskId ,
       avatar: item.avatar || item.publisher?.avatar || '/images/default-avatar.png',
       nickname: item.nickname || item.publisher?.nickname || '匿名用户',
       credit: item.credit_score || item.publisher?.creditScore || '0',
@@ -214,11 +229,6 @@ Page({
 
   onLoad() {
     this.refreshList();
-
-    const app = getApp();
-    app.globalData.eventEmitter.on('taskPublished', () => {
-      this.refreshList();
-    });
     
   },
 
@@ -236,5 +246,12 @@ Page({
     });
   },
 
-  
+  // 滚动到底部加载更多
+  onScrollToLower() {
+    console.log('滚动到底部了');
+    if (this.data.taskList.length < this.data.total && !this.data.loading) {
+      this.loadMore();
+    }
+  },
+
 });

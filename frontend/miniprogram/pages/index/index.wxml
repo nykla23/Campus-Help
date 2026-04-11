@@ -1,73 +1,82 @@
-<!-- 顶部搜索栏 -->
-<view class="search-bar">
-  <text class="logo-text">校园帮</text>
-  <input 
-    placeholder="搜索任务" 
-    class="search-input" 
-    value="{{keyword}}"              
-    bindinput="onSearchInput"        
-    bindconfirm="onSearchConfirm"
-    confirm-type="search"
+<view class="page-container">
+  <!-- 顶部搜索栏 -->
+  <view class="search-bar">
+    <text class="logo-text">校园帮</text>
+    <input 
+      placeholder="搜索任务" 
+      class="search-input" 
+      value="{{keyword}}"              
+      bindinput="onSearchInput"        
+      bindconfirm="onSearchConfirm"
+      confirm-type="search"
 
-    />
-  <image src="/images/icon-bell.png" class="bell-icon" />
-</view>
-
-<!-- 状态标签栏 -->
-<view class="status-tabs">
-  <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">全部</view>
-  <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">待接单</view>
-  <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">进行中</view>
-  <view class="tab-item {{activeTab === 3 ? 'active' : ''}}" bindtap="changeTab" data-index="3">已完成</view>
-  <view class="filter-btn" bindtap="toggleTypeBar">
-    <image src="/images/icon-filter.png" class="filter-icon" />
-    <text>筛选</text>
+      />
+    <image src="/images/icon-bell.png" class="bell-icon" />
   </view>
-</view>
-
-<!-- 类型横条，插在状态tab和任务列表之间，点击“筛选”再显示 -->
-<scroll-view wx:if="{{showTypeBar}}" scroll-x class="type-bar-inline" show-scrollbar="false">
-  <view class="inline-type-tab {{activeType === 0 ? 'active' : ''}}" data-type="0" bindtap="chooseType">全部类型</view>
-  <view class="inline-type-tab {{activeType === 1 ? 'active' : ''}}" data-type="1" bindtap="chooseType">取件代送</view>
-  <view class="inline-type-tab {{activeType === 2 ? 'active' : ''}}" data-type="2" bindtap="chooseType">跑腿代办</view>
-  <view class="inline-type-tab {{activeType === 3 ? 'active' : ''}}" data-type="3" bindtap="chooseType">学习辅导</view>
-  <view class="inline-type-tab {{activeType === 4 ? 'active' : ''}}" data-type="4" bindtap="chooseType">其他</view>
-</scroll-view>
-
-<!-- 任务列表 scroll-view 放在类型条之后，千万注意标签闭合！！ -->
-<scroll-view scroll-y class="task-list" enhanced="true" show-scrollbar="false">
-  <view class="task-card" wx:for="{{taskList}}" wx:key="id" bindtap="toTaskDetail" data-id="{{item.id}}">
-    <view class="user-info">
-      <image src="{{item.avatar}}" class="avatar" />
-      <view>
-        <view class="user-name">{{item.nickname}}</view>
-        <view class="credit-score">信用分 {{item.credit}}</view>
-      </view>
-      <view class="status-tag 
-        {{item.status === '待接单' ? 'orange' : ''}}
-        {{item.status === '进行中' ? 'green' : ''}}
-        {{item.status === '已完成' ? 'done' : ''}}
-        {{item.status === '已取消' ? 'cancel' : ''}}
-      ">
-        {{item.status}}
-      </view>
-    </view>
-    <view class="task-title">{{item.title}}</view>
-    <view class="task-desc">{{item.desc}}</view>
-    <view class="task-tag-area">
-      <view class="task-tag 
-        {{item.tag === '跑腿代办' ? 'orange' : ''}}
-        {{item.tag === '取件代送' ? 'blue' : ''}}
-        {{item.tag === '学习辅导' ? 'purple' : ''}}
-        {{item.tag === '其他' ? 'gray' : ''}}
-      ">
-        {{item.tag}}
-      </view>
-      <view class="task-location">📍 {{item.location}}</view>
-    </view>
-    <view class="task-footer">
-      <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
-      <view class="task-time">{{item.time}}</view>
+  <!-- 状态标签栏 -->
+  <view class="status-tabs">
+    <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">全部</view>
+    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">待接单</view>
+    <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">进行中</view>
+    <view class="tab-item {{activeTab === 3 ? 'active' : ''}}" bindtap="changeTab" data-index="3">已完成</view>
+    <view class="filter-btn" bindtap="toggleTypeBar">
+      <image src="/images/icon-filter.png" class="filter-icon" />
+      <text>筛选</text>
     </view>
   </view>
-</scroll-view>
+  <!-- 类型横条，插在状态tab和任务列表之间，点击“筛选”再显示 -->
+  <scroll-view wx:if="{{showTypeBar}}" scroll-x class="type-bar-inline" show-scrollbar="false">
+    <view class="inline-type-tab {{activeType === 0 ? 'active' : ''}}" data-type="0" bindtap="chooseType">全部类型</view>
+    <view class="inline-type-tab {{activeType === 1 ? 'active' : ''}}" data-type="1" bindtap="chooseType">取件代送</view>
+    <view class="inline-type-tab {{activeType === 2 ? 'active' : ''}}" data-type="2" bindtap="chooseType">跑腿代办</view>
+    <view class="inline-type-tab {{activeType === 3 ? 'active' : ''}}" data-type="3" bindtap="chooseType">学习辅导</view>
+    <view class="inline-type-tab {{activeType === 4 ? 'active' : ''}}" data-type="4" bindtap="chooseType">其他</view>
+  </scroll-view>
+
+  <!-- 任务列表 scroll-view 放在类型条之后，千万注意标签闭合！！ -->
+  <scroll-view scroll-y class="task-list" enhanced="true"       show-scrollbar="false" bindscrolltolower="onScrollToLower" lower-threshold="100">
+    <view class="task-card" wx:for="{{taskList}}" wx:key="id" bindtap="toTaskDetail" data-id="{{item.id}}">
+      <view class="user-info">
+        <image src="{{item.avatar}}" class="avatar" />
+        <view>
+          <view class="user-name">{{item.nickname}}</view>
+          <view class="credit-score">信用分 {{item.credit}}</view>
+        </view>
+        <view class="status-tag 
+          {{item.status === '待接单' ? 'orange' : ''}}
+          {{item.status === '进行中' ? 'green' : ''}}
+          {{item.status === '待确认' ? 'blue' : ''}}
+          {{item.status === '已完成' ? 'done' : ''}}
+          {{item.status === '已取消' ? 'cancel' : ''}}
+        ">
+          {{item.status}}
+        </view>
+      </view>
+      <view class="task-title">{{item.title}}</view>
+      <view class="task-desc">{{item.desc}}</view>
+      <view class="task-tag-area">
+        <view class="task-tag 
+          {{item.tag === '跑腿代办' ? 'orange' : ''}}
+          {{item.tag === '取件代送' ? 'blue' : ''}}
+          {{item.tag === '学习辅导' ? 'purple' : ''}}
+          {{item.tag === '其他' ? 'gray' : ''}}
+        ">
+          {{item.tag}}
+        </view>
+        <view wx:if="{{item.location && item.location !== 'null'}}" class="task-location">📍 {{item.location}}</view>
+      </view>
+      <view class="task-footer">
+        <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
+        <view class="task-time">{{item.time}}</view>
+      </view>
+    </view>
+  </scroll-view>  
+  
+</view>
+
+
+
+
+
+
+

@@ -30,7 +30,7 @@ exports.getList = async ({ page = 1, limit = 10, status, type }) => {
     FROM tasks
     LEFT JOIN users ON users.id = tasks.publisher_id
     ${whereSql}
-    ORDER BY tasks.created_at DESC
+    ORDER BY tasks.created_at DESC, tasks.id DESC
     LIMIT ?, ?
   `;
   // 增加分页参数
