@@ -1,45 +1,83 @@
-<view class="task-container">
+<view class="detail-container">
+  <!-- 返回栏 -->
   <view class="nav-bar">
     <image src="/images/icon-back.png" class="back-icon" bindtap="goBack" />
     <text class="nav-title">任务详情</text>
-    <view></view>
+    <view class="placeholder"></view>
   </view>
 
-  <view class="task-info-card">
-    <view class="task-tags">
-      <view class="task-tag green">跑腿代办</view>
-      <view class="status-tag orange">进行中</view>
+  <!-- 任务头部 -->
+  <view class="task-header">
+    <view class="task-tag {{task.type === 0 ? 'blue' : task.type === 1 ? 'green' : task.type === 2 ? 'purple' : 'gray'}}">
+      {{task.typeText}}
     </view>
-    <text class="task-title">代买午餐</text>
-    <text class="task-coin">⭐ 5 虚拟币</text>
-    <view class="divider"></view>
-    <text class="section-subtitle">任务描述</text>
-    <text class="task-desc">在食堂帮我带一份红烧肉套餐和一瓶矿泉水到图书馆门口，中午12点半前送达</text>
-    <view class="task-location">📍 食堂 → 图书馆</view>
-    <view class="task-time-item">⏱️ 截止时间：3/11 12:15</view>
-    <view class="task-time-item">⏱️ 发布时间：3/11 10:00</view>
+    <view class="status-tag {{task.status === 0 ? 'orange' : task.status === 1 ? 'green' : task.status === 2 ? 'done' : 'cancel'}}">
+      {{task.statusText}}
+    </view>
   </view>
 
-  <view class="user-card">
-    <text class="section-title">发布者</text>
-    <view class="user-info">
-      <image src="/images/avatar-zhangsan.png" class="avatar" />
-      <view>
-        <view class="user-name">张三</view>
-        <view class="credit-score">⭐ 信用分 100</view>
+  <view class="task-title">{{task.title}}</view>
+  <view class="task-coin">⭐ {{task.reward}} 虚拟币</view>
+
+  <!-- 任务描述 -->
+  <view class="section">
+    <view class="section-title">任务描述</view>
+    <view class="task-desc">{{task.description}}</view>
+    <view class="task-info-item">
+      <image src="/images/icon-location.png" class="info-icon" />
+      <text>{{task.location}}</text>
+    </view>
+    <view class="task-info-item">
+      <image src="/images/icon-time.png" class="info-icon" />
+      <text>截止时间：{{task.deadline}}</text>
+    </view>
+    <view class="task-info-item">
+      <image src="/images/icon-time.png" class="info-icon" />
+      <text>发布时间：{{task.createTime}}</text>
+    </view>
+  </view>
+
+  <!-- 发布者 -->
+  <view class="section">
+    <view class="section-title">发布者</view>
+    <view class="user-card">
+      <image src="{{task.publisher.avatar || '/images/default-avatar.png'}}" class="avatar" />
+      <view class="user-info">
+        <text class="user-name">{{task.publisher.nickname}}</text>
+        <text class="credit">⭐ 信用分 {{task.publisher.credit}}</text>
       </view>
-      <view class="private-btn" bindtap="toChat">私信</view>
+      <button class="msg-btn" bindtap="sendMsg">私信</button>
     </view>
   </view>
 
-  <view class="user-card">
-    <text class="section-title">接单者</text>
-    <view class="user-info">
-      <image src="/images/avatar-lisi.png" class="avatar" />
-      <view>
-        <view class="user-name">李四</view>
-        <view class="credit-score">⭐ 信用分 100</view>
+  <!-- 接单者（仅接单后显示） -->
+  <view class="section" wx:if="{{task.acceptor && task.acceptor.id}}">
+    <view class="section-title">接单者</view>
+    <view class="user-card">
+      <image src="{{task.acceptor.avatar}}" class="avatar" />
+      <view class="user-info">
+        <text class="user-name">{{task.acceptor.nickname}}</text>
+        <text class="credit">⭐ 信用分 {{task.acceptor.credit}}</text>
       </view>
     </view>
+  </view>
+
+  <!-- 操作按钮（根据状态动态显示） -->
+  <view class="action-bar">
+    <!-- 待接单：显示接单按钮（非发布者可见） -->
+    <button wx:if="{{task.status === 0 && task.publisher.id !== userId}}" class="action-btn primary" bindtap="acceptTask">
+      我要接单
+    </button>
+    <!-- 进行中：发布者显示完成按钮，接单者显示进行中 -->
+    <button wx:if="{{task.status === 1 && task.publisher.id === userId}}" class="action-btn primary" bindtap="completeTask">
+      确认完成
+    </button>
+    <button wx:if="{{task.status === 1 && task.acceptor.id === userId}}" class="action-btn disabled" disabled>
+      进行中
+    </button>
+    <!-- 已完成/已取消：无操作 -->
+    <button wx:if="{{task.status >= 2}}" class="action-btn disabled" disabled>
+      {{task.statusText}}
+    </button>
   </view>
 </view>

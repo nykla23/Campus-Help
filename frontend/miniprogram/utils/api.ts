@@ -100,3 +100,23 @@ export function getMyReceiveTasks() {
 export function getMyTrades() {
   return request('/user/trades', 'GET');
 }
+
+// 获取任务详情
+export function getTaskDetail(taskId: string) {
+  return request(`/tasks/${taskId}`, 'GET');
+}
+
+// 接单
+export function acceptTask(taskId: string) {
+  return request(`/tasks/${taskId}/accept`, 'POST');
+}
+
+// 完成任务
+export function completeTask(taskId: string) {
+  return request(`/tasks/${taskId}/complete`, 'POST');
+}
+
+// 取消任务
+export function cancelTask(taskId: string) {
+  return request(`/tasks/${taskId}/cancel`, 'POST');
+}
