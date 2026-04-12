@@ -116,7 +116,12 @@ export function completeTask(taskId: string) {
   return request(`/tasks/${taskId}/complete`, 'POST');
 }
 
-// 取消任务
+// 取消任务（发布者）
 export function cancelTask(taskId: string) {
-  return request(`/tasks/${taskId}/cancel`, 'POST');
+  return request(`/task/${taskId}/cancel`, 'POST');
+}
+
+// 放弃任务（接单者）
+export function giveUpTask(taskId: string) {
+  return request(`/task/${taskId}/giveup`, 'POST');
 }

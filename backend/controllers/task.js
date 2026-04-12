@@ -30,7 +30,7 @@ exports.list = async (req, res) => {
 };
 
 // 状态/类型映射
-const statusMap = { 0: '待接单', 1: '进行中', 2: '已完成', 3: '已取消' };
+const statusMap = { 0: '待接单', 1: '进行中', 2: '待确认', 3: '已完成', 4: '已取消' };
 const typeMap = { 0: '取件代送', 1: '跑腿代办', 2: '学习辅导', 3: '其他' };
 
 // 1. 获取任务详情
@@ -187,14 +187,14 @@ exports.completeTask = async (req, res) => {
   }
 };
 
-// 4. 取消任务
+// 4. 取消任务（发布者）
 exports.cancelTask = async (req, res) => {
-  const taskId = req.params.id; 
+  const taskId = req.params.id;
   const userId = req.user.id;
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-      
+
     // 检查任务
     const [tasks] = await connection.query('SELECT * FROM tasks WHERE id = ?', [taskId]);
     if (tasks.length === 0) {
@@ -203,24 +203,79 @@ exports.cancelTask = async (req, res) => {
     }
     const task = tasks[0];
 
-    // 权限校验：只有发布者能取消
+    // 权限校验：只有发布者能取消，且必须是待接单状态
     if (task.publisher_id !== userId) {
       await connection.rollback();
       return res.json({ code: 403, message: '无权限操作' });
     }
     if (task.status !== 0) {
       await connection.rollback();
-      return res.json({ code: 400, message: '任务状态异常' });
+      return res.json({ code: 400, message: '任务已被接单，无法取消' });
     }
 
     // 1. 更新任务状态为已取消
     await connection.query('UPDATE tasks SET status = 3 WHERE id = ?', [taskId]);
 
+    // 2. 返还虚拟币给发布者
+    await connection.query(
+      'UPDATE users SET coins = coins + ? WHERE id = ?',
+      [task.reward, userId]
+    );
+
+    // 3. 插入交易记录（返还）
+    await connection.query(
+      'INSERT INTO trades (user_id, title, amount, type) VALUES (?, ?, ?, ?)',
+      [userId, `取消任务-${task.title}`, task.reward, 'income']
+    );
+
     await connection.commit();
-    res.json({ code: 200, message: '任务已取消' });
+    res.json({ code: 200, message: '任务已取消，虚拟币已返还' });
   } catch (err) {
     await connection.rollback();
     console.error('取消任务失败:', err);
+    res.json({ code: 500, message: '服务器错误' });
+  } finally {
+    connection.release();
+  }
+};
+
+// 5. 放弃任务（接单者）
+exports.giveUpTask = async (req, res) => {
+  const taskId = req.params.id;
+  const userId = req.user.id;
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // 检查任务
+    const [tasks] = await connection.query('SELECT * FROM tasks WHERE id = ?', [taskId]);
+    if (tasks.length === 0) {
+      await connection.rollback();
+      return res.json({ code: 404, message: '任务不存在' });
+    }
+    const task = tasks[0];
+
+    // 权限校验：只有接单者能放弃，且必须是进行中状态
+    if (task.acceptor_id !== userId) {
+      await connection.rollback();
+      return res.json({ code: 403, message: '无权限操作' });
+    }
+    if (task.status !== 1) {
+      await connection.rollback();
+      return res.json({ code: 400, message: '任务状态异常，无法放弃' });
+    }
+
+    // 更新任务状态为待接单，清空接单者ID
+    await connection.query(
+      'UPDATE tasks SET status = 0, acceptor_id = NULL WHERE id = ?',
+      [taskId]
+    );
+
+    await connection.commit();
+    res.json({ code: 200, message: '任务已放弃，恢复待接单状态' });
+  } catch (err) {
+    await connection.rollback();
+    console.error('放弃任务失败:', err);
     res.json({ code: 500, message: '服务器错误' });
   } finally {
     connection.release();
