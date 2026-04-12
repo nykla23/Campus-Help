@@ -111,17 +111,22 @@ export function acceptTask(taskId: string) {
   return request(`/tasks/${taskId}/accept`, 'POST');
 }
 
-// 完成任务
-export function completeTask(taskId: string) {
-  return request(`/tasks/${taskId}/complete`, 'POST');
-}
-
 // 取消任务（发布者）
 export function cancelTask(taskId: string) {
-  return request(`/task/${taskId}/cancel`, 'POST');
+  return request(`/tasks/${taskId}/cancel`, 'POST');
 }
 
 // 放弃任务（接单者）
 export function giveUpTask(taskId: string) {
-  return request(`/task/${taskId}/giveup`, 'POST');
+  return request(`/tasks/${taskId}/giveup`, 'POST');
+}
+
+// 接单者提交完成（状态 1→2）
+export function completeTask(taskId: string) {
+  return request(`/tasks/${taskId}/complete`, 'POST');
+}
+
+// 发布者确认完成（状态 2→3）
+export function confirmCompleteTask(taskId: string) {
+  return request(`/tasks/${taskId}/confirm`, 'POST');
 }

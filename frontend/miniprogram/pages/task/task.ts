@@ -1,9 +1,9 @@
-import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask } from '../../utils/api';
+import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask } from '../../utils/api';
 
 Page({
   data: {
     taskId: '',
-    userId: '',
+    userId: 0,           // 改为数字类型
     task: {
       id: 0,
       title: '',
@@ -17,24 +17,39 @@ Page({
       deadline: '',
       createTime: '',
       publisher: { id: 0, nickname: '', avatar: '', credit: 0 },
-      acceptor: { id: 0, nickname: '', avatar: '', credit: 0 }
+      acceptor: null as { id: number; nickname: string; avatar: string; credit: number } | null
     }
   },
 
   onLoad(options: { id: string }) {
     const taskId = options.id;
-    const userId = wx.getStorageSync('userId') || '';
+    // 尝试多种方式获取 userId
+    let userId = wx.getStorageSync('userId');
+    if (!userId) userId = wx.getStorageSync('id');
+    if (!userId) {
+      const app = getApp();
+      userId = app.globalData?.userId;
+    }
+    userId = Number(userId || 0);
+    console.log('最终 userId:', userId);
     this.setData({ taskId, userId });
     this.loadTaskDetail();
   },
 
-  // 加载任务详情
   async loadTaskDetail() {
     wx.showLoading({ title: '加载中...' });
     try {
       const res = await getTaskDetail(this.data.taskId);
       if (res.code === 200) {
-        this.setData({ task: res.data });
+        const taskData = res.data;
+        // 统一转换 ID 类型为数字
+        if (taskData.publisher) taskData.publisher.id = Number(taskData.publisher.id);
+        if (taskData.acceptor && taskData.acceptor.id) {
+          taskData.acceptor.id = Number(taskData.acceptor.id);
+        }
+        this.setData({ task: taskData });
+        console.log('task.acceptor:', taskData.acceptor);
+        console.log('userId:', this.data.userId);
       } else {
         wx.showToast({ title: res.message, icon: 'none' });
       }
@@ -46,51 +61,42 @@ Page({
     }
   },
 
-  // 返回
   goBack() {
     wx.navigateBack();
   },
 
-  /**
-   * 私信功能：区分私信对象
-   * @param type 私信类型：publisher(发布者)/acceptor(接单者)
-   * @param targetId 目标用户ID
-   */
-  sendMsg(type: 'publisher' | 'acceptor', targetId: number) {
+  // 私信发布者
+  sendMsgPublisher() {
     const { task, userId } = this.data;
-    const targetUser = type === 'publisher' ? task.publisher : task.acceptor;
-
-    // 权限二次校验（防止前端逻辑被绕过）
-    if (targetId == userId) {
+    if (task.publisher.id === userId) {
       wx.showToast({ title: '不能给自己发私信', icon: 'none' });
       return;
     }
-
-    // 非发布者私信接单者的权限校验（仅发布者可私信接单者）
-    if (type === 'acceptor' && task.publisher.id != userId) {
-      wx.showToast({ title: '仅发布者可私信接单者', icon: 'none' });
-      return;
-    }
-
-    // 任务已取消/已完成时，禁止发起新私信（可选）
-    if (task.status >= 2) {
+    if (task.status >= 3) {
       wx.showToast({ title: '任务已结束，无法发送私信', icon: 'none' });
       return;
     }
+    wx.navigateTo({
+      url: `/pages/chat/chat?targetId=${task.publisher.id}&taskId=${task.id}&targetName=${task.publisher.nickname}`,
+      fail: () => wx.showToast({ title: '聊天页面暂未开放', icon: 'none' })
+    });
+  },
 
-    // 实际业务中：跳转到私信聊天页，传入目标用户ID和任务ID
-    try {
-      // 示例：跳转到聊天页面（需自行实现聊天页）
-      wx.navigateTo({
-        url: `/pages/chat/chat?targetId=${targetId}&taskId=${task.id}&targetName=${targetUser.nickname}`,
-        fail: () => {
-          wx.showToast({ title: '聊天页面暂未开放', icon: 'none' });
-        }
-      });
-    } catch (err) {
-      console.error('跳转私信失败:', err);
-      wx.showToast({ title: '私信功能开发中', icon: 'none' });
+  // 私信接单者（仅发布者可见）
+  sendMsgAcceptor() {
+    const { task, userId } = this.data;
+    if (!task.acceptor || !task.acceptor.id) {
+      wx.showToast({ title: '暂无接单者', icon: 'none' });
+      return;
     }
+    if (task.publisher.id !== userId) {
+      wx.showToast({ title: '仅发布者可私信接单者', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({
+      url: `/pages/chat/chat?targetId=${task.acceptor.id}&taskId=${task.id}&targetName=${task.acceptor.nickname}`,
+      fail: () => wx.showToast({ title: '聊天页面暂未开放', icon: 'none' })
+    });
   },
 
   // 接单
@@ -100,36 +106,34 @@ Page({
       const res = await acceptTask(this.data.taskId);
       if (res.code === 200) {
         wx.showToast({ title: '接取成功', icon: 'success' });
-        this.loadTaskDetail(); // 刷新详情
+        this.loadTaskDetail();
       } else {
         wx.showToast({ title: res.message, icon: 'none' });
       }
     } catch (err) {
-      console.error('接取失败:', err);
       wx.showToast({ title: '接取失败', icon: 'none' });
     } finally {
       wx.hideLoading();
     }
   },
 
-  // 完成任务
+  // 接单者提交完成（状态 1→2）
   async completeTask() {
     wx.showModal({
       title: '确认完成',
-      content: '确认任务已完成，将结算虚拟币给接单者',
+      content: '您已完成任务？提交后将等待发布者确认。',
       success: async (res) => {
         if (res.confirm) {
-          wx.showLoading({ title: '处理中...' });
+          wx.showLoading({ title: '提交中...' });
           try {
-            const completeRes = await completeTask(this.data.taskId);
-            if (completeRes.code === 200) {
-              wx.showToast({ title: '任务完成', icon: 'success' });
-              this.loadTaskDetail(); // 刷新详情
+            const result = await completeTask(this.data.taskId);
+            if (result.code === 200) {
+              wx.showToast({ title: '已提交，等待确认', icon: 'success' });
+              this.loadTaskDetail();
             } else {
-              wx.showToast({ title: completeRes.message, icon: 'none' });
+              wx.showToast({ title: result.message, icon: 'none' });
             }
           } catch (err) {
-            console.error('完成任务失败:', err);
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -139,24 +143,49 @@ Page({
     });
   },
 
-  // 取消任务（发布者）
+  // 发布者确认完成（状态 2→3）
+  async confirmCompleteTask() {
+    wx.showModal({
+      title: '确认完成',
+      content: '确认接单者已完成任务？虚拟币将结算给接单者。',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '确认中...' });
+          try {
+            const result = await confirmCompleteTask(this.data.taskId);
+            if (result.code === 200) {
+              wx.showToast({ title: '任务已完成', icon: 'success' });
+              this.loadTaskDetail();
+            } else {
+              wx.showToast({ title: result.message, icon: 'none' });
+            }
+          } catch (err) {
+            wx.showToast({ title: '操作失败', icon: 'none' });
+          } finally {
+            wx.hideLoading();
+          }
+        }
+      }
+    });
+  },
+
+  // 发布者取消任务（待接取状态）
   async cancelTask() {
     wx.showModal({
       title: '确认取消',
-      content: '确定要取消该任务吗？取消后虚拟币将返还',
-      success: async (res) => {
-        if (res.confirm) {
+      content: '确定要取消该任务吗？取消后虚拟币将返还。',
+      success: async (modalRes) => {
+        if (modalRes.confirm) {
           wx.showLoading({ title: '取消中...' });
           try {
             const res = await cancelTask(this.data.taskId);
             if (res.code === 200) {
               wx.showToast({ title: '任务已取消', icon: 'success' });
-              this.loadTaskDetail(); // 刷新详情
+              this.loadTaskDetail();
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
           } catch (err) {
-            console.error('取消任务失败:', err);
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -166,24 +195,23 @@ Page({
     });
   },
 
-  // 新增：放弃任务（接单者）
+  // 接单者放弃任务
   async giveUpTask() {
     wx.showModal({
       title: '确认放弃',
-      content: '确定要放弃该任务吗？放弃后任务将恢复待接取状态',
-      success: async (res) => {
-        if (res.confirm) {
+      content: '确定要放弃该任务吗？放弃后任务将恢复待接取状态。',
+      success: async (modalRes) => {
+        if (modalRes.confirm) {
           wx.showLoading({ title: '放弃中...' });
           try {
             const res = await giveUpTask(this.data.taskId);
             if (res.code === 200) {
               wx.showToast({ title: '任务已放弃', icon: 'success' });
-              this.loadTaskDetail(); // 刷新详情
+              this.loadTaskDetail();
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
           } catch (err) {
-            console.error('放弃任务失败:', err);
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();

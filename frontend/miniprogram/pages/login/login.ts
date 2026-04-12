@@ -23,6 +23,7 @@ Page({
         wx.hideLoading();
         if (res.code === 0) {
           wx.setStorageSync('token', res.data.token);
+          wx.setStorageSync('userId', res.data.userId);
           wx.showToast({ title: "登录成功" });
           wx.switchTab({ url: "/pages/index/index" });
         } else {

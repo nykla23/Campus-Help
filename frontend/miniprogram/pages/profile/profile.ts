@@ -79,12 +79,21 @@ Page({
   },
 
   // 交易记录适配
+  // 交易记录适配
   adaptTradeItem(item: any): any {
+    // 假设后端返回的 type 是数字 1(收入) 或 2(支出)
+    // 如果后端已经映射为字符串 'income'/'expense'，则直接使用 item.type
+    let typeStr = '';
+    if (typeof item.type === 'number') {
+      typeStr = item.type === 1 ? 'income' : 'expense';
+    } else {
+      typeStr = item.type; // 已经是字符串
+    }
     return {
       id: item.id,
-      title: item.description || '交易',
-      time: item.created_at ? item.created_at.substring(0, 16).replace('T', ' ') : '',
-      type: item.amount > 0 ? 'income' : 'expense',   // 正数收入，负数支出
+      title: item.description || item.title || '交易',
+      time: item.created_at ? item.created_at.substring(0, 16).replace('T', ' ') : (item.time || ''),
+      type: typeStr,
       amount: Math.abs(item.amount)
     };
   },
