@@ -11,7 +11,13 @@
     <view class="task-tag {{task.type === 0 ? 'blue' : task.type === 1 ? 'green' : task.type === 2 ? 'purple' : 'gray'}}">
       {{task.typeText}}
     </view>
-    <view class="status-tag {{task.status === 0 ? 'orange' : task.status === 1 ? 'green' : task.status === 2 ? 'done' : 'cancel'}}">
+    <view class="status-tag
+      {{task.status === 0 ? 'orange' : ''}}
+      {{task.status === 1 ? 'green' : ''}}
+      {{task.status === 2 ? 'blue' : ''}}
+      {{task.status === 3 ? 'done' : ''}}
+      {{task.status === 4 ? 'cancel' : ''}}
+    ">
       {{task.statusText}}
     </view>
   </view>
@@ -63,20 +69,59 @@
   </view>
 
   <!-- 操作按钮（根据状态动态显示） -->
+  <!-- 操作栏（按权限动态显示） -->
   <view class="action-bar">
-    <!-- 待接单：显示接单按钮（非发布者可见） -->
-    <button wx:if="{{task.status === 0 && task.publisher.id !== userId}}" class="action-btn primary" bindtap="acceptTask">
-      我要接单
+    <!-- 待接单状态：非发布者显示【接取任务】 -->
+    <button 
+      wx:if="{{task.status === 0 && task.publisher.id !== userId}}" 
+      class="action-btn primary" 
+      bindtap="acceptTask"
+    >
+      接取任务
     </button>
-    <!-- 进行中：发布者显示完成按钮，接单者显示进行中 -->
-    <button wx:if="{{task.status === 1 && task.publisher.id === userId}}" class="action-btn primary" bindtap="completeTask">
-      确认完成
+
+    <!-- 待接单状态：发布者显示【取消任务】 -->
+    <button 
+      wx:if="{{task.status === 0 && task.publisher.id === userId}}" 
+      class="action-btn danger" 
+      bindtap="cancelTask"
+    >
+      取消任务
     </button>
-    <button wx:if="{{task.status === 1 && task.acceptor.id === userId}}" class="action-btn disabled" disabled>
-      进行中
+
+    <!-- 进行中状态：发布者显示【完成任务】 -->
+    <button 
+      wx:if="{{task.status === 1 && task.publisher.id === userId}}" 
+      class="action-btn primary" 
+      bindtap="completeTask"
+    >
+      完成任务
     </button>
-    <!-- 已完成/已取消：无操作 -->
-    <button wx:if="{{task.status >= 2}}" class="action-btn disabled" disabled>
+
+    <!-- 进行中状态：接单者显示【放弃任务】 -->
+    <button 
+      wx:if="{{task.status === 1 && task.acceptor.id === userId}}" 
+      class="action-btn danger" 
+      bindtap="giveUpTask"
+    >
+      放弃任务
+    </button>
+
+    <!-- 所有状态：非发布者显示【联系发布者】 -->
+    <button 
+      wx:if="{{task.publisher.id !== userId}}" 
+      class="action-btn outline" 
+      bindtap="sendMsg"
+    >
+      联系发布者
+    </button>
+
+    <!-- 已完成/已取消：显示状态标签，不可操作 -->
+    <button 
+      wx:if="{{task.status >= 2}}" 
+      class="action-btn disabled" 
+      disabled
+    >
       {{task.statusText}}
     </button>
   </view>

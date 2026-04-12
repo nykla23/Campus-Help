@@ -1,4 +1,4 @@
-import { getTaskDetail, acceptTask, completeTask } from '../../utils/api';
+import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask } from '../../utils/api';
 
 Page({
   data: {
@@ -93,6 +93,60 @@ Page({
             }
           } catch (err) {
             console.error('完成任务失败:', err);
+            wx.showToast({ title: '操作失败', icon: 'none' });
+          } finally {
+            wx.hideLoading();
+          }
+        }
+      }
+    });
+  },
+
+  // 新增：取消任务（发布者）
+  async cancelTask() {
+    wx.showModal({
+      title: '确认取消',
+      content: '确定要取消该任务吗？取消后虚拟币将返还',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '取消中...' });
+          try {
+            const res = await cancelTask(this.data.taskId);
+            if (res.code === 200) {
+              wx.showToast({ title: '任务已取消', icon: 'success' });
+              this.loadTaskDetail(); // 刷新详情
+            } else {
+              wx.showToast({ title: res.message, icon: 'none' });
+            }
+          } catch (err) {
+            console.error('取消任务失败:', err);
+            wx.showToast({ title: '操作失败', icon: 'none' });
+          } finally {
+            wx.hideLoading();
+          }
+        }
+      }
+    });
+  },
+
+  // 新增：放弃任务（接单者）
+  async giveUpTask() {
+    wx.showModal({
+      title: '确认放弃',
+      content: '确定要放弃该任务吗？放弃后任务将恢复待接单状态',
+      success: async (res) => {
+        if (res.confirm) {
+          wx.showLoading({ title: '放弃中...' });
+          try {
+            const res = await giveUpTask(this.data.taskId);
+            if (res.code === 200) {
+              wx.showToast({ title: '任务已放弃', icon: 'success' });
+              this.loadTaskDetail(); // 刷新详情
+            } else {
+              wx.showToast({ title: res.message, icon: 'none' });
+            }
+          } catch (err) {
+            console.error('放弃任务失败:', err);
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
