@@ -72,13 +72,8 @@ Page({
       wx.showToast({ title: '不能给自己发私信', icon: 'none' });
       return;
     }
-    if (task.status >= 3) {
-      wx.showToast({ title: '任务已结束，无法发送私信', icon: 'none' });
-      return;
-    }
     wx.navigateTo({
-      url: `/pages/chat/chat?targetId=${task.publisher.id}&taskId=${task.id}&targetName=${task.publisher.nickname}`,
-      fail: () => wx.showToast({ title: '聊天页面暂未开放', icon: 'none' })
+      url: `/pages/chat/chat?taskId=${task.id}&targetId=${task.publisher.id}&targetName=${encodeURIComponent(task.publisher.nickname)}`
     });
   },
 
@@ -94,8 +89,7 @@ Page({
       return;
     }
     wx.navigateTo({
-      url: `/pages/chat/chat?targetId=${task.acceptor.id}&taskId=${task.id}&targetName=${task.acceptor.nickname}`,
-      fail: () => wx.showToast({ title: '聊天页面暂未开放', icon: 'none' })
+      url: `/pages/chat/chat?taskId=${task.id}&targetId=${task.acceptor.id}&targetName=${encodeURIComponent(task.acceptor.nickname)}`
     });
   },
 

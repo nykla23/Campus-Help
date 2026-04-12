@@ -1,26 +1,24 @@
 <view class="chat-container">
-  <!-- 顶部 -->
   <view class="chat-nav">
     <image src="/images/icon-back.png" class="back-icon" bindtap="goBack" />
     <view class="chat-info">
       <text class="chat-name">{{chatInfo.nickname}}</text>
       <text class="chat-task">任务：{{chatInfo.taskTitle}}</text>
     </view>
-    <image src="/images/icon-more.png" class="more-icon" />
   </view>
 
-  <!-- 消息列表 -->
   <scroll-view scroll-y class="msg-list" scroll-into-view="{{lastMsgId}}">
-    <view class="msg-item {{item.type === 'send' ? 'send' : 'receive'}}" wx:for="{{msgList}}" wx:key="id" id="msg-{{item.id}}">
+    <view class="msg-item {{item.type}}" wx:for="{{msgList}}" wx:key="id" id="msg-{{item.id}}">
       <image wx:if="{{item.type === 'receive'}}" src="{{item.avatar}}" class="msg-avatar" />
-      <view class="msg-bubble">{{item.content}}</view>
+      <view class="msg-content">
+        <view class="msg-bubble">{{item.content}}</view>
+        <text class="msg-time">{{item.created_at}}</text>
+      </view>
       <image wx:if="{{item.type === 'send'}}" src="{{item.avatar}}" class="msg-avatar" />
     </view>
   </scroll-view>
 
-  <!-- 输入框 -->
   <view class="input-area">
-    <image src="/images/icon-image.png" class="image-icon" />
     <input class="chat-input" placeholder="请输入消息..." value="{{inputMsg}}" bindinput="onInput" />
     <image src="/images/icon-send.png" class="send-icon" bindtap="sendMsg" />
   </view>
