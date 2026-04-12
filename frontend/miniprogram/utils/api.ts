@@ -130,3 +130,18 @@ export function completeTask(taskId: string) {
 export function confirmCompleteTask(taskId: string) {
   return request(`/tasks/${taskId}/confirm`, 'POST');
 }
+
+// 消息列表
+export function getMsgList() {
+  return request('/messages/list', 'GET');
+}
+
+// 聊天记录
+export function getChatDetail(taskId, targetId) {
+  return request(`/messages/chat/${taskId}/${targetId}`, 'GET');
+}
+
+// 发送消息
+export function sendMsgApi(data) {
+  return request('/messages/send', 'POST', data);
+}
