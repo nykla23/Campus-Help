@@ -2,7 +2,7 @@ import { getTaskList } from '../../api/task';
 
 Page({
   data: {
-    activeTab: 0,     // 0全部 1待接单 2进行中 3已完成
+    activeTab: 0,     // 0全部 1待接取 2进行中 3已完成
     activeType: 0,    // 页面当前类型（选中的）
     showFilter: false,
     popupActiveType: 0, // 弹窗内选择的类型
@@ -218,7 +218,7 @@ Page({
   },
 
   _adaptStatus(status: number) {
-    const dict = ['待接单','进行中','待确认','已完成','已取消'];
+    const dict = ['待接取','进行中','待确认','已完成','已取消'];
     return dict[status] || '';
   },
 

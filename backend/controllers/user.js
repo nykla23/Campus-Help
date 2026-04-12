@@ -40,7 +40,7 @@ exports.login = async (req, res) => {
 
 // 状态映射（和前端一致）
 const statusMap = {
-  0: '待接单',
+  0: '待接取',
   1: '进行中',
   2: '已完成',
   3: '已取消'

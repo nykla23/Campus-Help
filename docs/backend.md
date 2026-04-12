@@ -94,7 +94,7 @@ backend/
 | description  | TEXT         |                                                       | 详细描述                                         |
 | reward       | INT          | NOT NULL                                              | 悬赏虚拟币                                       |
 | location     | VARCHAR(100) |                                                       | 地点                                             |
-| status       | TINYINT      | DEFAULT 0                                             | 0-待接单，1-进行中，2-待确认，3-已完成，4-已取消 |
+| status       | TINYINT      | DEFAULT 0                                             | 0-待接取，1-进行中，2-待确认，3-已完成，4-已取消 |
 | deadline     | DATETIME     |                                                       | 截止时间                                         |
 | created_at   | DATETIME     | DEFAULT CURRENT_TIMESTAMP                             | 发布时间                                         |
 | updated_at   | DATETIME     | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间                                         |
@@ -134,11 +134,11 @@ backend/
 
 ### 5.2 任务状态机
 
-- **待接单 (0)**：发布后初始状态，可被接单，发布者可取消。
+- **待接取 (0)**：发布后初始状态，可被接单，发布者可取消。
 - **进行中 (1)**：接单后状态，等待发布者确认完成。
 - **待确认 (2)**：接单者标记完成（可选功能），发布者可确认完成。
 - **已完成 (3)**：发布者确认完成，虚拟币划转，可评价。
-- **已取消 (4)**：发布者取消任务（仅待接单状态可取消），冻结币解冻。
+- **已取消 (4)**：发布者取消任务（仅待接取状态可取消），冻结币解冻。
 
 ### 5.3 虚拟币事务
 

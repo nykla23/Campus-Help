@@ -65,7 +65,7 @@
           <view class="credit-score">信用分 {{item.credit}}</view>
         </view>
         <view class="status-tag 
-          {{item.status === '待接单' ? 'orange' : ''}}
+          {{item.status === '待接取' ? 'orange' : ''}}
           {{item.status === '进行中' ? 'green' : ''}}
           {{item.status === '待确认' ? 'blue' : ''}}
           {{item.status === '已完成' ? 'done' : ''}}
@@ -105,7 +105,7 @@
           <view class="credit-score">信用分 {{item.credit}}</view>
         </view>
         <view class="status-tag 
-          {{item.status === '待接单' ? 'orange' : ''}}
+          {{item.status === '待接取' ? 'orange' : ''}}
           {{item.status === '进行中' ? 'green' : ''}}
           {{item.status === '已完成' ? 'done' : ''}}
           {{item.status === '已取消' ? 'cancel' : ''}}
