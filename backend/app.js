@@ -23,6 +23,9 @@ app.use('/api/tasks', publishRouter); // 发布任务接口路径变为 /tasks P
 // 个人主页路由
 app.use('/api/user', require('./routes/user'));
 
+// 消息系统路由
+app.use('/api/messages', require('./routes/message'));
+
 // 测试数据库连接
 db.getConnection()
     .then(() => console.log('数据库连接成功'))

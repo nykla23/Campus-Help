@@ -71,3 +71,12 @@ CREATE TABLE transactions (
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL,
     INDEX idx_user_created (user_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS messages (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  from_id INT NOT NULL,    -- 发送者ID
+  to_id INT NOT NULL,      -- 接收者ID
+  task_id INT NOT NULL,    -- 关联任务ID
+  content TEXT NOT NULL,  -- 消息内容
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
