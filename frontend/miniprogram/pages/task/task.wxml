@@ -53,7 +53,7 @@
         <text class="credit">⭐ 信用分 {{task.publisher.credit}}</text>
       </view>
       <!-- 私信发布者：除了发布者自己，其他人都能发 -->
-      <button  wx:if="{{task.publisher.id !== userId}}" class="msg-btn" bindtap="() => sendMsg('publisher', task.publisher.id)">
+      <button  wx:if="{{task.publisher.id !== userId}}" class="msg-btn" bindtap="sendMsgPublisher">
         私信
       </button>
       <!-- 发布者自己显示“我” -->
@@ -80,7 +80,7 @@
       <button 
         wx:if="{{task.acceptor.id !== userId && task.publisher.id === userId}}" 
         class="msg-btn" 
-        bindtap="() => sendMsg('acceptor', task.acceptor.id)"
+        bindtap = "sendMsgAcceptor"
       >
         私信
       </button>
