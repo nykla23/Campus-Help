@@ -59,8 +59,8 @@ exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const [user] = await db.query('SELECT id, nickname, avatar, signature, coins, credit_score FROM users WHERE id = ?', [userId]);
-    const [finish] = await db.query('SELECT COUNT(*) AS count FROM tasks WHERE (publisher_id=? OR acceptor_id=?) AND status=2', [userId, userId]);
-
+    // 统计用户作为接单者且任务已完成的数目（更合理）
+    const [finish] = await db.query('SELECT COUNT(*) AS count FROM tasks WHERE acceptor_id = ? AND status = 3', [userId]);
     res.json({
       code: 200,
       data: {
@@ -114,10 +114,27 @@ exports.getReceiveTasks = async (req, res) => {
 // 交易记录
 exports.getTrades = async (req, res) => {
   try {
-    const [trades] = await db.query('SELECT * FROM trades WHERE user_id=? ORDER BY created_at DESC', [req.user.id]);
+    const userId = req.user.id;
+    const [rows] = await db.query(
+      `SELECT id, description as title, amount, type, created_at as time, task_id
+       FROM transactions
+       WHERE user_id = ?
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+    // 将 type 数字转换为 'income' / 'expense'
+    const trades = rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      amount: row.amount,
+      type: row.type === 1 ? 'income' : 'expense',
+      time: row.time,
+      taskId: row.task_id
+    }));
     res.json({ code: 200, data: trades });
-  } catch (e) {
-    res.json({ code: 500 });
+  } catch (err) {
+    console.error('获取交易记录失败:', err);
+    res.json({ code: 500, message: '服务器错误' });
   }
 };
 

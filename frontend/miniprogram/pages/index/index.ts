@@ -112,7 +112,7 @@ Page({
     let sort = selectedFilter;
     let searchKeyword = keyword.trim() || undefined ;
 
-    console.log('请求参数:', {page:1,limit, status, type, sort, keyword: searchKeyword})
+    //console.log('请求参数:', {page:1,limit, status, type, sort, keyword: searchKeyword})
     this.setData({ page: 1, loading: true });
     getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(res => {
       if (res.code === 0 && res.data) {
@@ -165,7 +165,7 @@ Page({
       let type: number | undefined = activeType === 0 ? undefined : activeType;
       let sort = selectedFilter;
 
-      console.log('请求参数:', { page: nextPage, limit, status, type, sort, keyword });
+      //console.log('请求参数:', { page: nextPage, limit, status, type, sort, keyword });
       this.setData({ loading: true });
       getTaskList({ page: nextPage, limit, status, type, sort, keyword })
         .then(res => {

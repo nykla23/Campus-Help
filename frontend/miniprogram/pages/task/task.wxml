@@ -92,58 +92,40 @@
   <!-- 操作按钮（根据状态动态显示） -->
   <!-- 操作栏（按权限动态显示） -->
   <view class="action-bar">
-    <!-- 待接取状态：非发布者显示【接取任务】 -->
-    <button 
-      wx:if="{{task.status === 0 && task.publisher.id !== userId}}" 
-      class="action-btn primary" 
-      bindtap="acceptTask"
-    >
-      接取任务
-    </button>
+    <!-- 待接取 (0) -->
+    <block wx:if="{{task.status === 0}}">
+      <button wx:if="{{task.publisher.id === userId}}" class="action-btn danger" bindtap="cancelTask">取消任务</button>
+      <button wx:else class="action-btn primary" bindtap="acceptTask">接取任务</button>
+    </block>
 
-    <!-- 待接取状态：发布者显示【取消任务】 -->
-    <button 
-      wx:if="{{task.status === 0 && task.publisher.id === userId}}" 
-      class="action-btn danger" 
-      bindtap="cancelTask"
-    >
-      取消任务
-    </button>
+    <!-- 进行中 (1) -->
+    <block wx:elif="{{task.status === 1}}">
+      <!-- 接单者：提交完成 + 放弃任务 -->
+      <block wx:if="{{task.acceptor && task.acceptor.id === userId}}">
+        <button class="action-btn primary" bindtap="completeTask">提交完成</button>
+        <button class="action-btn danger" bindtap="giveUpTask">放弃任务</button>
+      </block>
+      <!-- 发布者：无操作，显示提示 -->
+      <view wx:elif="{{task.publisher.id === userId}}" class="waiting-text">等待接单者完成任务</view>
+    </block>
 
-    <!-- 进行中状态：发布者显示【完成任务】 -->
-    <button 
-      wx:if="{{task.status === 1 && task.publisher.id === userId}}" 
-      class="action-btn primary" 
-      bindtap="completeTask"
-    >
-      完成任务
-    </button>
+    <!-- 待确认 (2) -->
+    <block wx:elif="{{task.status === 2}}">
+      <!-- 发布者：确认完成 -->
+      <button wx:if="{{task.publisher.id === userId}}" class="action-btn primary" bindtap="confirmCompleteTask">确认完成</button>
+      <!-- 接单者：等待确认 -->
+      <view wx:elif="{{task.acceptor && task.acceptor.id === userId}}" class="waiting-text">等待发布者确认</view>
+    </block>
 
-    <!-- 进行中状态：接单者显示【放弃任务】 -->
-    <button 
-      wx:if="{{task.status === 1 && task.acceptor.id == userId}}" 
-      class="action-btn danger" 
-      bindtap="giveUpTask"
-    >
-      放弃任务
-    </button>
+    <!-- 已完成/已取消 (3/4) -->
+    <block wx:else>
+      <button class="action-btn disabled" disabled>{{task.statusText}}</button>
+    </block>
 
-    <!-- 联系发布者按钮：仅非发布者 + 任务未取消/未完成 显示 -->
-    <button 
-      wx:if="{{task.publisher.id !== userId && task.status < 2}}" 
-      class="action-btn outline" 
-      bindtap="() => sendMsg('publisher', task.publisher.id)"
-    >
-      联系发布者
-    </button>
+    <!-- 联系发布者（非发布者且任务未结束） -->
+    <button wx:if="{{task.publisher.id !== userId && task.status < 3}}" class="action-btn outline" bindtap="sendMsgPublisher">联系发布者</button>
 
-    <!-- 已完成/已取消：显示状态标签，不可操作 -->
-    <button 
-      wx:if="{{task.status >= 2}}" 
-      class="action-btn disabled" 
-      disabled
-    >
-      {{task.statusText}}
-    </button>
+    <!-- 私信接单者（仅发布者且任务进行中或待确认） -->
+    <button wx:if="{{task.publisher.id === userId && task.acceptor && task.acceptor.id && (task.status === 1 || task.status === 2)}}" class="action-btn outline" bindtap="sendMsgAcceptor">私信接单者</button>
   </view>
 </view>

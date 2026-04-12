@@ -18,9 +18,17 @@ Page({
   },
 
   goBack() {
-    wx.navigateBack();
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+    } else {
+      // 无上一页时跳转到任务广场或首页（根据你的实际路径修改）
+      wx.switchTab({
+        url: '/pages/index/index', // 或 '/pages/task/task'
+      });
+    }
   },
-  
+
   changeType(e: WechatMiniprogram.TouchEvent) {
     const index = parseInt(e.currentTarget.dataset.index as string);
     this.setData({ activeType: index });
