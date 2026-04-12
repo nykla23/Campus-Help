@@ -16,7 +16,7 @@
   <!-- 状态标签栏 -->
   <view class="status-tabs">
     <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">全部</view>
-    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">待接单</view>
+    <view class="tab-item {{activeTab === 1 ? 'active' : ''}}" bindtap="changeTab" data-index="1">待接取</view>
     <view class="tab-item {{activeTab === 2 ? 'active' : ''}}" bindtap="changeTab" data-index="2">进行中</view>
     <view class="tab-item {{activeTab === 3 ? 'active' : ''}}" bindtap="changeTab" data-index="3">已完成</view>
     <view class="filter-btn" bindtap="toggleTypeBar">
@@ -43,7 +43,7 @@
           <view class="credit-score">信用分 {{item.credit}}</view>
         </view>
         <view class="status-tag 
-          {{item.status === '待接单' ? 'orange' : ''}}
+          {{item.status === '待接取' ? 'orange' : ''}}
           {{item.status === '进行中' ? 'green' : ''}}
           {{item.status === '待确认' ? 'blue' : ''}}
           {{item.status === '已完成' ? 'done' : ''}}

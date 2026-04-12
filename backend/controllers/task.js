@@ -30,7 +30,7 @@ exports.list = async (req, res) => {
 };
 
 // 状态/类型映射
-const statusMap = { 0: '待接单', 1: '进行中', 2: '待确认', 3: '已完成', 4: '已取消' };
+const statusMap = { 0: '待接取', 1: '进行中', 2: '待确认', 3: '已完成', 4: '已取消' };
 const typeMap = { 0: '取件代送', 1: '跑腿代办', 2: '学习辅导', 3: '其他' };
 
 // 1. 获取任务详情
@@ -105,7 +105,7 @@ exports.acceptTask = async (req, res) => {
     }
     const task = tasks[0];
 
-    // 状态校验：必须是待接单，且不是自己发布的
+    // 状态校验：必须是待接取，且不是自己发布的
     if (task.status !== 0) {
       await connection.rollback();
       return res.json({ code: 400, message: '任务已被接单/已完成' });
@@ -203,7 +203,7 @@ exports.cancelTask = async (req, res) => {
     }
     const task = tasks[0];
 
-    // 权限校验：只有发布者能取消，且必须是待接单状态
+    // 权限校验：只有发布者能取消，且必须是待接取状态
     if (task.publisher_id !== userId) {
       await connection.rollback();
       return res.json({ code: 403, message: '无权限操作' });
@@ -265,14 +265,14 @@ exports.giveUpTask = async (req, res) => {
       return res.json({ code: 400, message: '任务状态异常，无法放弃' });
     }
 
-    // 更新任务状态为待接单，清空接单者ID
+    // 更新任务状态为待接取，清空接单者ID
     await connection.query(
       'UPDATE tasks SET status = 0, acceptor_id = NULL WHERE id = ?',
       [taskId]
     );
 
     await connection.commit();
-    res.json({ code: 200, message: '任务已放弃，恢复待接单状态' });
+    res.json({ code: 200, message: '任务已放弃，恢复待接取状态' });
   } catch (err) {
     await connection.rollback();
     console.error('放弃任务失败:', err);

@@ -50,7 +50,7 @@ Page({
 
   // 状态映射（数字 -> 中文）
   adaptStatus(status: number): string {
-    const dict = ['待接单', '进行中', '待确认', '已完成', '已取消'];
+    const dict = ['待接取', '进行中', '待确认', '已完成', '已取消'];
     return dict[status] || '未知';
   },
 

@@ -31,7 +31,7 @@
 | reward       | INT          | NOT NULL                                              | 悬赏虚拟币                                       |
 | location     | VARCHAR(100) |                                                       | 地点                                             |
 | type         | TINYINT      | DEFAULT 0                                             | 任务类型：0-全部 1-取件代送 2-跑腿代办 3-学习辅导 4-其他 |
-| status       | TINYINT      | DEFAULT 0                                             | 0-待接单，1-进行中，2-待确认，3-已完成，4-已取消 |
+| status       | TINYINT      | DEFAULT 0                                             | 0-待接取，1-进行中，2-待确认，3-已完成，4-已取消 |
 | deadline     | DATETIME     |                                                       | 截止时间                                         |
 | created_at   | DATETIME     | DEFAULT CURRENT_TIMESTAMP                             | 发布时间                                         |
 | updated_at   | DATETIME     | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | 更新时间                                         |
@@ -99,7 +99,7 @@ CREATE TABLE tasks (
     reward INT NOT NULL COMMENT '悬赏虚拟币',
     location VARCHAR(100) COMMENT '地点',
     type TINYINT DEFAULT 0 COMMENT '任务类型：0-全部 1-取件代送 2-跑腿代办 3-学习辅导 4-其他', -- 新增字段
-    status TINYINT DEFAULT 0 COMMENT '0-待接单 1-进行中 2-待确认 3-已完成 4-已取消',
+    status TINYINT DEFAULT 0 COMMENT '0-待接取 1-进行中 2-待确认 3-已完成 4-已取消',
     deadline DATETIME COMMENT '截止时间',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

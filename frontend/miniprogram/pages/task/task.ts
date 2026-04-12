@@ -51,25 +51,62 @@ Page({
     wx.navigateBack();
   },
 
-  // 私信
-  sendMsg() {
-    wx.showToast({ title: '私信功能开发中', icon: 'none' });
+  /**
+   * 私信功能：区分私信对象
+   * @param type 私信类型：publisher(发布者)/acceptor(接单者)
+   * @param targetId 目标用户ID
+   */
+  sendMsg(type: 'publisher' | 'acceptor', targetId: number) {
+    const { task, userId } = this.data;
+    const targetUser = type === 'publisher' ? task.publisher : task.acceptor;
+
+    // 权限二次校验（防止前端逻辑被绕过）
+    if (targetId == userId) {
+      wx.showToast({ title: '不能给自己发私信', icon: 'none' });
+      return;
+    }
+
+    // 非发布者私信接单者的权限校验（仅发布者可私信接单者）
+    if (type === 'acceptor' && task.publisher.id != userId) {
+      wx.showToast({ title: '仅发布者可私信接单者', icon: 'none' });
+      return;
+    }
+
+    // 任务已取消/已完成时，禁止发起新私信（可选）
+    if (task.status >= 2) {
+      wx.showToast({ title: '任务已结束，无法发送私信', icon: 'none' });
+      return;
+    }
+
+    // 实际业务中：跳转到私信聊天页，传入目标用户ID和任务ID
+    try {
+      // 示例：跳转到聊天页面（需自行实现聊天页）
+      wx.navigateTo({
+        url: `/pages/chat/chat?targetId=${targetId}&taskId=${task.id}&targetName=${targetUser.nickname}`,
+        fail: () => {
+          wx.showToast({ title: '聊天页面暂未开放', icon: 'none' });
+        }
+      });
+    } catch (err) {
+      console.error('跳转私信失败:', err);
+      wx.showToast({ title: '私信功能开发中', icon: 'none' });
+    }
   },
 
   // 接单
   async acceptTask() {
-    wx.showLoading({ title: '接单中...' });
+    wx.showLoading({ title: '接取中...' });
     try {
       const res = await acceptTask(this.data.taskId);
       if (res.code === 200) {
-        wx.showToast({ title: '接单成功', icon: 'success' });
+        wx.showToast({ title: '接取成功', icon: 'success' });
         this.loadTaskDetail(); // 刷新详情
       } else {
         wx.showToast({ title: res.message, icon: 'none' });
       }
     } catch (err) {
-      console.error('接单失败:', err);
-      wx.showToast({ title: '接单失败', icon: 'none' });
+      console.error('接取失败:', err);
+      wx.showToast({ title: '接取失败', icon: 'none' });
     } finally {
       wx.hideLoading();
     }
@@ -102,7 +139,7 @@ Page({
     });
   },
 
-  // 新增：取消任务（发布者）
+  // 取消任务（发布者）
   async cancelTask() {
     wx.showModal({
       title: '确认取消',
@@ -133,7 +170,7 @@ Page({
   async giveUpTask() {
     wx.showModal({
       title: '确认放弃',
-      content: '确定要放弃该任务吗？放弃后任务将恢复待接单状态',
+      content: '确定要放弃该任务吗？放弃后任务将恢复待接取状态',
       success: async (res) => {
         if (res.confirm) {
           wx.showLoading({ title: '放弃中...' });

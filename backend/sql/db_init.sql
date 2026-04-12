@@ -28,7 +28,7 @@ CREATE TABLE tasks (
     description TEXT COMMENT '详细描述',
     reward INT NOT NULL COMMENT '悬赏虚拟币',
     location VARCHAR(100) COMMENT '地点',
-    status TINYINT DEFAULT 0 COMMENT '0-待接单 1-进行中 2-待确认 3-已完成 4-已取消',
+    status TINYINT DEFAULT 0 COMMENT '0-待接取 1-进行中 2-待确认 3-已完成 4-已取消',
     deadline DATETIME COMMENT '截止时间',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
