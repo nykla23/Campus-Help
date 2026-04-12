@@ -149,7 +149,7 @@ Page({
   // 跳转到任务详情
   toTaskDetail(e: WechatMiniprogram.TouchEvent) {
     const id = e.currentTarget.dataset.id;
-    wx.navigateTo({ url: `/pages/taskDetail/taskDetail?id=${id}` });
+    wx.navigateTo({ url: `/pages/task/task?id=${id}` });
   },
 
   // 跳转到设置页
