@@ -138,4 +138,74 @@ exports.getTrades = async (req, res) => {
   }
 };
 
+// 更新个人信息
+exports.updateUserInfo = async (req, res) => {
+  try {
+    const userId = req.user.id; // 从 token 获取用户ID
+    const { nickname, signature, avatar } = req.body;
 
+    // 动态构建更新字段
+    const updates = [];
+    const params = [];
+    if (nickname !== undefined) {
+      updates.push('nickname = ?');
+      params.push(nickname);
+    }
+    if (signature !== undefined) {
+      updates.push('signature = ?');
+      params.push(signature);
+    }
+    if (avatar !== undefined) {
+      updates.push('avatar = ?');
+      params.push(avatar);
+    }
+    if (updates.length === 0) {
+      return res.json({ code: 400, message: '没有要更新的字段' });
+    }
+    params.push(userId);
+    const sql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    await db.query(sql, params);
+    res.json({ code: 200, message: '更新成功' });
+  } catch (err) {
+    console.error('更新用户信息失败:', err);
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};
+
+// 修改密码
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { oldPassword, newPassword } = req.body;
+    console.log('修改密码请求:', { userId, oldPassword, newPassword }); // 调试日志
+    if (!oldPassword || !newPassword) {
+      return res.json({ code: 400, message: '原密码和新密码不能为空' });
+    }
+    const [rows] = await db.query('SELECT password FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) return res.json({ code: 404, message: '用户不存在' });
+    const isValid = await bcrypt.compare(oldPassword, rows[0].password);
+    if (!isValid) return res.json({ code: 401, message: '原密码错误' });
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password = ? WHERE id = ?', [hashed, userId]);
+    res.json({ code: 200, message: '密码修改成功，请重新登录' });
+  } catch (err) {
+    console.error('修改密码失败:', err);
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};
+
+// 上传头像
+exports.uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.json({ code: 400, message: '未选择文件' });
+    }
+    const userId = req.user.id;
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    await db.query('UPDATE users SET avatar = ? WHERE id = ?', [avatarUrl, userId]);
+    res.json({ code: 200, data: { url: avatarUrl }, message: '头像更新成功' });
+  } catch (err) {
+    console.error('上传头像失败:', err);
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};

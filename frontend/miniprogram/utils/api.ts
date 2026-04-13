@@ -145,3 +145,38 @@ export function getChatDetail(taskId: string, targetId: string) {
 export function sendMsgApi(data: { toId: string; taskId: string; content: string }) {
   return request('/messages/send', 'POST', data);
 }
+
+// 更新个人信息（需后端实现对应接口）
+export function updateUserInfo(data: { nickname?: string; avatar?: string }) {
+  return request('/user/update', 'POST', data);
+}
+
+export function changePassword(data: { oldPassword: string; newPassword: string }) {
+  return request('/user/change-password', 'POST', data);
+}
+
+// 上传头像（需后端实现对应接口）
+export function uploadAvatar(filePath: string): Promise<{ code: number; data: { url: string }; message: string }> {
+  const token = getToken();
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: BASE_URL + '/user/upload-avatar',
+      filePath: filePath,
+      name: 'avatar',
+      header: {
+        'Authorization': `Bearer ${token}`
+      },
+      success(res) {
+        try {
+          const data = JSON.parse(res.data);
+          resolve(data);
+        } catch (e) {
+          reject(e);
+        }
+      },
+      fail(err) {
+        reject(err);
+      }
+    });
+  });
+}
