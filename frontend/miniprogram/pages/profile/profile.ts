@@ -304,6 +304,10 @@ Page({
       sourceType: ['album', 'camera'],
       success: (res) => {
         this.setData({ tempAvatar: res.tempFilePaths[0] });
+      },
+      fail: (err) => {
+        console.error('选择图片失败:', err);
+        wx.showToast({ title: '选择图片失败', icon: 'none' });
       }
     });
   },
@@ -316,17 +320,21 @@ Page({
     wx.showLoading({ title: '上传中...' });
     try {
       const res = await uploadAvatar(this.data.tempAvatar);
-      if (res.code === 200) {
-        wx.showToast({ title: '头像更新成功' });
+      if (res.code === 200 && res.data && res.data.url) {
+        // 新头像 URL
+        const newAvatarUrl = res.data.url;
+        // 强制添加时间戳避免缓存
+        const avatarWithTimestamp = `${newAvatarUrl}?t=${Date.now()}`;
+        
         this.setData({
-          'userInfo.avatar': res.data.url,
+          'userInfo.avatar': avatarWithTimestamp,
           showEditAvatarFlag: false,
           tempAvatar: ''
         });
+        wx.showToast({ title: '头像更新成功' });
         // 更新本地存储（可选）
-        wx.setStorageSync('avatar', res.data.url);
-        // 刷新页面数据（可选）
-        this.loadProfileData();
+        wx.setStorageSync('avatar', avatarWithTimestamp);
+        
       } else {
         wx.showToast({ title: res.message || '上传失败', icon: 'none' });
       }

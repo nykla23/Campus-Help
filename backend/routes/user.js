@@ -25,7 +25,7 @@ router.post('/update', auth.verifyToken, userController.updateUserInfo);
 router.post('/change-password', auth.verifyToken, userController.changePassword);
 
 // 确保上传目录存在
-const avatarDir = 'uploads/avatars';
+const avatarDir = path.join(__dirname, '../uploads/avatars');
 if (!fs.existsSync(avatarDir)) {
   fs.mkdirSync(avatarDir, { recursive: true });
 }
@@ -39,7 +39,19 @@ const storage = multer.diskStorage({
     cb(null, `${Date.now()}${ext}`);
   }
 });
-const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    // 允许的图片类型
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('仅支持 JPG/PNG/GIF/WEBP 格式的图片'), false);
+    }
+  }
+});
 
 router.post('/upload-avatar', auth.verifyToken, upload.single('avatar'), userController.uploadAvatar);
 
