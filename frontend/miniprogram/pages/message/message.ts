@@ -49,9 +49,9 @@ Page({
   },
 
   toChat(e: any) {
-    const { task, target, nickname, avatar } = e.currentTarget.dataset;
+    const { task, target, name, avatar } = e.currentTarget.dataset;
     wx.navigateTo({
-      url: `/pages/chat/chat?taskId=${task}&targetId=${target}&targetName=${encodeURIComponent(nickname || '')}&targetAvatar=${encodeURIComponent(avatar || '')}`
+      url: `/pages/chat/chat?taskId=${task}&targetId=${target}&targetName=${encodeURIComponent(name || '')}&targetAvatar=${avatar || ''}`
     });
   }
 });

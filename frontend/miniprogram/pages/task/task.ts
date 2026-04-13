@@ -73,7 +73,7 @@ Page({
       return;
     }
     wx.navigateTo({
-      url: `/pages/chat/chat?taskId=${task.id}&targetId=${task.publisher.id}&targetName=${encodeURIComponent(task.publisher.nickname)}`
+      url: `/pages/chat/chat?taskId=${task.id}&targetId=${task.publisher.id}&targetName=${encodeURIComponent(task.publisher.nickname)}&targetAvatar=${encodeURIComponent(task.publisher.avatar || '')}`
     });
   },
 
@@ -89,7 +89,7 @@ Page({
       return;
     }
     wx.navigateTo({
-      url: `/pages/chat/chat?taskId=${task.id}&targetId=${task.acceptor.id}&targetName=${encodeURIComponent(task.acceptor.nickname)}`
+      url: `/pages/chat/chat?taskId=${task.id}&targetId=${task.acceptor.id}&targetName=${encodeURIComponent(task.acceptor.nickname)}&targetAvatar=${encodeURIComponent(task.acceptor.avatar || '')}`
     });
   },
 

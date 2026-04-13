@@ -22,7 +22,7 @@ Page({
     const taskId = options.taskId;
     const targetId = options.targetId;
     const targetName = decodeURIComponent(options.targetName || '聊天');
-    const targetAvatar = options.targetAvatar || '/images/default-avatar.png';
+    const targetAvatar = decodeURIComponent(options.targetAvatar || '/images/default-avatar.png');
     this.setData({
       taskId,
       targetId,
@@ -31,21 +31,53 @@ Page({
       myId: Number(wx.getStorageSync('userId') || 0),
       myAvatar: wx.getStorageSync('avatar') || '/images/default-avatar.png'
     });
-    wx.setNavigationBarTitle({ title: targetName });
+    // 先设置默认导航标题，等获取到真实昵称后再更新
+    wx.setNavigationBarTitle({ title: targetName || '聊天' });
+    this.loadTaskAndUserInfo(); // 获取任务标题和对方信息
     this.loadChat();
-    this.loadTaskTitle(); // 加载任务标题
   },
 
-  async loadTaskTitle() {
+  async loadTaskAndUserInfo() {
     try {
       const res = await getTaskDetail(this.data.taskId);
       if (res.code === 200 && res.data) {
-        this.setData({ 'chatInfo.taskTitle': res.data.title });
+        const task = res.data;
+        // 设置任务标题
+        this.setData({ 'chatInfo.taskTitle': task.title });
+
+        // 获取对方用户信息
+        let targetNickname = this.data.targetName;
+        let targetAvatar = this.data.targetAvatar;
+        if (!targetNickname) {
+          if (task.publisher.id == this.data.targetId) {
+            targetNickname = task.publisher.nickname;
+            targetAvatar = task.publisher.avatar;
+          } else if (task.acceptor && task.acceptor.id == this.data.targetId) {
+            targetNickname = task.acceptor.nickname;
+            targetAvatar = task.acceptor.avatar;
+          }
+        }
+        if (targetNickname) {
+          this.setData({
+            targetName: targetNickname,
+            targetAvatar: targetAvatar || '/images/default-avatar.png',
+            'chatInfo.nickname': targetNickname   // 关键：更新顶部昵称
+          });
+          wx.setNavigationBarTitle({ title: targetNickname });
+        } else {
+          // 降级：从参数中获取或显示默认
+          this.setData({
+            'chatInfo.nickname': this.data.targetName || '聊天'
+          });
+        }
       } else {
         this.setData({ 'chatInfo.taskTitle': `任务${this.data.taskId}` });
+        this.setData({ 'chatInfo.nickname': this.data.targetName || '聊天' });
       }
     } catch (err) {
+      console.error('获取任务信息失败', err);
       this.setData({ 'chatInfo.taskTitle': `任务${this.data.taskId}` });
+      this.setData({ 'chatInfo.nickname': this.data.targetName || '聊天' });
     }
   },
 
