@@ -62,7 +62,17 @@
 | created_at  | DATETIME     | DEFAULT CURRENT_TIMESTAMP  | 交易时间                           |
 
 
-## 2. 建表 SQL
+#### 消息表（messages）
+
+| 字段        | 类型         | 约束                       | 说明                               |
+| :---------- | :----------- | :------------------------- | :--------------------------------- |
+| id          | INT          | PRIMARY KEY AUTO_INCREMENT | 消息 ID                            |
+| from_id     | INT          | NOT NULL                   | 发送者 ID                          |
+| to_id       | INT          | NOT NULL                   | 接收者 ID                          |
+| task_id     | INT          | NOT NULL                   | 关联任务 ID                        |
+| content     | TEXT         | NOT NULL                   | 消息内容                           |
+| created_at  | DATETIME     | DEFAULT CURRENT_TIMESTAMP  | 消息发送时间                       |
+
 
 
 
