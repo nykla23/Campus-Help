@@ -1,47 +1,166 @@
 openapi: 3.0.0
 info:
-  title: Campus Help RESTful API
+  title: Campus Help API
+  description: 校园帮小程序后端接口文档
   version: 1.0.0
-  description: 校园帮小程序后端服务接口文档
 servers:
   - url: http://localhost:3000/api
+    description: 本地开发环境
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        data:
+          type: object
+        message:
+          type: string
+          example: success
+      required:
+        - code
+        - message
+
+    ApiResponseList:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        data:
+          type: object
+          properties:
+            total:
+              type: integer
+            page:
+              type: integer
+            limit:
+              type: integer
+            list:
+              type: array
+              items:
+                type: object
+        message:
+          type: string
+          example: success
+
+    UserRegister:
+      type: object
+      required:
+        - username
+        - password
+        - confirmPassword
+      properties:
+        username:
+          type: string
+        nickname:
+          type: string
+        password:
+          type: string
+        confirmPassword:
+          type: string
+
+    UserLogin:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    UserUpdateProfile:
+      type: object
+      properties:
+        nickname:
+          type: string
+        signature:
+          type: string
+
+    UserChangePassword:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
+
+    TaskCreate:
+      type: object
+      required:
+        - title
+        - reward
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        reward:
+          type: integer
+        location:
+          type: string
+        type:
+          type: integer
+        deadline:
+          type: string
+          format: date-time
+
+    ReviewCreate:
+      type: object
+      required:
+        - taskId
+        - toUserId
+        - rating
+      properties:
+        taskId:
+          type: integer
+        toUserId:
+          type: integer
+        rating:
+          type: integer
+        comment:
+          type: string
+
+    MessageSend:
+      type: object
+      required:
+        - taskId
+        - targetId
+        - content
+      properties:
+        taskId:
+          type: integer
+        targetId:
+          type: integer
+        content:
+          type: string
+
 paths:
-  /users:
-    get:
-      summary: 获取用户列表
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseList'
+  # ====================== 用户模块 ======================
+  /users/register:
     post:
       summary: 用户注册
+      tags: [用户模块]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserCreate'
-      responses:
-        '201':
-          description: 用户创建成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-  /users/{id}:
-    get:
-      summary: 获取用户详情
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-            example: 1
-          required: true
-          description: 用户ID
+              $ref: '#/components/schemas/UserRegister'
       responses:
         '200':
           description: 成功
@@ -49,92 +168,181 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-    put:
-      summary: 更新用户信息
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-            example: 1
-          required: true
-          description: 用户ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserUpdate'
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-    delete:
-      summary: 删除用户
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-            example: 1
-          required: true
-          description: 用户ID
-      responses:
-        '204':
-          description: 删除成功，无返回体
-  /auth/login:
+
+  /users/login:
     post:
       summary: 用户登录
+      tags: [用户模块]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [username, password]
-              properties:
-                username:
-                  type: string
-                password:
-                  type: string
+              $ref: '#/components/schemas/UserLogin'
       responses:
         '200':
-          description: 登录成功，返回用户基础信息及Token（如需）
+          description: 成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-  /tasks:
+
+  /users/profile:
     get:
-      summary: 获取任务列表
-      parameters:
-        - in: query
-          name: status
-          schema:
-            type: integer
-          description: 按任务状态过滤
-        - in: query
-          name: publisher_id
-          schema:
-            type: integer
-          description: 按发布者ID筛选
-        - in: query
-          name: acceptor_id
-          schema:
-            type: integer
-          description: 按接单者ID筛选
+      summary: 获取当前用户信息
+      tags: [用户模块]
+      security:
+        - bearerAuth: []
       responses:
         '200':
-          description: 查询成功
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /users/updateProfile:
+    post:
+      summary: 修改个人信息
+      tags: [用户模块]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateProfile'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /users/updatePassword:
+    post:
+      summary: 修改密码
+      tags: [用户模块]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserChangePassword'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /users/uploadAvatar:
+    post:
+      summary: 上传头像
+      tags: [用户模块]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /users/myPublishTasks:
+    get:
+      summary: 我发布的任务
+      tags: [用户模块]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseList'
+
+  /users/myReceiveTasks:
+    get:
+      summary: 我接单的任务
+      tags: [用户模块]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseList'
+
+  /users/transactions:
+    get:
+      summary: 我的交易记录
+      tags: [用户模块]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseList'
+
+  # ====================== 任务模块 ======================
+  /tasks/list:
+    get:
+      summary: 获取任务列表
+      tags: [任务模块]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseList'
+
+  /tasks/publish:
     post:
-      summary: 发布新任务
+      summary: 发布任务
+      tags: [任务模块]
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -142,89 +350,140 @@ paths:
             schema:
               $ref: '#/components/schemas/TaskCreate'
       responses:
-        '201':
-          description: 创建成功
+        '200':
+          description: 成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-  /tasks/{id}:
+
+  /tasks/detail/{taskId}:
     get:
-      summary: 获取任务详情
+      summary: 任务详情
+      tags: [任务模块]
+      security:
+        - bearerAuth: []
       parameters:
-        - in: path
-          name: id
+        - name: taskId
+          in: path
+          required: true
           schema:
             type: integer
-            example: 10
-          required: true
-          description: 任务ID
       responses:
         '200':
-          description: 查询成功
+          description: 成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-    put:
-      summary: 更新任务信息（如变更描述、状态等）
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-            example: 10
-          required: true
-          description: 任务ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TaskUpdate'
-      responses:
-        '200':
-          description: 修改成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-    delete:
-      summary: 删除任务
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-            example: 10
-          required: true
-          description: 任务ID
-      responses:
-        '204':
-          description: 删除成功，无返回体
-  /reviews:
-    get:
-      summary: 获取评价列表
-      parameters:
-        - in: query
-          name: task_id
-          schema:
-            type: integer
-          description: 按任务ID查询
-        - in: query
-          name: to_user_id
-          schema:
-            type: integer
-          description: 查询某用户收到评价
-      responses:
-        '200':
-          description: 查询成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseList'
+
+  /tasks/accept/{taskId}:
     post:
-      summary: 新增评价
+      summary: 接单
+      tags: [任务模块]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /tasks/giveUp/{taskId}:
+    post:
+      summary: 放弃任务
+      tags: [任务模块]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /tasks/complete/{taskId}:
+    post:
+      summary: 我已完成任务
+      tags: [任务模块]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /tasks/confirm/{taskId}:
+    post:
+      summary: 发布者确认完成
+      tags: [任务模块]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /tasks/cancel/{taskId}:
+    post:
+      summary: 取消任务
+      tags: [任务模块]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ====================== 评价模块 ======================
+  /reviews/add:
+    post:
+      summary: 提交评价
+      tags: [评价模块]
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -232,157 +491,87 @@ paths:
             schema:
               $ref: '#/components/schemas/ReviewCreate'
       responses:
-        '201':
-          description: 创建成功
+        '200':
+          description: 成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-  /reviews/{id}:
+
+  /reviews/list/{userId}:
     get:
-      summary: 获取评价详情
+      summary: 获取用户评价列表
+      tags: [评价模块]
       parameters:
-        - in: path
-          name: id
+        - name: userId
+          in: path
+          required: true
           schema:
             type: integer
-          required: true
-          description: 评价ID
       responses:
         '200':
-          description: 查询成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-    delete:
-      summary: 删除评价
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-          required: true
-          description: 评价ID
-      responses:
-        '204':
-          description: 删除成功，无返回体
-  /transactions:
-    get:
-      summary: 获取交易记录列表
-      parameters:
-        - in: query
-          name: user_id
-          schema:
-            type: integer
-          description: 查询指定用户的交易流水
-      responses:
-        '200':
-          description: 查询成功
+          description: 成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseList'
 
-components:
-  schemas:
-    ApiResponse:
-      type: object
-      properties:
-        code:
-          type: integer
-          example: 200
-        msg:
-          type: string
-          example: success
-        data:
-          type: object
-    ApiResponseList:
-      type: object
-      properties:
-        code:
-          type: integer
-          example: 200
-        msg:
-          type: string
-          example: success
-        data:
-          type: array
-          items:
-            type: object
-    UserCreate:
-      type: object
-      required: [username, password, confirmPassword]
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-        confirmPassword:
-          type: string
-        nickname:
-          type: string
-        avatar:
-          type: string
-    UserUpdate:
-      type: object
-      properties:
-        nickname:
-          type: string
-        avatar:
-          type: string
-        password:
-          type: string
-        signature:
-          type: string
-    TaskCreate:
-      type: object
-      required: [title, reward, publisher_id]
-      properties:
-        publisher_id:
-          type: integer
-        title:
-          type: string
-        description:
-          type: string
-        reward:
-          type: integer
-        location:
-          type: string
-        deadline:
-          type: string
-          format: date-time
-    TaskUpdate:
-      type: object
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        reward:
-          type: integer
-        location:
-          type: string
-        status:
-          type: integer
-        acceptor_id:
-          type: integer
-        deadline:
-          type: string
-          format: date-time
-    ReviewCreate:
-      type: object
-      required: [task_id, from_user_id, to_user_id, rating]
-      properties:
-        task_id:
-          type: integer
-        from_user_id:
-          type: integer
-        to_user_id:
-          type: integer
-        rating:
-          type: integer
-          minimum: 1
-          maximum: 5
-        comment:
-          type: string
+  # ====================== 消息模块 ======================
+  /messages/conversations:
+    get:
+      summary: 消息会话列表
+      tags: [消息模块]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseList'
+
+  /messages/chat/{taskId}/{targetId}:
+    get:
+      summary: 获取聊天记录
+      tags: [消息模块]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: targetId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /messages/send:
+    post:
+      summary: 发送消息
+      tags: [消息模块]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MessageSend'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
