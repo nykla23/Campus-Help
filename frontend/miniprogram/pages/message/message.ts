@@ -15,14 +15,19 @@ Page({
       if (res.code === 200 && Array.isArray(res.data)) {
         // 确保每个 item 都有 avatar、nickname、preview、time、task_id、user_id
         const list = res.data.map(item => ({
-          ...item,
-          avatar: item.avatar || '/images/default-avatar.png',
-          time: this.formatTime(item.time)
+            id: item.msg_id || item.id,
+            user_id: item.user_id,
+            nickname: item.nickname || '未知用户',
+            avatar: item.avatar || '/images/default-avatar.png',
+            preview: item.preview || '暂无消息',
+            time: item.time || '',
+            task_id: item.task_id  // 如果需要跳转时带上任务ID
         }));
         this.setData({ msgList: list });
       } else {
         console.warn('消息列表数据异常', res);
         this.setData({ msgList: [] });
+        if (res.message) wx.showToast({ title: res.message, icon: 'none' });
       }
     } catch (err) {
       console.error('加载消息列表失败', err);
@@ -43,11 +48,10 @@ Page({
     return `${date.getMonth()+1}/${date.getDate()}`;
   },
 
-  toChat(e) {
-    const taskId = e.currentTarget.dataset.task;
-    const targetId = e.currentTarget.dataset.target;
+  toChat(e: any) {
+    const { task, target, nickname, avatar } = e.currentTarget.dataset;
     wx.navigateTo({
-      url: `/pages/chat/chat?taskId=${taskId}&targetId=${targetId}`
+      url: `/pages/chat/chat?taskId=${task}&targetId=${target}&targetName=${encodeURIComponent(nickname || '')}&targetAvatar=${encodeURIComponent(avatar || '')}`
     });
   }
 });

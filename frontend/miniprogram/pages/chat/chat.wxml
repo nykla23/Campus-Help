@@ -1,25 +1,36 @@
 <view class="chat-container">
+  <!-- 顶部导航栏 -->
   <view class="chat-nav">
     <image src="/images/icon-back.png" class="back-icon" bindtap="goBack" />
     <view class="chat-info">
       <text class="chat-name">{{chatInfo.nickname}}</text>
       <text class="chat-task">任务：{{chatInfo.taskTitle}}</text>
     </view>
+    <view class="placeholder"></view>
   </view>
 
-  <scroll-view scroll-y class="msg-list" scroll-into-view="{{lastMsgId}}">
-    <view class="msg-item {{item.type}}" wx:for="{{msgList}}" wx:key="id" id="msg-{{item.id}}">
-      <image wx:if="{{item.type === 'receive'}}" src="{{item.avatar}}" class="msg-avatar" />
-      <view class="msg-content">
-        <view class="msg-bubble">{{item.content}}</view>
-        <text class="msg-time">{{item.created_at}}</text>
+  <!-- 消息列表 -->
+  <scroll-view scroll-y class="msg-list" scroll-into-view="{{lastMsgId}}" scroll-with-animation>
+    <block wx:for="{{msgList}}" wx:key="id">
+      <!-- 时间分割线（可选，相邻消息时间差超过5分钟时显示） -->
+      <view wx:if="{{item.showTime}}" class="msg-time-divider">{{item.timeStr}}</view>
+      
+      <view class="msg-item {{item.type}}" id="msg-{{item.id}}">
+        <image wx:if="{{item.type === 'receive'}}" src="{{item.avatar}}" class="msg-avatar" />
+        <view class="msg-bubble-wrapper">
+          <view class="msg-bubble">
+            <text class="msg-content">{{item.content}}</text>
+            <text class="msg-time">{{item.timeShort}}</text>
+          </view>
+        </view>
+        <image wx:if="{{item.type === 'send'}}" src="{{item.avatar}}" class="msg-avatar" />
       </view>
-      <image wx:if="{{item.type === 'send'}}" src="{{item.avatar}}" class="msg-avatar" />
-    </view>
+    </block>
   </scroll-view>
 
+  <!-- 底部输入区 -->
   <view class="input-area">
-    <input class="chat-input" placeholder="请输入消息..." value="{{inputMsg}}" bindinput="onInput" />
+    <input class="chat-input" placeholder="请输入消息..." value="{{inputMsg}}" bindinput="onInput" confirm-type="send" bindconfirm="sendMsg" />
     <image src="/images/icon-send.png" class="send-icon" bindtap="sendMsg" />
   </view>
 </view>

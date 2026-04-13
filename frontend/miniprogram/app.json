@@ -7,8 +7,7 @@
     "pages/profile/profile",
     "pages/chat/chat",
     "pages/task/task",
-    "pages/message/message",
-    "pages/logs/logs"
+    "pages/message/message"
     
   ],
   "tabBar": {

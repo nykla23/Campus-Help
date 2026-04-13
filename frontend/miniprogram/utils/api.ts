@@ -137,11 +137,11 @@ export function getMsgList() {
 }
 
 // 聊天记录
-export function getChatDetail(taskId, targetId) {
+export function getChatDetail(taskId: string, targetId: string) {
   return request(`/messages/chat/${taskId}/${targetId}`, 'GET');
 }
 
 // 发送消息
-export function sendMsgApi(data) {
+export function sendMsgApi(data: { toId: string; taskId: string; content: string }) {
   return request('/messages/send', 'POST', data);
 }
