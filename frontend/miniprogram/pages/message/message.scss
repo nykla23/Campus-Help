@@ -7,6 +7,7 @@
     background: #fff;
     border-radius: 8px;
     margin-bottom: 8px;
+    border-bottom: 1px solid #eee; 
     .avatar {
       width: 48px;
       height: 48px;
@@ -33,5 +34,10 @@
       color: #aaa;
       margin-left: 8px;
     }
+    
   }
+  // /* 可选：最后一个消息项无边框 */
+  // .msg-item:last-child {
+  //   border-bottom: none;
+  // }
 }
