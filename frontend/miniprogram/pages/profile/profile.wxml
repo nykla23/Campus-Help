@@ -1,7 +1,7 @@
 <view class="profile-container">
   <!-- 设置与退出按钮 - 单独放在个人信息上方 -->
   <view class="settings-bar">
-    <image src="/images/icon-setting.png" class="action-icon" bindtap="toSetting" />
+    <image src="/images/icon-setting.png" class="action-icon" bindtap="showSettingMenu" />
     <image src="/images/icon-exit.png" class="action-icon" bindtap="logout" />
   </view>
 
@@ -147,4 +147,63 @@
     </view>
     <view wx:if="{{tradeList.length === 0}}" class="empty-tip">暂无交易记录</view>
   </scroll-view>
+
+  <!-- 新增：设置操作菜单弹窗 -->
+  <view class="mask" wx:if="{{showSettingMenuFlag}}" bindtap="hideSettingMenu"></view>
+  <view class="setting-menu" wx:if="{{showSettingMenuFlag}}">
+    <view class="menu-item" bindtap="showEditNickname">修改昵称</view>
+    <view class="menu-item" bindtap="showEditSignature">修改个性签名</view>
+    <view class="menu-item" bindtap="showEditAvatar">更换头像</view>
+    <view class="menu-item" bindtap="showChangePassword">修改密码</view>
+  </view>
+
+  <!-- 新增：修改昵称弹窗 -->
+  <view class="mask" wx:if="{{showEditNicknameFlag}}" bindtap="hideAllPopups"></view>
+  <view class="edit-popup" wx:if="{{showEditNicknameFlag}}">
+    <view class="popup-title">修改昵称</view>
+    <input class="popup-input" placeholder="请输入新昵称" value="{{tempNickname}}" bindinput="inputNickname" />
+    <view class="popup-btns">
+      <button class="popup-btn cancel" bindtap="hideAllPopups">取消</button>
+      <button class="popup-btn confirm" bindtap="saveNickname">确认</button>
+    </view>
+  </view>
+
+  <!-- 新增：修改个性签名弹窗 -->
+  <view class="mask" wx:if="{{showEditSignatureFlag}}" bindtap="hideAllPopups"></view>
+  <view class="edit-popup" wx:if="{{showEditSignatureFlag}}">
+    <view class="popup-title">修改个性签名</view>
+    <input class="popup-input" placeholder="请输入新签名" value="{{tempSignature}}" bindinput="inputSignature" />
+    <view class="popup-btns">
+      <button class="popup-btn cancel" bindtap="hideAllPopups">取消</button>
+      <button class="popup-btn confirm" bindtap="saveSignature">确认</button>
+    </view>
+  </view>
+
+  <!-- 新增：更换头像弹窗 -->
+  <view class="mask" wx:if="{{showEditAvatarFlag}}" bindtap="hideAllPopups"></view>
+  <view class="edit-popup" wx:if="{{showEditAvatarFlag}}">
+    <view class="popup-title">更换头像</view>
+    <view class="avatar-preview">
+      <image src="{{tempAvatar || userInfo.avatar || '/images/default-avatar.png'}}" class="preview-img" />
+    </view>
+    <button class="choose-avatar-btn" bindtap="chooseAvatar">选择图片</button>
+    <view class="popup-btns">
+      <button class="popup-btn cancel" bindtap="hideAllPopups">取消</button>
+      <button class="popup-btn confirm" bindtap="saveAvatar">确认</button>
+    </view>
+  </view>
+
+  <!-- 修改密码弹窗 -->
+  <view class="mask" wx:if="{{showChangePasswordFlag}}" bindtap="hideAllPopups"></view>
+  <view class="edit-popup" wx:if="{{showChangePasswordFlag}}">
+    <view class="popup-title">修改密码</view>
+    <input class="popup-input" type="password" placeholder="请输入原密码" value="{{tempOldPwd}}" bindinput="inputOldPwd" />
+    <input class="popup-input" type="password" placeholder="请输入新密码" value="{{tempNewPwd}}" bindinput="inputNewPwd" />
+    <input class="popup-input" type="password" placeholder="请确认新密码" value="{{tempConfirmPwd}}" bindinput="inputConfirmPwd" />
+    <view class="popup-btns">
+      <button class="popup-btn cancel" bindtap="hideAllPopups">取消</button>
+      <button class="popup-btn confirm" bindtap="savePassword">确认</button>
+    </view>
+  </view>
+  
 </view>

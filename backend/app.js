@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
+const path = require('path');
+
 // 主路由（如 app.js）
 
 const userRouter = require('./routes/user');
@@ -25,6 +27,10 @@ app.use('/api/user', require('./routes/user'));
 
 // 消息系统路由
 app.use('/api/messages', require('./routes/message'));
+
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // 测试数据库连接
 db.getConnection()

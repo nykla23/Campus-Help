@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user');
 const auth = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 // 注册
 router.post('/', userController.register);
@@ -15,6 +18,29 @@ router.get('/tasks/receive', auth.verifyToken, userController.getReceiveTasks);
 // 交易记录
 router.get('/trades', auth.verifyToken, userController.getTrades);
 
+// 修改个人信息
+router.post('/update', auth.verifyToken, userController.updateUserInfo);
 
-// 登录（和接口文档保持一致，挂到 /auth/login，需在主路由再挂载一层 /auth）
+// 修改密码
+router.post('/change-password', auth.verifyToken, userController.changePassword);
+
+// 确保上传目录存在
+const avatarDir = 'uploads/avatars';
+if (!fs.existsSync(avatarDir)) {
+  fs.mkdirSync(avatarDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, avatarDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}${ext}`);
+  }
+});
+const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 } });
+
+router.post('/upload-avatar', auth.verifyToken, upload.single('avatar'), userController.uploadAvatar);
+
 module.exports = router;

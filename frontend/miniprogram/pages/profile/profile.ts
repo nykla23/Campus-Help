@@ -4,7 +4,10 @@ import {
   getUserProfile,
   getMyPublishTasks,
   getMyReceiveTasks,
-  getMyTrades
+  getMyTrades,
+  updateUserInfo, // 新增：修改个人信息的接口（需后端实现）
+  uploadAvatar,
+  changePassword
 } from '../../utils/api';
 
 Page({
@@ -29,7 +32,23 @@ Page({
     publishList: [],
     acceptList: [],
     // 交易列表（适配后的数据）
-    tradeList: []
+    tradeList: [],
+
+    // 新增：弹窗控制
+    showSettingMenuFlag: false, // 设置菜单弹窗
+    showEditNicknameFlag: false, // 修改昵称弹窗
+    showEditSignatureFlag: false, // 修改签名弹窗
+    showEditAvatarFlag: false, // 修改头像弹窗
+
+    // 新增：临时存储修改的内容
+    tempNickname: '',
+    tempSignature: '',
+    tempAvatar: '',
+
+    showChangePasswordFlag: false,
+    tempOldPwd: '',
+    tempNewPwd: '',
+    tempConfirmPwd: '',
   },
 
   onLoad() {
@@ -78,7 +97,6 @@ Page({
     };
   },
 
-  // 交易记录适配
   // 交易记录适配
   adaptTradeItem(item: any): any {
     // 假设后端返回的 type 是数字 1(收入) 或 2(支出)
@@ -169,5 +187,194 @@ Page({
         }
       }
     });
+  },
+
+  // ========== 新增：弹窗交互逻辑 ==========
+  // 显示设置菜单
+  showSettingMenu() {
+    this.setData({
+      showSettingMenuFlag: true
+    });
+  },
+  // 隐藏设置菜单
+  hideSettingMenu() {
+    this.setData({
+      showSettingMenuFlag: false
+    });
+  },
+  // 隐藏所有弹窗
+  hideAllPopups() {
+    this.setData({
+      showSettingMenuFlag: false,
+      showEditNicknameFlag: false,
+      showEditSignatureFlag: false,
+      showEditAvatarFlag: false,
+      showChangePasswordFlag: false,  
+      // 可选：清空临时数据
+      tempNickname: '',
+      tempSignature: '',
+      tempAvatar: '',
+      tempOldPwd: '',
+      tempNewPwd: '',
+      tempConfirmPwd: ''
+    });
+  },
+
+  // 显示修改昵称弹窗
+  showEditNickname() {
+    this.setData({
+      showSettingMenuFlag: false, // 先隐藏菜单
+      showEditNicknameFlag: true
+    });
+  },
+  // 输入昵称
+  inputNickname(e: WechatMiniprogram.InputEvent) {
+    this.setData({
+      tempNickname: e.detail.value
+    });
+  },
+  // 保存昵称
+  async saveNickname() {
+    if (!this.data.tempNickname) {
+      wx.showToast({ title: '昵称不能为空', icon: 'none' });
+      return;
+    }
+    try {
+      const res = await updateUserInfo({ nickname: this.data.tempNickname });
+      if (res.code === 200) {
+        wx.showToast({ title: '修改成功' });
+        // 更新本地数据
+        this.setData({
+          'userInfo.nickname': this.data.tempNickname,
+          showEditNicknameFlag: false
+        });
+      } else {
+        wx.showToast({ title: res.msg || '修改失败', icon: 'none' });
+      }
+    } catch (err) {
+      console.error('修改昵称失败:', err);
+      wx.showToast({ title: '修改失败', icon: 'none' });
+    }
+  },
+
+  // 显示修改签名弹窗
+  showEditSignature() {
+    this.setData({
+      showSettingMenuFlag: false,
+      showEditSignatureFlag: true
+    });
+  },
+  // 输入签名
+  inputSignature(e: WechatMiniprogram.InputEvent) {
+    this.setData({
+      tempSignature: e.detail.value
+    });
+  },
+  // 保存签名
+  async saveSignature() {
+    try {
+      const res = await updateUserInfo({ signature: this.data.tempSignature });
+      if (res.code === 200) {
+        wx.showToast({ title: '修改成功' });
+        this.setData({
+          'userInfo.signature': this.data.tempSignature,
+          showEditSignatureFlag: false
+        });
+      } else {
+        wx.showToast({ title: res.msg || '修改失败', icon: 'none' });
+      }
+    } catch (err) {
+      console.error('修改签名失败:', err);
+      wx.showToast({ title: '修改失败', icon: 'none' });
+    }
+  },
+
+  // 显示修改头像弹窗
+  showEditAvatar() {
+    this.setData({
+      showSettingMenuFlag: false,
+      showEditAvatarFlag: true
+    });
+  },
+  // 选择头像（仅预览，不上传）
+  chooseAvatar() {
+    wx.chooseImage({
+      count: 1,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        this.setData({ tempAvatar: res.tempFilePaths[0] });
+      }
+    });
+  },
+  // 保存头像（上传）
+  async saveAvatar() {
+    if (!this.data.tempAvatar) {
+      wx.showToast({ title: '请先选择图片', icon: 'none' });
+      return;
+    }
+    wx.showLoading({ title: '上传中...' });
+    try {
+      const res = await uploadAvatar(this.data.tempAvatar);
+      if (res.code === 200) {
+        wx.showToast({ title: '头像更新成功' });
+        this.setData({
+          'userInfo.avatar': res.data.url,
+          showEditAvatarFlag: false,
+          tempAvatar: ''
+        });
+        // 更新本地存储（可选）
+        wx.setStorageSync('avatar', res.data.url);
+        // 刷新页面数据（可选）
+        this.loadProfileData();
+      } else {
+        wx.showToast({ title: res.message || '上传失败', icon: 'none' });
+      }
+    } catch (err) {
+      console.error('上传头像失败:', err);
+      wx.showToast({ title: '上传失败', icon: 'none' });
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
+  showChangePassword() {
+    this.setData({
+      showSettingMenuFlag: false,
+      showChangePasswordFlag: true
+    });
+  },
+
+  inputOldPwd(e) { this.setData({ tempOldPwd: e.detail.value }); },
+  inputNewPwd(e) { this.setData({ tempNewPwd: e.detail.value }); },
+  inputConfirmPwd(e) { this.setData({ tempConfirmPwd: e.detail.value }); },
+
+  async savePassword() {
+    const { tempOldPwd, tempNewPwd, tempConfirmPwd } = this.data;
+    if (!tempOldPwd || !tempNewPwd || !tempConfirmPwd) {
+      wx.showToast({ title: '请填写完整', icon: 'none' });
+      return;
+    }
+    if (tempNewPwd !== tempConfirmPwd) {
+      wx.showToast({ title: '两次新密码不一致', icon: 'none' });
+      return;
+    }
+    wx.showLoading({ title: '修改中...' });
+    try {
+      const res = await changePassword({ oldPassword: tempOldPwd, newPassword: tempNewPwd });
+      if (res.code === 200) {
+        wx.showToast({ title: res.message, icon: 'success' });
+        // 清空 token 并跳转到登录页
+        wx.removeStorageSync('token');
+        wx.reLaunch({ url: '/pages/login/login' });
+      } else {
+        wx.showToast({ title: res.message || '修改失败', icon: 'none' });
+      }
+    } catch (err) {
+      console.error(err);
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    } finally {
+      wx.hideLoading();
+    }
   }
 });
