@@ -3,14 +3,10 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
 const path = require('path');
-
+const app = express();
 // 主路由（如 app.js）
 
-const userRouter = require('./routes/user');
-const authRouter = require('./routes/auth');
-const taskRouter = require('./routes/task');
-const publishRouter = require('./routes/task'); // 发布任务的路由
-const app = express();
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -18,6 +14,19 @@ app.use(express.urlencoded({ extended: true }));
 // 中间件
 app.use(cors());
 app.use(express.json());
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res, next) => {
+  console.log('静态文件请求:', req.url);
+  console.log('静态目录:', path.join(__dirname, 'uploads'));
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
+
+
+const userRouter = require('./routes/user');
+const authRouter = require('./routes/auth');
+const taskRouter = require('./routes/task');
+const publishRouter = require('./routes/task'); // 发布任务的路由
+
 app.use('/api/users', userRouter); // 注册接口路径变为 POST /users
 app.use('/api/auth', authRouter);  // 新增：给 user 路由挂载 /auth 前缀
 app.use('/api/tasks', taskRouter); // 任务接口路径变为 /tasks
@@ -27,10 +36,6 @@ app.use('/api/user', require('./routes/user'));
 
 // 消息系统路由
 app.use('/api/messages', require('./routes/message'));
-
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 
 // 测试数据库连接
 db.getConnection()
