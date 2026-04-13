@@ -3,11 +3,15 @@
   flex-direction: column;
   height: 100vh;
   background-color: #f5f5f5;
+  width: 100%;
+  overflow-x: hidden;
 }
 
+/* 顶部导航栏 */
 .chat-nav {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 12px 16px;
   background: #fff;
   border-bottom: 1px solid #eee;
@@ -17,7 +21,7 @@
   }
   .chat-info {
     flex: 1;
-    text-align: center;  // 居中
+    text-align: center;
     .chat-name {
       font-size: 18px;
       font-weight: bold;
@@ -30,49 +34,93 @@
       margin-top: 4px;
     }
   }
+  .placeholder {
+    width: 24px;
+  }
 }
 
+/* 消息列表 */
 .msg-list {
   flex: 1;
-  padding: 10px 0px;
+  padding: 12px 16px;
   overflow-y: auto;
 }
 
+/* 时间分割线 */
+.msg-time-divider {
+  text-align: center;
+  font-size: 11px;
+  color: #aaa;
+  margin: 12px 0;
+}
+
+/* 单条消息 */
 .msg-item {
   display: flex;
   margin-bottom: 16px;
+  align-items: flex-start;
+  
   &.send {
     justify-content: flex-end;
+    .msg-bubble-wrapper {
+      margin-right: 8px;
+    }
     .msg-bubble {
       background-color: #95ec69;
-      margin-right: 8px;
+      border-radius: 8px 0 8px 8px;
     }
   }
   &.receive {
     justify-content: flex-start;
-    .msg-bubble {
-      background-color: #fff;
+    .msg-bubble-wrapper {
       margin-left: 8px;
     }
+    .msg-bubble {
+      background-color: #fff;
+      border-radius: 0 8px 8px 8px;
+    }
   }
+  
   .msg-avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     flex-shrink: 0;
   }
+  
+  .msg-bubble-wrapper {
+    max-width: 70%;
+  }
+  
   .msg-bubble {
-    max-width: 60%;
     padding: 8px 12px;
-    border-radius: 8px;
+    position: relative;
     word-wrap: break-word;
+    display: inline-block;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.05);
+    
+    .msg-content {
+      font-size: 15px;
+      line-height: 1.4;
+      display: block;
+    }
+    
+    .msg-time {
+      font-size: 10px;
+      color: rgba(0,0,0,0.4);
+      display: inline-block;
+      margin-left: 8px;
+      vertical-align: bottom;
+      line-height: 1.2;
+    }
   }
 }
 
+/* 输入区域 */
 .input-area {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 10px 16px;
   background: #fff;
   border-top: 1px solid #eee;
   .chat-input {
@@ -88,22 +136,4 @@
     height: 28px;
     margin-left: 12px;
   }
-}
-
-.msg-content {
-  display: flex;
-  flex-direction: column;
-  max-width: 70%;
-  .msg-time {
-    font-size: 10px;
-    color: #aaa;
-    margin-top: 4px;
-    text-align: center;
-  }
-}
-.msg-item.send .msg-content {
-  align-items: flex-end;
-}
-.msg-item.receive .msg-content {
-  align-items: flex-start;
 }

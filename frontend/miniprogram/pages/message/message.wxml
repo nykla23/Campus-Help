@@ -1,8 +1,13 @@
 <view class="message-container">
   <text class="page-title">消息</text>
   <scroll-view scroll-y class="msg-list">
-    <view class="msg-item" wx:for="{{msgList}}" wx:key="id" bindtap="toChat" data-task="{{item.task_id}}" data-target="{{item.user_id}}">
-      <image src="{{item.avatar || '/images/default-avatar.png'}}" class="avatar" />
+  <view class="msg-item" wx:for="{{msgList}}" wx:key="id"
+    bindtap="toChat"
+    data-task="{{item.task_id}}"
+    data-target="{{item.user_id}}"
+    data-name="{{item.nickname}}"
+    data-avatar="{{item.avatar}}">
+        <image src="{{item.avatar || '/images/default-avatar.png'}}" class="avatar" />
       <view class="msg-info">
         <view class="msg-name">{{item.nickname}}</view>
         <view class="msg-preview">{{item.preview}}</view>
