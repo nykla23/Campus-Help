@@ -1,0 +1,43 @@
+<view class="ai-container">
+  <!-- 顶部说明 -->
+  <view class="ai-header">
+    <image src="/images/icon-AItip.png" class="header-icon" />
+    <text class="header-text">我是校园互助平台的小助手，有什么可以帮你的吗？</text>
+  </view>
+
+  <!-- 快捷问题 -->
+  <view class="quick-questions">
+    <view class="quick-title">常见问题</view>
+    <view class="quick-list">
+      <view class="quick-item" wx:for="{{quickQuestions}}" wx:key="index" bindtap="askQuickQuestion" data-question="{{item}}">
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 消息列表 -->
+  <scroll-view scroll-y class="msg-list" scroll-top="{{scrollTop}}" scroll-with-animation>
+    <block wx:for="{{msgList}}" wx:key="index">
+      <view class="msg-item {{item.type}}">
+        <image wx:if="{{item.type === 'receive'}}" src="/images/icon-service.png" class="msg-avatar" />
+        <view class="msg-bubble-wrapper">
+          <view class="msg-bubble {{item.type}}">
+            <text class="msg-content">{{item.content}}</text>
+            <text class="msg-time">{{item.time}}</text>
+          </view>
+        </view>
+        <image wx:if="{{item.type === 'send'}}" src="{{myAvatar || '/images/default-avatar.png'}}" class="msg-avatar" />
+      </view>
+    </block>
+    <!-- 加载中 -->
+    <view wx:if="{{loading}}" class="loading-indicator">
+      <text>小助手正在思考...</text>
+    </view>
+  </scroll-view>
+
+  <!-- 底部输入区 -->
+  <view class="input-area">
+    <input class="chat-input" placeholder="请输入问题..." value="{{inputMsg}}" bindinput="onInput" confirm-type="send" bindconfirm="sendMsg" />
+    <view class="send-btn {{inputMsg.trim() ? 'active' : ''}}" bindtap="sendMsg">发送</view>
+  </view>
+</view>

@@ -37,6 +37,9 @@ app.use('/api/user', require('./routes/user'));
 // 消息系统路由
 app.use('/api/messages', require('./routes/message'));
 
+// AI 智能客服路由
+app.use('/api/ai', require('./routes/ai'));
+
 // 测试数据库连接
 db.getConnection()
     .then(() => console.log('数据库连接成功'))

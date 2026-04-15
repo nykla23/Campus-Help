@@ -16,6 +16,11 @@
     </view>
     <image src="/images/icon-bell.png" class="bell-icon" bindtap="goToMessage" />
   </view>
+  
+  <!-- 悬浮客服按钮 -->
+  <view class="ai-float-btn" bindtap="goToAI">
+    <image src="/images/icon-service.png" class="ai-icon" />
+  </view>
   <!-- 状态标签栏 -->
   <view class="status-tabs">
     <view class="tab-item {{activeTab === 0 ? 'active' : ''}}" bindtap="changeTab" data-index="0">全部</view>

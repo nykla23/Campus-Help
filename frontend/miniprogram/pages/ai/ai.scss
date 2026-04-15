@@ -1,0 +1,160 @@
+.ai-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f5f5f5;
+}
+
+/* 顶部说明 */
+.ai-header {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.header-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 16rpx;
+}
+
+.header-text {
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+
+/* 快捷问题 */
+.quick-questions {
+  padding: 20rpx 30rpx;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.quick-title {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 16rpx;
+}
+
+.quick-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.quick-item {
+  padding: 12rpx 24rpx;
+  background: #f0f7ff;
+  color: #3EB1F4;
+  font-size: 24rpx;
+  border-radius: 30rpx;
+}
+
+/* 消息列表 */
+.msg-list {
+  flex: 1;
+  padding: 20rpx 30rpx;
+  box-sizing: border-box;
+}
+
+.msg-item {
+  display: flex;
+  margin-bottom: 30rpx;
+  align-items: flex-start;
+}
+
+.msg-item.send {
+  flex-direction: row-reverse;
+}
+
+.msg-avatar {
+  width: 70rpx;
+  height: 70rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.msg-bubble-wrapper {
+  max-width: 70%;
+  margin: 0 16rpx;
+}
+
+.msg-bubble {
+  padding: 20rpx 26rpx;
+  border-radius: 16rpx;
+  position: relative;
+}
+
+.msg-bubble.receive {
+  background: #fff;
+  border: 1px solid #eee;
+  border-top-left-radius: 4rpx;
+}
+
+.msg-bubble.send {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-top-right-radius: 4rpx;
+}
+
+.msg-content {
+  font-size: 28rpx;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.msg-time {
+  display: block;
+  font-size: 20rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.msg-bubble.send .msg-time {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 加载中 */
+.loading-indicator {
+  text-align: center;
+  padding: 20rpx;
+  color: #999;
+  font-size: 24rpx;
+}
+
+/* 底部输入区 */
+.input-area {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  background: #fff;
+  border-top: 1px solid #eee;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+}
+
+.chat-input {
+  flex: 1;
+  height: 70rpx;
+  padding: 0 24rpx;
+  background: #f5f5f5;
+  border-radius: 35rpx;
+  font-size: 28rpx;
+}
+
+.send-btn {
+  margin-left: 20rpx;
+  padding: 0 30rpx;
+  height: 70rpx;
+  line-height: 70rpx;
+  background: #ddd;
+  color: #999;
+  border-radius: 35rpx;
+  font-size: 28rpx;
+}
+
+.send-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}

@@ -281,4 +281,9 @@ Page({
     }
   },
 
+  // 跳转智能客服
+  goToAI() {
+    wx.navigateTo({ url: '/pages/ai/ai' });
+  },
+
 });

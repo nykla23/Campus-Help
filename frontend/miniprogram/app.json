@@ -7,8 +7,8 @@
     "pages/profile/profile",
     "pages/chat/chat",
     "pages/task/task",
-    "pages/message/message"
-    
+    "pages/message/message",
+    "pages/ai/ai"
   ],
   "tabBar": {
     "color": "#86909C",     
