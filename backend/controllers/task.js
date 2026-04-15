@@ -3,13 +3,13 @@ const db = require('../config/db');
 
 exports.list = async (req, res) => {
   try {
-    let { page = 1, limit = 10, status, type } = req.query;
+    let { page = 1, limit = 10, status, type, keyword } = req.query;
     page = parseInt(page);
     limit = parseInt(limit);
     status = status === undefined ? undefined : parseInt(status);
     type = type === undefined ? undefined : parseInt(type);
 
-    const { total, list } = await taskModel.getList({ page, limit, status, type });
+    const { total, list } = await taskModel.getList({ page, limit, status, type, keyword });
     res.json({ code: 0, data: { total, page, limit, list } });
   } catch (err) {
     console.error('任务列表出错:', err);
@@ -18,7 +18,7 @@ exports.list = async (req, res) => {
 };
 
 const statusMap = { 0: '待接取', 1: '进行中', 2: '待确认', 3: '已完成', 4: '已取消' };
-const typeMap = { 0: '取件代送', 1: '跑腿代办', 2: '学习辅导', 3: '其他' };
+const typeMap = { 0: '全部', 1: '取件代送', 2: '跑腿代办', 3: '学习辅导', 4: '其他' };
 
 // 1. 获取任务详情
 exports.getTaskDetail = async (req, res) => {

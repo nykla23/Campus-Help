@@ -8,7 +8,7 @@ Page({
    * 页面的初始数据
    */
   data: {
-    activeType: 1,
+    activeType: 1,  // 1: 取件代送, 2: 跑腿代办, 3: 学习辅导, 4: 其他（0是全部，不用于发布）
     title: "",
     desc: "",
     coin: "",
@@ -30,8 +30,8 @@ Page({
   },
 
   changeType(e: WechatMiniprogram.TouchEvent) {
-    const index = parseInt(e.currentTarget.dataset.index as string);
-    this.setData({ activeType: index });
+    const type = parseInt(e.currentTarget.dataset.type as string);
+    this.setData({ activeType: type });
   },
 
   onInput(e: WechatMiniprogram.InputEvent) {

@@ -2,16 +2,19 @@
   <!-- 顶部搜索栏 -->
   <view class="search-bar">
     <text class="logo-text">校园帮</text>
-    <input 
-      placeholder="搜索任务" 
-      class="search-input" 
-      value="{{keyword}}"              
-      bindinput="onSearchInput"        
-      bindconfirm="onSearchConfirm"
-      confirm-type="search"
-
+    <view class="search-input-wrap">
+      <image src="/images/icon-search.png" class="search-icon" />
+      <input 
+        placeholder="搜索任务" 
+        class="search-input" 
+        value="{{keyword}}"              
+        bindinput="onSearchInput"        
+        bindconfirm="onSearchConfirm"
+        confirm-type="search"
       />
-    <image src="/images/icon-bell.png" class="bell-icon" />
+      <text wx:if="{{keyword}}" class="clear-icon" bindtap="clearSearch">×</text>
+    </view>
+    <image src="/images/icon-bell.png" class="bell-icon" bindtap="goToMessage" />
   </view>
   <!-- 状态标签栏 -->
   <view class="status-tabs">
@@ -65,6 +68,7 @@
         </view>
         <view wx:if="{{item.location && item.location !== 'null'}}" class="task-location">📍 {{item.location}}</view>
       </view>
+      <view class="task-divider"></view>
       <view class="task-footer">
         <view class="task-coin">⭐ {{item.coin}} 虚拟币</view>
         <view class="task-time">⏱️ {{item.time}}</view>

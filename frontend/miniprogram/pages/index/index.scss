@@ -29,20 +29,37 @@ page {
   flex-shrink: 0;
 }
 .logo-text {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 900;
   color: var(--primary);
   margin-right: 12px;
 }
-.search-input {
+.search-input-wrap {
   flex: 1;
+  display: flex;
+  align-items: center;
   height: 36px;
   background: #E6F4FF;
-  border: #ECF9FF;
   border-radius: 18px;
-  padding: 0 16px;
+  padding: 0 12px;
+}
+.search-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  height: 100%;
   font-size: 14px;
   color: #666;
+}
+.clear-icon {
+  font-size: 18px;
+  color: #999;
+  padding: 0 4px;
+  line-height: 1;
 }
 .bell-icon {
   width: 22px;
@@ -53,29 +70,33 @@ page {
 /* 状态标签 */
 .status-tabs {
   display: flex;
-  padding: 0 12px;
+  padding: 2px 10px;
   background: #fff;
   align-items: center;
   flex-shrink: 0;
 }
 .tab-item {
-  padding: 8px 12px;
-  font-size: 15px;
+  padding: 6px 16px;
+  font-size: 14px;
   color: #666;
+  background: #E6F4FF;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 .tab-item.active {
-  color: var(--primary);
-  font-weight: bold;
-  border-bottom: 2px solid var(--primary);
+  color: #fff;
+  font-weight: 500;
+  background: var(--primary);
 }
 .filter-btn {
   display: flex;
   align-items: center;
   margin-left: auto;
-  padding: 4px 8px;
-  border: 1px solid #eee;
-  border-radius: 12px;
-  font-size: 15px;
+  padding: 6px 10px;
+  background: #E6F4FF;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #666;
 }
 .filter-icon {
   width: 14px;
@@ -133,17 +154,19 @@ page {
 .task-list {
   flex: 1;
   height: 0;   /* 关键：让 flex 分配剩余高度 */
-  padding: 8px 0px;
+  padding: 8px 0;
 }
 .task-card {
-  width: 90%;
-  margin: 0 auto 12px auto; 
+  width: calc(100% - 24px);
+  margin-left: 12px;
+  margin-right: 12px;
   background: var(--card-bg);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   border: 1px solid #D9D9D9;
+  box-sizing: border-box;
 }
 
 /* 用户信息 */
@@ -217,6 +240,12 @@ page {
   color: #666;
 }
 
+.task-divider {
+  height: 1px;
+  background: #eee;
+  margin: 8px 0;
+}
+
 /* 底部 */
 .task-footer {
   display: flex;
@@ -273,22 +302,26 @@ page {
 .type-bar-inline {
   white-space: nowrap;
   background: #fff;
-  padding: 6px 12px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid #f1f1f1;
+  padding: 8px 16px;
+  margin-bottom: 2px;
   flex-shrink: 0;
+  gap: 8px;
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+
 }
 .inline-type-tab {
   display: inline-block;
-  padding: 6px 14px;
-  margin-right: 8px;
-  border-radius: 16px;
-  background: #f5f5f5;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: #E6F4FF;
   color: #666;
-  font-size: 15px;
+  font-size: 13px;
+  margin-right: 8px;
+  transition: all 0.2s ease;
 }
 .inline-type-tab.active {
   background: var(--primary);
   color: #fff;
-  font-weight: bold;
+  font-weight: 500;
 }

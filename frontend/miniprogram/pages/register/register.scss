@@ -3,11 +3,13 @@
 }
 .logo {
   text-align: center;
-  margin-bottom: 40px;
+  // margin-bottom: 40px;
+  gap: 10px;
+  padding: 10px;
 }
 .logo-text {
-  font-size: 48px;
-  font-weight: bold;
+  font-size: 36px;
+  font-weight: 900;
   color: var(--primary-color);
 }
 .sub-logo {
@@ -18,19 +20,22 @@
 }
 .register-form {
   background: white;
-  padding: 24px;
+  gap: 12px;
+  padding: 12px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 .form-title {
-  font-size: 24px;
+  font-size: 32px;
   font-weight: bold;
   text-align: center;
   margin-bottom: 8px;
-  color: var(--primary-color);
+  color: #E6F4FF;                    // 文字填充色（浅蓝）
+  -webkit-text-stroke: 1.0px var(--primary-color); // 描边颜色（主色）和宽度
+
 }
 .form-subtitle {
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-aux);
   text-align: center;
   margin-bottom: 24px;
@@ -45,6 +50,9 @@
 }
 .btn-primary {
   margin-top: 24px;
+  font-size: 24px;
+  background-color: var(--primary-color);
+  font-weight: 900;
 }
 .link-text {
   text-align: center;

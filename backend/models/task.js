@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 // 查询带分页的任务列表，并联查发布者昵称和头像
-exports.getList = async ({ page = 1, limit = 10, status, type }) => {
+exports.getList = async ({ page = 1, limit = 10, status, type, keyword }) => {
   let wheres = [];
   let params = [];
   if (status !== undefined && status !== '' && !isNaN(status)) {
@@ -11,6 +11,12 @@ exports.getList = async ({ page = 1, limit = 10, status, type }) => {
   if (type !== undefined && type !== '' && !isNaN(type)) {
     wheres.push('tasks.type = ?');
     params.push(type);
+  }
+  // 关键词搜索：匹配标题或描述
+  if (keyword && keyword.trim()) {
+    wheres.push('(tasks.title LIKE ? OR tasks.description LIKE ?)');
+    const kw = '%' + keyword.trim() + '%';
+    params.push(kw, kw);
   }
 
   const whereSql = wheres.length ? 'WHERE ' + wheres.join(' AND ') : '';

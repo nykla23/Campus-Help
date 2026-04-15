@@ -24,20 +24,27 @@ Page({
 },
 
   onSearchInput(e: WechatMiniprogram.Input) {
-    console.log('输入了:',e.detail.value);
     const keyword = e.detail.value.trim();
     this.setData({ keyword });
-    this.refreshList();
     // 输入时启动防抖，500ms后执行搜索
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
-      this.refreshList();
+      this.refreshList(true);  // 传入true表示搜索模式，重置筛选
     }, 500);
   },
 
   onSearchConfirm() {
+    console.log('回车搜索，keyword:', this.data.keyword);
+    // 回车时立即执行搜索，清除防抖定时器
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.refreshList();
+    this.refreshList(true);  // 搜索模式下重置筛选
+  },
+
+  // 清空搜索
+  clearSearch() {
+    this.setData({ keyword: '' }, () => {
+      this.refreshList(false);  // 恢复默认筛选
+    });
   },
 
   // 点筛选按钮：出现/收起类型横条
@@ -100,21 +107,34 @@ Page({
     wx.navigateTo({ url: `/pages/task/task?id=${id}` });
   },
 
+  // 跳转到消息页面
+  goToMessage() {
+    wx.switchTab({ url: '/pages/message/message' });
+  },
+
   // 核心：刷新任务列表（带所有筛选参数）
-  refreshList() {
-    console.log('当前 keyword:', this.data.keyword);
-    const { activeTab, activeType, limit, selectedFilter, keyword } = this.data;
+  refreshList(isSearch = false) {
+    console.log('refreshList 调用，keyword:', this.data.keyword, 'isSearch:', isSearch);
+    let { activeTab, activeType, limit, selectedFilter, keyword } = this.data;
+    
+    // 搜索模式下重置其他筛选条件为"全部"
+    if (isSearch && keyword.trim()) {
+      activeTab = 0;
+      activeType = 0;
+    }
+    
     let status: number | undefined = undefined;
     if (activeTab === 1) status = 0;
     else if (activeTab === 2) status = 1;
     else if (activeTab === 3) status = 3;
     let type: number | undefined = activeType === 0 ? undefined : activeType;
     let sort = selectedFilter;
-    let searchKeyword = keyword.trim() || undefined ;
+    let searchKeyword = keyword.trim() || undefined;
 
-    //console.log('请求参数:', {page:1,limit, status, type, sort, keyword: searchKeyword})
+    console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
     this.setData({ page: 1, loading: true });
     getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(res => {
+      console.log('API响应:', res);
       if (res.code === 0 && res.data) {
         this.setData({
           taskList: this._adaptTaskList(res.data.list),
@@ -211,7 +231,7 @@ Page({
     }));
   },
 
-  // 类型映射
+  // 类型映射（与数据库保持一致：0全部 1取件代送 2跑腿代办 3学习辅导 4其他）
   _adaptTaskType(type: number) {
     const dict = ['全部','取件代送','跑腿代办','学习辅导','其他'];
     return dict[type] || '';
@@ -235,15 +255,21 @@ Page({
   onShow() {
 
     console.log('index onShow 触发')
+    
+    // 如果当前正在搜索中（keyword 不为空），不要清空搜索条件
+    if (this.data.keyword && this.data.keyword.trim()) {
+      console.log('搜索模式，跳过重置')
+      return
+    }
+    
     this.setData({
       activeTab: 0,
       activeType: 0,
       keyword: '',
       selectedFilter: 'time'
-
-    },() => {
-      this.refreshList();
-    });
+    }, () => {
+      this.refreshList()
+    })
   },
 
   // 滚动到底部加载更多
