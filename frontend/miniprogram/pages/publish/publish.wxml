@@ -37,13 +37,30 @@
     </view>
     <view class="form-item">
       <text class="form-label">截止时间（可选）</text>
-      <input class="input-box" placeholder="YYYY/MM/日 ----" value="{{deadline}}" bindinput="onInput" data-name="deadline" />
+      <view class="picker-group">
+        <picker mode="date" value="{{deadlineDate}}" bindchange="onDateChange" start="{{minDate}}">
+          <view class="picker-box">
+            <text>{{deadlineDate || '选择日期'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+        <picker mode="time" value="{{deadlineTime}}" bindchange="onTimeChange" start="{{minTime}}">
+          <view class="picker-box">
+            <text>{{deadlineTime || '选择时间'}}</text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+      </view>
     </view>
   </view>
 
   <!-- 提示 -->
   <view class="tip-box">
     <image src="/images/icon-tip.png" class="tip-icon" />
-    <text class="tip-text">发布任务后，悬赏金额将暂时冻结。任务完成后，悬赏将自动转给接单者。任务取消后，悬赏将退还给您。</text>
+    <view class="tip-text">
+      <text>发布任务后，悬赏金额将暂时冻结</text>
+      <text>任务完成后，悬赏将自动转给接单者</text>
+      <text>任务取消后，悬赏将退还给您</text>
+    </view>
   </view>
 </view>

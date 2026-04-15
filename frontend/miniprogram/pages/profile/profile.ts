@@ -5,9 +5,10 @@ import {
   getMyPublishTasks,
   getMyReceiveTasks,
   getMyTrades,
-  updateUserInfo, // 新增：修改个人信息的接口（需后端实现）
+  updateUserInfo,
   uploadAvatar,
-  changePassword
+  changePassword,
+  getFullAvatarUrl
 } from '../../utils/api';
 
 Page({
@@ -84,7 +85,7 @@ Page({
   adaptTaskItem(item: any): any {
     return {
       id: item.id,
-      avatar: item.avatar || '/images/default-avatar.png',
+      avatar: getFullAvatarUrl(item.avatar),
       nickname: item.nickname || '匿名用户',
       credit: item.credit_score || 0,
       status: this.adaptStatus(item.status),
@@ -124,8 +125,11 @@ Page({
       const profileRes = await getUserProfile();
       console.log('profileRes:', profileRes);
       if (profileRes.code === 200) {
+        const userData = profileRes.data.user;
+        // 处理头像URL，拼接完整服务器地址
+        userData.avatar = getFullAvatarUrl(userData.avatar);
         this.setData({
-          userInfo: profileRes.data.user,
+          userInfo: userData,
           stats: profileRes.data.stats
         });
       }
@@ -321,10 +325,10 @@ Page({
     try {
       const res = await uploadAvatar(this.data.tempAvatar);
       if (res.code === 200 && res.data && res.data.url) {
-        // 新头像 URL
-        const newAvatarUrl = res.data.url;
+        // 处理头像URL，拼接完整服务器地址
+        const newAvatarUrl = getFullAvatarUrl(res.data.url);
         // 强制添加时间戳避免缓存
-        const avatarWithTimestamp = `${newAvatarUrl}?t=${Date.now()}`;
+        const avatarWithTimestamp = `${newAvatarUrl}${newAvatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
         
         this.setData({
           'userInfo.avatar': avatarWithTimestamp,
@@ -332,7 +336,7 @@ Page({
           tempAvatar: ''
         });
         wx.showToast({ title: '头像更新成功' });
-        // 更新本地存储（可选）
+        // 更新本地存储
         wx.setStorageSync('avatar', avatarWithTimestamp);
         
       } else {

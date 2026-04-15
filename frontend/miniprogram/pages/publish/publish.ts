@@ -13,8 +13,22 @@ Page({
     desc: "",
     coin: "",
     location: "",
-    deadline: ""
+    deadline: "",
+    deadlineDate: "",
+    deadlineTime: "",
+    minDate: "",
+    minTime: "00:00"
+  },
 
+  onLoad() {
+    // 初始化最小日期为今天
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    this.setData({
+      minDate: `${year}-${month}-${day}`
+    });
   },
 
   goBack() {
@@ -37,6 +51,30 @@ Page({
   onInput(e: WechatMiniprogram.InputEvent) {
     const name = e.currentTarget.dataset.name as string;
     this.setData({ [name]: e.detail.value });
+  },
+
+  onDateChange(e: WechatMiniprogram.PickerChangeEvent) {
+    const deadlineDate = e.detail.value;
+    this.setData({ deadlineDate }, () => {
+      this.updateDeadline();
+    });
+  },
+
+  onTimeChange(e: WechatMiniprogram.PickerChangeEvent) {
+    const deadlineTime = e.detail.value;
+    this.setData({ deadlineTime }, () => {
+      this.updateDeadline();
+    });
+  },
+
+  // 更新 deadline 字段
+  updateDeadline() {
+    const { deadlineDate, deadlineTime } = this.data;
+    if (deadlineDate && deadlineTime) {
+      // 转换为后端需要的格式: YYYY-MM-DDTHH:mm:ss
+      const deadline = `${deadlineDate}T${deadlineTime}:00`;
+      this.setData({ deadline });
+    }
   },
 
   async submitTask() {
@@ -93,12 +131,6 @@ Page({
     } finally {
       wx.hideLoading();
     }
-  },
-  /**
-   * 生命周期函数--监听页面加载
-   */
-  onLoad() {
-
   },
 
   /**

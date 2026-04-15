@@ -16,7 +16,7 @@ page {
 .detail-container {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 80px;
+  padding-bottom: 200px;
 }
 
 /* 导航栏 */
@@ -188,10 +188,26 @@ page {
   color: var(--primary);
   border: 1px solid var(--primary);
 }
+.action-btn.danger-outline {
+  background: #fff;
+  color: var(--red);
+  border: 1px solid var(--red);
+}
 .action-btn.disabled {
   background: #f5f5f5;
   color: #999;
   border: none;
+}
+
+/* 按钮组（用于主次按钮并排） */
+.action-btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.action-btn-group .action-btn {
+  width: 100%;
 }
 
 /* 新增自我标签样式 */

@@ -47,6 +47,9 @@ Page({
         if (taskData.acceptor && taskData.acceptor.id) {
           taskData.acceptor.id = Number(taskData.acceptor.id);
         }
+        // 格式化时间显示
+        taskData.deadlineStr = taskData.deadline ? taskData.deadline.substring(0, 16).replace('T', ' ') : '';
+        taskData.createTimeStr = taskData.createTime ? taskData.createTime.substring(0, 16).replace('T', ' ') : '';
         this.setData({ task: taskData });
         console.log('task.acceptor:', taskData.acceptor);
         console.log('userId:', this.data.userId);
