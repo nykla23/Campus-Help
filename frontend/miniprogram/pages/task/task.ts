@@ -1,4 +1,4 @@
-import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask } from '../../utils/api';
+import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl } from '../../utils/api';
 
 Page({
   data: {
@@ -47,6 +47,9 @@ Page({
         if (taskData.acceptor && taskData.acceptor.id) {
           taskData.acceptor.id = Number(taskData.acceptor.id);
         }
+        // 处理头像URL
+        if (taskData.publisher) taskData.publisher.avatar = getFullAvatarUrl(taskData.publisher.avatar);
+        if (taskData.acceptor) taskData.acceptor.avatar = getFullAvatarUrl(taskData.acceptor.avatar);
         // 格式化时间显示
         taskData.deadlineStr = taskData.deadline ? taskData.deadline.substring(0, 16).replace('T', ' ') : '';
         taskData.createTimeStr = taskData.createTime ? taskData.createTime.substring(0, 16).replace('T', ' ') : '';

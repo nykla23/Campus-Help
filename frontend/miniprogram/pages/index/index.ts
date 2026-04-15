@@ -1,4 +1,5 @@
 import { getTaskList } from '../../api/task';
+import { getFullAvatarUrl } from '../../utils/api';
 
 Page({
   data: {
@@ -218,7 +219,7 @@ Page({
   _adaptTaskList(list: any[]) {
     return (list || []).map(item => ({
       id: item.taskId ,
-      avatar: item.avatar || item.publisher?.avatar || '/images/default-avatar.png',
+      avatar: getFullAvatarUrl(item.avatar || item.publisher?.avatar),
       nickname: item.nickname || item.publisher?.nickname || '匿名用户',
       credit: item.credit_score || item.publisher?.creditScore || '0',
       title: item.title,

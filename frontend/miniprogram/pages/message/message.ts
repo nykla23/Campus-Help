@@ -1,7 +1,7 @@
-import { getMsgList } from '../../utils/api';
+import { getMsgList, getFullAvatarUrl } from '../../utils/api';
 
 Page({
-  data: { msgList: [] },
+  data: { msgList: [] as any[] },
 
   onShow() {
     this.loadList();
@@ -14,15 +14,20 @@ Page({
       console.log('消息列表原始数据:', res);
       if (res.code === 200 && Array.isArray(res.data)) {
         // 确保每个 item 都有 avatar、nickname、preview、time、task_id、user_id
-        const list = res.data.map(item => ({
+        // avatar: 存储完整URL用于显示，同时保存原始路径用于传递
+        const list = res.data.map(item => {
+          const fullAvatar = getFullAvatarUrl(item.avatar);
+          return {
             id: item.msg_id || item.id,
             user_id: item.user_id,
             nickname: item.nickname || '未知用户',
-            avatar: item.avatar || '/images/default-avatar.png',
+            avatar: fullAvatar,
+            avatarRaw: item.avatar || '',  // 原始路径，用于传递参数
             preview: item.preview || '暂无消息',
             time: item.time || '',
             task_id: item.task_id  // 如果需要跳转时带上任务ID
-        }));
+          };
+        });
         this.setData({ msgList: list });
       } else {
         console.warn('消息列表数据异常', res);
@@ -49,9 +54,10 @@ Page({
   },
 
   toChat(e: any) {
-    const { task, target, name, avatar } = e.currentTarget.dataset;
+    const { task, target, name, avatarraw } = e.currentTarget.dataset;
+    // 传递原始路径，聊天页面会统一处理
     wx.navigateTo({
-      url: `/pages/chat/chat?taskId=${task}&targetId=${target}&targetName=${encodeURIComponent(name || '')}&targetAvatar=${avatar || ''}`
+      url: `/pages/chat/chat?taskId=${task}&targetId=${target}&targetName=${encodeURIComponent(name || '')}&targetAvatar=${encodeURIComponent(avatarraw || '')}`
     });
   }
 });

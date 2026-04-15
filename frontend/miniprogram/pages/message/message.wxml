@@ -6,7 +6,7 @@
     data-task="{{item.task_id}}"
     data-target="{{item.user_id}}"
     data-name="{{item.nickname}}" 
-    data-avatar="{{item.avatar}}">
+    data-avatarraw="{{item.avatarRaw}}">
         <image src="{{item.avatar || '/images/default-avatar.png'}}" class="avatar" />
       <view class="msg-info">
         <view class="msg-name">{{item.nickname}}</view>

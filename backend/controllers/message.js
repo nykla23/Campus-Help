@@ -52,7 +52,7 @@ exports.getMsgList = async (req, res) => {
     // 格式化时间（可选）
     const formatted = list.map(item => ({
       ...item,
-      avatar: item.avatar || '/images/default-avatar.png',
+      avatar: item.avatar || null,  // 保留原始值，前端处理默认头像
       time: this.formatTime(item.time)
     }));
     res.json({ code: 200, data: formatted });
@@ -85,14 +85,34 @@ exports.getChatDetail = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // 查询双方用户信息，用于获取头像
+    const [users] = await db.query(`
+      SELECT id, avatar FROM users WHERE id IN (?, ?)
+    `, [userId, targetId]);
+
+    // 创建用户信息映射
+    const userMap = {};
+    users.forEach((u) => {
+      userMap[u.id] = u.avatar;
+    });
+
     const [msgs] = await db.query(`
-      SELECT * FROM messages 
-      WHERE task_id = ? 
-      AND ((from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?))
-      ORDER BY created_at ASC
+      SELECT m.*, u.avatar AS from_avatar
+      FROM messages m
+      JOIN users u ON m.from_id = u.id
+      WHERE m.task_id = ? 
+      AND ((m.from_id = ? AND m.to_id = ?) OR (m.from_id = ? AND m.to_id = ?))
+      ORDER BY m.created_at ASC
     `, [taskId, userId, targetId, targetId, userId]);
 
-    res.json({ code: 200, data: msgs });
+    // 添加 to_id 用户的头像
+    const result = msgs.map((m) => ({
+      ...m,
+      from_avatar: m.from_avatar || null,
+      to_avatar: userMap[m.to_id] || null
+    }));
+
+    res.json({ code: 200, data: result });
   } catch (e) {
     res.json({ code: 500 });
   }

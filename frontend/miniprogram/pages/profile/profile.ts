@@ -127,11 +127,14 @@ Page({
       if (profileRes.code === 200) {
         const userData = profileRes.data.user;
         // 处理头像URL，拼接完整服务器地址
-        userData.avatar = getFullAvatarUrl(userData.avatar);
+        const fullAvatar = getFullAvatarUrl(userData.avatar);
+        userData.avatar = fullAvatar;
         this.setData({
           userInfo: userData,
           stats: profileRes.data.stats
         });
+        // 同步存储头像到本地，其他页面可共用
+        wx.setStorageSync('avatar', fullAvatar);
       }
 
       // 2. 我发布的任务（适配后）

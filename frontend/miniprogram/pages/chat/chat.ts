@@ -1,4 +1,4 @@
-import { getChatDetail, sendMsgApi, getTaskDetail } from '../../utils/api';
+import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl } from '../../utils/api';
 
 Page({
   data: {
@@ -22,15 +22,22 @@ Page({
     const taskId = options.taskId;
     const targetId = options.targetId;
     const targetName = decodeURIComponent(options.targetName || '聊天');
-    const targetAvatar = decodeURIComponent(options.targetAvatar || '/images/default-avatar.png');
+    // 解码并处理头像URL
+    const rawTargetAvatar = decodeURIComponent(options.targetAvatar || '');
+    const targetAvatar = getFullAvatarUrl(rawTargetAvatar);
+    // 从本地存储获取自己的头像
+    const storedAvatar = wx.getStorageSync('avatar') || '';
+    const myAvatar = storedAvatar.startsWith('http') ? storedAvatar : getFullAvatarUrl(storedAvatar);
+    
     this.setData({
       taskId,
       targetId,
       targetName,
       targetAvatar,
       myId: Number(wx.getStorageSync('userId') || 0),
-      myAvatar: wx.getStorageSync('avatar') || '/images/default-avatar.png'
+      myAvatar
     });
+    console.log('头像信息 - myAvatar:', myAvatar, 'targetAvatar:', targetAvatar);
     // 先设置默认导航标题，等获取到真实昵称后再更新
     wx.setNavigationBarTitle({ title: targetName || '聊天' });
     this.loadTaskAndUserInfo(); // 获取任务标题和对方信息
@@ -45,27 +52,26 @@ Page({
         // 设置任务标题
         this.setData({ 'chatInfo.taskTitle': task.title });
 
-        // 获取对方用户信息
+        // 获取对方用户信息 - 优先使用任务详情中的数据（更准确）
         let targetNickname = this.data.targetName;
         let targetAvatar = this.data.targetAvatar;
-        if (!targetNickname) {
-          if (task.publisher.id == this.data.targetId) {
-            targetNickname = task.publisher.nickname;
-            targetAvatar = task.publisher.avatar;
-          } else if (task.acceptor && task.acceptor.id == this.data.targetId) {
-            targetNickname = task.acceptor.nickname;
-            targetAvatar = task.acceptor.avatar;
-          }
+        
+        if (task.publisher.id == this.data.targetId) {
+          targetNickname = task.publisher.nickname;
+          targetAvatar = task.publisher.avatar;
+        } else if (task.acceptor && task.acceptor.id == this.data.targetId) {
+          targetNickname = task.acceptor.nickname;
+          targetAvatar = task.acceptor.avatar;
         }
+        
         if (targetNickname) {
           this.setData({
             targetName: targetNickname,
-            targetAvatar: targetAvatar || '/images/default-avatar.png',
-            'chatInfo.nickname': targetNickname   // 关键：更新顶部昵称
+            targetAvatar: getFullAvatarUrl(targetAvatar),
+            'chatInfo.nickname': targetNickname
           });
           wx.setNavigationBarTitle({ title: targetNickname });
         } else {
-          // 降级：从参数中获取或显示默认
           this.setData({
             'chatInfo.nickname': this.data.targetName || '聊天'
           });
@@ -88,6 +94,9 @@ Page({
       console.log('聊天记录原始响应:', JSON.stringify(res));
       if (res.code === 200 && Array.isArray(res.data)) {
         let lastTime: Date | null = null;
+        const myId = this.data.myId;
+        const myAvatar = this.data.myAvatar;
+        const targetAvatar = this.data.targetAvatar;
         const list = res.data.map((item: any, index: number) => {
           const msgDate = new Date(item.created_at);
           const timeShort = this.formatTimeShort(msgDate);
@@ -98,16 +107,33 @@ Page({
             timeStr = this.formatTimeDivider(msgDate);
           }
           lastTime = msgDate;
+          
+          // 优先使用后端返回的头像，否则使用初始化时保存的头像
+          const isSend = item.from_id == myId;
+          const fromAvatar = getFullAvatarUrl(item.from_avatar || '');
+          const avatar = isSend 
+            ? (fromAvatar !== '/images/default-avatar.png' ? fromAvatar : myAvatar)
+            : (fromAvatar !== '/images/default-avatar.png' ? fromAvatar : targetAvatar);
+          
           return {
             ...item,
-            type: item.from_id == this.data.myId ? 'send' : 'receive',
-            avatar: item.from_id == this.data.myId ? this.data.myAvatar : this.data.targetAvatar,
+            type: isSend ? 'send' : 'receive',
+            avatar: avatar,
             timeShort,
             showTime,
             timeStr,
             created_at: item.created_at
           };
         });
+        
+        // 更新对方头像（如果之前没有获取到）
+        if (list.length > 0) {
+          const firstReceive = list.find((m: any) => m.type === 'receive');
+          if (firstReceive && firstReceive.avatar !== '/images/default-avatar.png') {
+            this.setData({ targetAvatar: firstReceive.avatar });
+          }
+        }
+        
         this.setData({
           msgList: list,
           lastMsgId: 'msg-' + (list[list.length - 1]?.id || ''),
