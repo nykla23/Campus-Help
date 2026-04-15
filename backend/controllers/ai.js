@@ -16,63 +16,116 @@ const SYSTEM_PROMPT = `你是一个友善的校园互助平台智能助手。
 exports.chat = async (req, res) => {
   const { message, history = [] } = req.body;
 
+  console.log('=== AI 聊天请求 ===');
+  console.log('消息:', message);
+
   if (!message || typeof message !== 'string') {
     return res.json({ code: 400, message: '消息内容不能为空' });
   }
 
-  // 检查是否配置了 API Key
-  if (!process.env.DEEPSEEK_API_KEY) {
-    return res.json({ 
-      code: 500, 
-      message: 'AI 服务暂不可用，请联系管理员配置' 
-    });
-  }
+  const provider = process.env.AI_PROVIDER || 'groq';
 
   try {
-    // 构建消息历史
-    const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...history.slice(-10), // 保留最近10条对话
-      { role: 'user', content: message }
-    ];
+    let reply;
 
-    const response = await axios.post(
-      'https://api.deepseek.com/v1/chat/completions',
-      {
-        model: 'deepseek-chat',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 500
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
-        },
-        timeout: 30000
-      }
-    );
-
-    const reply = response.data.choices[0]?.message?.content || '抱歉，我暂时无法回答这个问题。';
+    if (provider === 'groq') {
+      reply = await callGroqAPI(message, history);
+    } else if (provider === 'deepseek') {
+      reply = await callDeepSeekAPI(message, history);
+    } else {
+      reply = await callGroqAPI(message, history);
+    }
 
     res.json({
       code: 200,
       data: {
         reply: reply,
-        id: response.data.id
+        id: Date.now().toString()
       }
     });
 
   } catch (error) {
     console.error('AI API 调用失败:', error.message);
-    
-    if (error.response?.status === 401) {
-      return res.json({ code: 500, message: 'AI 服务认证失败，请检查配置' });
-    }
-    
     res.json({ 
       code: 500, 
-      message: 'AI 服务暂时不可用，请稍后再试' 
+      message: error.message || 'AI 服务暂时不可用，请稍后再试' 
     });
   }
 };
+
+// Groq API 调用 (免费，推荐)
+async function callGroqAPI(message, history) {
+  const apiKey = process.env.GROQ_API_KEY;
+  const model = process.env.GROQ_MODEL || 'llama-3.1-8b-instruct';
+
+  if (!apiKey) {
+    throw new Error('Groq API Key 未配置，请在 .env 中设置 GROQ_API_KEY');
+  }
+
+  console.log('正在调用 Groq API...');
+
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history.slice(-10),
+    { role: 'user', content: message }
+  ];
+
+  const response = await axios.post(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      model: model,
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      timeout: 30000
+    }
+  );
+
+  console.log('Groq API 响应成功');
+  return response.data.choices[0]?.message?.content || '抱歉，我暂时无法回答这个问题。';
+}
+
+// DeepSeek API 调用
+async function callDeepSeekAPI(message, history) {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const baseUrl = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com/v1';
+  const model = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+
+  if (!apiKey) {
+    throw new Error('DeepSeek API Key 未配置');
+  }
+
+  console.log('正在调用 DeepSeek API...');
+
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history.slice(-10),
+    { role: 'user', content: message }
+  ];
+
+  const response = await axios.post(
+    `${baseUrl}/chat/completions`,
+    {
+      model: model,
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      timeout: 30000
+    }
+  );
+
+  console.log('DeepSeek API 响应成功');
+  return response.data.choices[0]?.message?.content || '抱歉，我暂时无法回答这个问题。';
+}

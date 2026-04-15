@@ -15,6 +15,9 @@ Page({
     myAvatar: ''
   },
 
+  // 对话历史（用于传递给后端）
+  chatHistory: [] as { role: 'user' | 'assistant'; content: string }[],
+
   // 快捷问题
   quickQuestions: [
     '如何发布任务？',
@@ -37,6 +40,9 @@ Page({
       time: this.formatTime(new Date())
     };
     this.setData({ msgList: [welcomeMsg] });
+    
+    // 初始化对话历史
+    this.chatHistory = [];
   },
 
   onInput(e: any) {
@@ -69,11 +75,14 @@ Page({
       loading: true
     });
 
+    // 添加到对话历史
+    this.chatHistory.push({ role: 'user', content });
+
     // 滚动到底部
     this.scrollToBottom();
 
     try {
-      const res = await aiChat(content);
+      const res = await aiChat(content, this.chatHistory);
       
       if (res.code === 200 && res.data) {
         const aiMsg: MsgItem = {
@@ -81,16 +90,24 @@ Page({
           content: res.data.reply,
           time: this.formatTime(new Date())
         };
+        
+        // 添加到对话历史
+        this.chatHistory.push({ role: 'assistant', content: res.data.reply });
+        
         this.setData({
           msgList: [...this.data.msgList, aiMsg],
           loading: false
         });
       } else {
         this.showError(res.message || 'AI 暂时无法回答，请稍后再试');
+        // 失败时移除刚才添加的用户消息
+        this.chatHistory.pop();
       }
     } catch (err) {
       console.error('AI 请求失败:', err);
       this.showError('网络异常，请检查网络连接');
+      // 失败时移除刚才添加的用户消息
+      this.chatHistory.pop();
     }
 
     this.scrollToBottom();
