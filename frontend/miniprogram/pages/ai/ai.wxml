@@ -18,15 +18,26 @@
   <!-- 消息列表 -->
   <scroll-view scroll-y class="msg-list" scroll-top="{{scrollTop}}" scroll-with-animation>
     <block wx:for="{{msgList}}" wx:key="index">
-      <view class="msg-item {{item.type}}">
-        <image wx:if="{{item.type === 'receive'}}" src="/images/icon-service.png" class="msg-avatar" />
+      <!-- 用户消息：消息在左，头像在右 -->
+      <view wx:if="{{item.type === 'send'}}" class="msg-item send">
+        <image src="{{myAvatar || '/images/default-avatar.png'}}" class="msg-avatar" />
+
         <view class="msg-bubble-wrapper">
-          <view class="msg-bubble {{item.type}}">
+          <view class="msg-bubble send">
             <text class="msg-content">{{item.content}}</text>
             <text class="msg-time">{{item.time}}</text>
           </view>
         </view>
-        <image wx:if="{{item.type === 'send'}}" src="{{myAvatar || '/images/default-avatar.png'}}" class="msg-avatar" />
+      </view>
+      <!-- AI消息：头像在左，消息在右 -->
+      <view wx:if="{{item.type === 'receive'}}" class="msg-item receive">
+        <image src="/images/icon-service.png" class="msg-avatar" />
+        <view class="msg-bubble-wrapper">
+          <view class="msg-bubble receive">
+            <text class="msg-content">{{item.content}}</text>
+            <text class="msg-time">{{item.time}}</text>
+          </view>
+        </view>
       </view>
     </block>
     <!-- 加载中 -->

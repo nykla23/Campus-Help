@@ -6,26 +6,29 @@ interface MsgItem {
   time: string;
 }
 
+interface ChatHistoryItem {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 Page({
   data: {
     msgList: [] as MsgItem[],
     inputMsg: '',
     loading: false,
     scrollTop: 0,
-    myAvatar: ''
+    myAvatar: '',
+    quickQuestions: [
+      '如何发布任务？',
+      '如何接取任务？',
+      '任务状态说明',
+      '金币如何获得？',
+      '信用评分规则'
+    ]
   },
 
-  // 对话历史（用于传递给后端）
-  chatHistory: [] as { role: 'user' | 'assistant'; content: string }[],
-
-  // 快捷问题
-  quickQuestions: [
-    '如何发布任务？',
-    '如何接取任务？',
-    '任务状态说明',
-    '金币如何获得？',
-    '信用评分规则'
-  ],
+  // 对话历史（用于 AI 上下文）
+  chatHistory: [] as ChatHistoryItem[],
 
   onLoad() {
     // 获取我的头像
@@ -33,16 +36,38 @@ Page({
     const myAvatar = storedAvatar.startsWith('http') ? storedAvatar : getFullAvatarUrl(storedAvatar);
     this.setData({ myAvatar });
 
-    // 添加欢迎消息
-    const welcomeMsg: MsgItem = {
-      type: 'receive',
-      content: '你好！我是校园互助平台的小助手。有什么关于任务发布、接取或其他平台问题，都可以问我哦～',
-      time: this.formatTime(new Date())
-    };
-    this.setData({ msgList: [welcomeMsg] });
-    
-    // 初始化对话历史
-    this.chatHistory = [];
+    // 从本地存储读取对话历史
+    const savedHistory = wx.getStorageSync('aiChatHistory') || [];
+    this.chatHistory = savedHistory;
+
+    // 恢复消息列表
+    if (savedHistory.length > 0) {
+      // 根据历史重建消息列表
+      const msgList: MsgItem[] = [];
+      savedHistory.forEach((item: ChatHistoryItem) => {
+        msgList.push({
+          type: item.role === 'user' ? 'send' : 'receive',
+          content: item.content,
+          time: ''
+        });
+      });
+      this.setData({ msgList });
+    } else {
+      // 添加欢迎消息
+      const welcomeMsg: MsgItem = {
+        type: 'receive',
+        content: '你好！我是校园互助平台的小助手。有什么关于任务发布、接取或其他平台问题，都可以问我哦～',
+        time: this.formatTime(new Date())
+      };
+      this.setData({ msgList: [welcomeMsg] });
+    }
+  },
+
+  onUnload() {
+    // 退出时保存对话历史到本地
+    if (this.chatHistory.length > 0) {
+      wx.setStorageSync('aiChatHistory', this.chatHistory);
+    }
   },
 
   onInput(e: any) {
@@ -98,15 +123,16 @@ Page({
           msgList: [...this.data.msgList, aiMsg],
           loading: false
         });
+
+        // 实时保存历史
+        wx.setStorageSync('aiChatHistory', this.chatHistory);
       } else {
         this.showError(res.message || 'AI 暂时无法回答，请稍后再试');
-        // 失败时移除刚才添加的用户消息
         this.chatHistory.pop();
       }
     } catch (err) {
       console.error('AI 请求失败:', err);
       this.showError('网络异常，请检查网络连接');
-      // 失败时移除刚才添加的用户消息
       this.chatHistory.pop();
     }
 
