@@ -1,4 +1,5 @@
-import { login } from '../../api/user';
+import { login, getProfile } from '../../api/user';
+import { getFullAvatarUrl } from '../../utils/api';
 
 Page({
   data: {
@@ -20,13 +21,34 @@ Page({
     wx.showLoading({ title: '登录中...' });
     login({ username, password })
       .then(res => {
-        wx.hideLoading();
         if (res.code === 0) {
           wx.setStorageSync('token', res.data.token);
           wx.setStorageSync('userId', res.data.userId);
-          wx.showToast({ title: "登录成功" });
-          wx.switchTab({ url: "/pages/index/index" });
+          
+          // 登录成功后获取头像
+          getProfile().then(profileRes => {
+            console.log('登录获取头像:', profileRes);
+            wx.hideLoading();
+            console.log('code:', profileRes.code, 'data:', profileRes.data);
+            const user = profileRes.data?.user;
+            if (user && user.avatar) {
+              const avatar = user.avatar;
+              const fullAvatar = getFullAvatarUrl(avatar);
+              wx.setStorageSync('avatar', fullAvatar);
+              console.log('保存的头像:', fullAvatar);
+            } else {
+              console.log('没有头像数据');
+            }
+            wx.showToast({ title: "登录成功" });
+            wx.switchTab({ url: "/pages/index/index" });
+          }).catch((err) => {
+            console.log('获取头像失败:', err);
+            wx.hideLoading();
+            wx.showToast({ title: "登录成功" });
+            wx.switchTab({ url: "/pages/index/index" });
+          });
         } else {
+          wx.hideLoading();
           wx.showToast({ title: res.message, icon: 'none' });
         }
       })

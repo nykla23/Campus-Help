@@ -30,10 +30,15 @@ Page({
   // 对话历史（用于 AI 上下文）
   chatHistory: [] as ChatHistoryItem[],
 
-  onLoad() {
-    // 获取我的头像
+  onShow() {
+    // 每次显示页面时刷新头像
     const storedAvatar = wx.getStorageSync('avatar') || '';
-    const myAvatar = storedAvatar.startsWith('http') ? storedAvatar : getFullAvatarUrl(storedAvatar);
+    console.log('AI页面 - 头像数据:', storedAvatar);
+    let myAvatar = storedAvatar;
+    if (!storedAvatar.startsWith('http') && storedAvatar) {
+      myAvatar = 'http://localhost:3000' + storedAvatar;
+    }
+    console.log('AI页面 - 处理后头像:', myAvatar);
     this.setData({ myAvatar });
 
     // 从本地存储读取对话历史
@@ -64,6 +69,8 @@ Page({
   },
 
   onUnload() {
+    console.log(wx.getStorageSync('avatar'))
+
     // 退出时保存对话历史到本地
     if (this.chatHistory.length > 0) {
       wx.setStorageSync('aiChatHistory', this.chatHistory);
