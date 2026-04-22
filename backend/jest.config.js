@@ -1,5 +1,6 @@
 /** @type {import('jest').Config} */
 module.exports = {
+  rootDir: '.',
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.js'],
   collectCoverageFrom: [
