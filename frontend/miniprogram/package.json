@@ -1,0 +1,1 @@
+{"name": "campus-help-miniprogram", "version": "1.0.0", "description": "Campus-Help 微信小程序前端", "scripts": {"test": "jest --coverage"}, "devDependencies": {"@babel/core": "^7.24.0", "@babel/preset-env": "^7.24.0", "@babel/preset-typescript": "^7.24.0", "@types/jest": "^29.5.0", "babel-jest": "^29.7.0", "jest": "^29.7.0"}}

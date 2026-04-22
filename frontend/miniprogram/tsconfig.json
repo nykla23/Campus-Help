@@ -1,0 +1,1 @@
+{"compilerOptions": {"target": "ES2019", "module": "CommonJS", "esModuleInterop": true, "allowSyntheticDefaultImports": true, "skipLibCheck": true, "strict": false, "jsx": "react", "jsxFactory": "React.createElement", "typeRoots": ["./types", "./node_modules/@types"]}, "include": ["__tests__/**/*", "pages/**/*.ts", "utils/**/*.ts", "api/**/*.ts"]}
