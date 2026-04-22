@@ -10,3 +10,7 @@ npm-debug.log
 miniprogram_npm/
 dist/
 frontend/miniprogram/config/
+
+# 测试覆盖率
+coverage/
+frontend/coverage/

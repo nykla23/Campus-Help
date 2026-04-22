@@ -1,15 +1,12 @@
-{
-  "name": "miniprogram-ts-sass-quickstart",
-  "version": "1.0.0",
-  "description": "",
-  "scripts": {
-  },
-  "keywords": [],
-  "author": "",
-  "license": "",
-  "dependencies": {
-  },
-  "devDependencies": {
+{"name": "miniprogram-ts-sass-quickstart", "version": "1.0.0", "description": "", "scripts": {
+    "test": "jest --coverage"
+  }, "keywords": [], "author": "", "license": "", "dependencies": {}, "devDependencies": {
+    "@babel/preset-env": "^7.24.0",
+    "@babel/preset-typescript": "^7.24.0",
+    "jest": "^29.7.0",
     "miniprogram-api-typings": "^2.8.3-1"
-  }
-}
+  }, "jest": {
+    "transform": {
+      "^.+\\.(ts|tsx|js|jsx)$": ["babel-jest"]
+    }
+  }}
