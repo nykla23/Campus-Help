@@ -9,3 +9,4 @@ npm-debug.log
 # 微信小程序
 miniprogram_npm/
 dist/
+frontend/miniprogram/config/
