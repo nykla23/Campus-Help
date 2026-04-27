@@ -18,7 +18,7 @@ export function getStatusText(status: number): string {
 
 // ========== 任务类型映射（与后端 constants.js TYPE_MAP 一致）==========
 export function getTypeText(type: number): string {
-  const map = ['', '全部', '取件代送', '跑腿代办', '学习辅导', '其他'];
+  const map = ['', '取件代送', '跑腿代办', '学习辅导', '其他'];
   return map[type] || '';
 }
 

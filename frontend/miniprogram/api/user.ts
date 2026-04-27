@@ -14,3 +14,8 @@ export function register(data: {
 export function login(data: { username: string; password: string }) {
   return request('/auth/login', 'POST', data, { noAuth: true });
 }
+
+// 获取个人信息
+export function getProfile() {
+  return request('/user/profile', 'GET');
+}

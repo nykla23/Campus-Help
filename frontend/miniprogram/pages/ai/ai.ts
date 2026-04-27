@@ -1,5 +1,4 @@
 import { aiChat, getFullAvatarUrl } from '../../utils/api';
-import { SERVER_HOST } from '../../utils/config';
 
 interface MsgItem {
   type: 'send' | 'receive';
@@ -36,7 +35,7 @@ Page({
     const storedAvatar = wx.getStorageSync('avatar') || '';
     let myAvatar = storedAvatar;
     if (!storedAvatar.startsWith('http') && storedAvatar) {
-      myAvatar = SERVER_HOST + storedAvatar;
+      myAvatar = 'http://127.0.0.1:3000' + storedAvatar;
     }
     this.setData({ myAvatar });
 

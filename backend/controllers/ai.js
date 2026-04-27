@@ -20,7 +20,7 @@ exports.chat = async (req, res) => {
     return res.json({ code: 400, message: '消息内容不能为空' });
   }
 
-  const provider = process.env.AI_PROVIDER || 'groq';
+  const provider = process.env.AI_PROVIDER || 'cloudflare';
 
   try {
     let reply;
@@ -29,8 +29,10 @@ exports.chat = async (req, res) => {
       reply = await callGroqAPI(message, history);
     } else if (provider === 'deepseek') {
       reply = await callDeepSeekAPI(message, history);
+    } else if (provider === 'cloudflare') {
+      reply = await callCloudflareAPI(message, history);
     } else {
-      reply = await callGroqAPI(message, history);
+      reply = await callCloudflareAPI(message, history);
     }
 
     res.json({
@@ -49,6 +51,44 @@ exports.chat = async (req, res) => {
     });
   }
 };
+
+// Cloudflare Workers AI 调用（直接使用 Workers AI Run 端点）
+async function callCloudflareAPI(message, history) {
+  const accountId = process.env.CF_ACCOUNT_ID;
+  const apiToken = process.env.CF_API_TOKEN;
+  const model = process.env.CF_MODEL || '@cf/meta/llama-3.1-8b-instruct';
+
+  if (!accountId || !apiToken) {
+    throw new Error('Cloudflare 配置未完整，请在 .env 中设置 CF_ACCOUNT_ID 和 CF_API_TOKEN');
+  }
+
+  // 构建 Workers AI 对话消息格式
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history.slice(-10),
+    { role: 'user', content: message }
+  ];
+
+  // 使用 Workers AI 直接运行端点（非 AI Gateway）
+  const response = await axios.post(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
+    {
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiToken}`
+      },
+      timeout: 30000
+    }
+  );
+
+  const result = response.data;
+  return result.result?.response || result.choices?.[0]?.message?.content || '抱歉，我暂时无法回答这个问题。';
+}
 
 // Groq API 调用 (免费，推荐)
 async function callGroqAPI(message, history) {
