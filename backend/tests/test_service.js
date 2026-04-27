@@ -396,7 +396,7 @@ describe('=== Task Controller 单元测试 ===', () => {
     await taskController.list(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 5000 })
+      expect.objectContaining({ code: 500 })  // CODE.SERVER_ERROR
     );
   });
 
@@ -547,9 +547,14 @@ describe('=== Task Controller 单元测试 ===', () => {
   test('confirmCompleteTask - 确认完成成功并结算', async () => {
     const conn = createMockConnection();
     conn.query
-      .mockResolvedValueOnce([[{ id: 1, status: 2, publisher_id: 10, acceptor_id: 20, reward: 50, title: '任务' }]])
-      .mockResolvedValueOnce([[{ coins: 200 }]])   // 发布者余额
-      .mockResolvedValueOnce([[{ coins: 100 }]]);  // 接单者余额
+      .mockResolvedValueOnce([[{ id: 1, status: 2, publisher_id: 10, acceptor_id: 20, reward: 50, title: '任务' }]]) // SELECT task
+      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE publisher coins (atomic)
+      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE acceptor coins
+      .mockResolvedValueOnce([[{ coins: 150 }]])        // SELECT pubUser coins
+      .mockResolvedValueOnce([[{ coins: 150 }]])        // SELECT accUser coins
+      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE task status = 3
+      .mockResolvedValueOnce([{ affectedRows: 1 }])     // INSERT transaction (pub)
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);    // INSERT transaction (acc)
     db.getConnection.mockResolvedValue(conn);
 
     const req = { params: { id: '1' }, user: { id: 10 } };
@@ -579,8 +584,11 @@ describe('=== Task Controller 单元测试 ===', () => {
   test('cancelTask - 取消任务成功并返还虚拟币', async () => {
     const conn = createMockConnection();
     conn.query
-      .mockResolvedValueOnce([[{ id: 1, status: 0, publisher_id: 10, reward: 30, title: '取消测试' }]])
-      .mockResolvedValueOnce([[{ coins: 100 }]]);  // 用户余额
+      .mockResolvedValueOnce([[{ id: 1, status: 0, publisher_id: 10, reward: 30, title: '取消测试' }]]) // SELECT task
+      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE refund coins (atomic)
+      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE task status = 4
+      .mockResolvedValueOnce([[{ coins: 130 }]])        // SELECT userAfter coins
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);    // INSERT transaction
     db.getConnection.mockResolvedValue(conn);
 
     const req = { params: { id: '1' }, user: { id: 10 } };
@@ -673,22 +681,24 @@ describe('=== Publish Controller 单元测试 ===', () => {
 
   test('publishTask - 余额不足应返回400', async () => {
     const conn = createMockConn();
-    conn.query.mockResolvedValue([[{ coins: 10 }]]);
+    // 原子操作：UPDATE SET coins=coins-? WHERE coins>=? 返回 affectedRows=0 表示余额不足
+    conn.query.mockResolvedValue([{ affectedRows: 0 }]);
     db.getConnection.mockResolvedValue(conn);
 
     const req = { user: { id: 1 }, body: { type: 0, title: '任务', description: '描述', reward: 50 } };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     await publishController.publishTask(req, res);
-    // 验证返回了错误响应（无论是否rollback，核心是余额不足返回400）
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
   test('publishTask - 发布成功路径应调用commit', async () => {
     const conn = createMockConn();
-    // 用更简单的mock：所有query都返回成功
+    // 新顺序：先原子UPDATE扣余额(affectedRows>0)，再INSERT任务(insertId)
+    let qCall = 0;
     conn.query.mockImplementation(async (sql) => {
-      if (sql.includes('SELECT')) return [[{ coins: 100 }]];
-      if (sql.includes('INSERT')) return { insertId: 42 };
+      qCall++;
+      if (qCall === 1) return [{ affectedRows: 1 }]; // 原子扣款成功
+      if (sql.includes('INSERT')) return { insertId: 42 }; // 插入任务
       return undefined;
     });
     db.getConnection.mockResolvedValue(conn);
@@ -707,8 +717,8 @@ describe('=== Publish Controller 单元测试 ===', () => {
     let qCall = 0;
     conn.query.mockImplementation(async () => {
       qCall++;
-      if (qCall === 1) return [[{ coins: 100 }]]; // 通过余额检查
-      throw new Error('DB Error'); // 后续操作抛异常
+      if (qCall === 1) return [{ affectedRows: 1 }]; // 原子扣款通过
+      throw new Error('DB Error'); // INSERT 任务抛异常
     });
     db.getConnection.mockResolvedValue(conn);
 
@@ -727,38 +737,9 @@ describe('=== Message Controller 单元测试 ===', () => {
     jest.clearAllMocks();
   });
 
-  // ===== formatTime 时间格式化 =====
+// ===== 时间格式化已统一到前端 common.ts（formatMsgListTime），后端不再重复实现 =====
 
-  test('formatTime - 空值应返回空字符串', () => {
-    expect(msgController.formatTime(null)).toBe('');
-    expect(msgController.formatTime(undefined)).toBe('');
-    expect(msgController.formatTime('')).toBe('');
-  });
-
-  test('formatTime - 今天的时间应返回 HH:mm', () => {
-    const now = new Date();
-    const todayStr = now.toISOString();
-    const result = msgController.formatTime(todayStr);
-    expect(result).toMatch(/^\d{2}:\d{2}$/);
-  });
-
-  test('formatTime - 昨天应返回"昨天"', () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const result = msgController.formatTime(yesterday.toISOString());
-    expect(result).toBe('昨天');
-  });
-
-  test('formatTime - 更早的日期应返回 M/D 格式', () => {
-    const olderDate = new Date();
-    olderDate.setDate(olderDate.getDate() - 3);
-    const result = msgController.formatTime(olderDate.toISOString());
-    const month = olderDate.getMonth() + 1;
-    const day = olderDate.getDate();
-    expect(result).toBe(`${month}/${day}`);
-  });
-
-  // ===== sendMsg 发送消息 =====
+// ===== sendMsg 发送消息 =====
 
   test('sendMsg - 内容为空应返回400', async () => {
     const req = { user: { id: 1 }, body: { toId: 2, taskId: 10, content: '' } };
@@ -770,7 +751,10 @@ describe('=== Message Controller 单元测试 ===', () => {
   });
 
   test('sendMsg - 发送成功应返回200', async () => {
-    db.query.mockResolvedValue();
+    db.query
+      .mockResolvedValueOnce([[{ id: 2 }]])                              // 目标用户存在
+      .mockResolvedValueOnce([[{ publisher_id: 1, acceptor_id: 2 }]])   // 任务存在且用户是参与者
+      .mockResolvedValueOnce([{ affectedRows: 1 }]);                     // INSERT message
     const req = { user: { id: 1 }, body: { toId: 2, taskId: 10, content: '你好' } };
     const res = { json: jest.fn() };
     await msgController.sendMsg(req, res);
@@ -816,6 +800,7 @@ describe('=== Message Controller 单元测试 ===', () => {
 
   test('getChatDetail - 成功返回聊天记录', async () => {
     db.query
+      .mockResolvedValueOnce([[{ publisher_id: 1, acceptor_id: 2 }]])   // 权限校验：用户是发布者
       .mockResolvedValueOnce([[{ id: 1, avatar: '/a.jpg' }, { id: 2, avatar: '/b.jpg' }]])
       .mockResolvedValueOnce([[{ id: 10, content: '你好', from_id: 1, to_id: 2, from_avatar: '/a.jpg' }]]);
     const req = { params: { taskId: '1', targetId: '2' }, user: { id: 1 } };
@@ -826,7 +811,18 @@ describe('=== Message Controller 单元测试 ===', () => {
     );
   });
 
+  test('getChatDetail - 无权限查看应返回403', async () => {
+    db.query.mockResolvedValueOnce([[{ publisher_id: 99, acceptor_id: 88 }]]); // 用户1不是参与者
+    const req = { params: { taskId: '1', targetId: '2' }, user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await msgController.getChatDetail(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 403, message: '无权查看该聊天' })
+    );
+  });
+
   test('getChatDetail - 数据库异常应返回500', async () => {
+    // 权限校验阶段抛异常（在try块之前）
     db.query.mockRejectedValue(new Error('DB Error'));
     const req = { params: { taskId: '1', targetId: '2' }, user: { id: 1 } };
     const res = { json: jest.fn() };

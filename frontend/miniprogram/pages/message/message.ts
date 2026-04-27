@@ -1,7 +1,8 @@
 import { getMsgList, getFullAvatarUrl } from '../../utils/api';
+import { formatMsgListTime } from '../../utils/common';
 
 Page({
-  data: { msgList: [] as any[] },
+  data: { msgList: [] }, // any[] (MsgListItem[])
 
   onShow() {
     this.loadList();
@@ -42,16 +43,8 @@ Page({
     }
   },
 
-  formatTime(timeStr: string) {
-    if (!timeStr) return '';
-    const date = new Date(timeStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    if (diff < 24 * 3600 * 1000) {
-      return `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-    }
-    return `${date.getMonth()+1}/${date.getDate()}`;
-  },
+  // 时间格式化 — 使用共享工具函数 (utils/common.ts，与后端 message.js formatTime 保持一致)
+  formatTime(timeStr: string) { return formatMsgListTime(timeStr); },
 
   toChat(e: any) {
     const { task, target, name, avatarraw } = e.currentTarget.dataset;

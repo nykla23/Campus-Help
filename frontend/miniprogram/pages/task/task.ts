@@ -23,15 +23,8 @@ Page({
 
   onLoad(options: { id: string }) {
     const taskId = options.id;
-    // 尝试多种方式获取 userId
     let userId = wx.getStorageSync('userId');
-    if (!userId) userId = wx.getStorageSync('id');
-    if (!userId) {
-      const app = getApp();
-      userId = app.globalData?.userId;
-    }
     userId = Number(userId || 0);
-    console.log('最终 userId:', userId);
     this.setData({ taskId, userId });
     this.loadTaskDetail();
   },

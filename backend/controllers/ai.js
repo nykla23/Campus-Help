@@ -16,9 +16,6 @@ const SYSTEM_PROMPT = `你是一个友善的校园互助平台智能助手。
 exports.chat = async (req, res) => {
   const { message, history = [] } = req.body;
 
-  console.log('=== AI 聊天请求 ===');
-  console.log('消息:', message);
-
   if (!message || typeof message !== 'string') {
     return res.json({ code: 400, message: '消息内容不能为空' });
   }
@@ -62,8 +59,6 @@ async function callGroqAPI(message, history) {
     throw new Error('Groq API Key 未配置，请在 .env 中设置 GROQ_API_KEY');
   }
 
-  console.log('正在调用 Groq API...');
-
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
     ...history.slice(-10),
@@ -86,8 +81,6 @@ async function callGroqAPI(message, history) {
       timeout: 30000
     }
   );
-
-  console.log('Groq API 响应成功');
   return response.data.choices[0]?.message?.content || '抱歉，我暂时无法回答这个问题。';
 }
 
@@ -100,8 +93,6 @@ async function callDeepSeekAPI(message, history) {
   if (!apiKey) {
     throw new Error('DeepSeek API Key 未配置');
   }
-
-  console.log('正在调用 DeepSeek API...');
 
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -125,7 +116,5 @@ async function callDeepSeekAPI(message, history) {
       timeout: 30000
     }
   );
-
-  console.log('DeepSeek API 响应成功');
   return response.data.choices[0]?.message?.content || '抱歉，我暂时无法回答这个问题。';
 }

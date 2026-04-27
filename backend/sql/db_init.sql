@@ -78,5 +78,8 @@ CREATE TABLE IF NOT EXISTS messages (
   to_id INT NOT NULL,      -- 接收者ID
   task_id INT NOT NULL,    -- 关联任务ID
   content TEXT NOT NULL,  -- 消息内容
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_from_to (from_id, to_id),
+  INDEX idx_task_id (task_id),
+  INDEX idx_created_at (created_at)
 );

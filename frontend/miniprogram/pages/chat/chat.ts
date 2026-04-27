@@ -1,4 +1,5 @@
 import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl } from '../../utils/api';
+import { formatChatTimeShort, formatChatTimeDivider } from '../../utils/common';
 
 Page({
   data: {
@@ -150,22 +151,9 @@ Page({
     }
   },
 
-  formatTimeShort(date: Date): string {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
-  },
-
-  formatTimeDivider(date: Date): string {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.floor((today.getTime() - msgDate.getTime()) / (24 * 3600 * 1000));
-    if (diffDays === 0) return '今天';
-    if (diffDays === 1) return '昨天';
-    if (diffDays === 2) return '前天';
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-  },
+  // 时间格式化 — 使用共享工具函数 (utils/common.ts)
+  formatTimeShort(date: Date): string { return formatChatTimeShort(date); },
+  formatTimeDivider(date: Date): string { return formatChatTimeDivider(date); },
 
   onInput(e: any) {
     this.setData({ inputMsg: e.detail.value });

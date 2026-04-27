@@ -6,7 +6,25 @@
     "jest": "^29.7.0",
     "miniprogram-api-typings": "^2.8.3-1"
   }, "jest": {
+    "rootDir": "./miniprogram",
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.js"],
+    "moduleFileExtensions": ["js", "json", "ts"],
     "transform": {
-      "^.+\\.(ts|tsx|js|jsx)$": ["babel-jest"]
-    }
+      "^.+\\.[jt]sx?$": ["babel-jest", {
+        "presets": [
+          ["@babel/preset-env", { "targets": { "node": "current" } }],
+          "@babel/preset-typescript"
+        ]
+      }]
+    },
+    "setupFilesAfterEnv": ["./jest.setup.js"],
+    "collectCoverageFrom": [
+      "pages/**/*.ts",
+      "utils/**/*.ts",
+      "api/**/*.ts"
+    ],
+    "coverageDirectory": "../coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "verbose": true
   }}

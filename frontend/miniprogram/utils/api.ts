@@ -1,5 +1,5 @@
-const BASE_URL = 'http://localhost:3000/api';
-const SERVER_HOST = 'http://localhost:3000';
+import { SERVER_HOST } from './config';
+const BASE_URL = `${SERVER_HOST}/api`;
 
 // 处理头像URL，拼接完整服务器地址
 export function getFullAvatarUrl(avatarUrl: string): string {
@@ -168,9 +168,17 @@ export function changePassword(data: { oldPassword: string; newPassword: string 
 }
 
 // AI 智能客服聊天 (直接调用 Cloudflare Workers AI)
-// 配置从本地存储读取，首次使用需在 app.js 中初始化
-const CF_ACCOUNT_ID = wx.getStorageSync('CF_ACCOUNT_ID') || '';
-const CF_API_TOKEN = wx.getStorageSync('CF_API_TOKEN') || '';
+// 配置从本地存储读取，首次使用需在 app.js 中初始化（延迟读取，避免顶层调用 wx 导致测试环境报错）
+let _CF_ACCOUNT_ID: string | undefined;
+let _CF_API_TOKEN: string | undefined;
+function getCFAccountId(): string {
+  if (_CF_ACCOUNT_ID === undefined) _CF_ACCOUNT_ID = wx.getStorageSync('CF_ACCOUNT_ID') || '';
+  return _CF_ACCOUNT_ID;
+}
+function getCFApiToken(): string {
+  if (_CF_API_TOKEN === undefined) _CF_API_TOKEN = wx.getStorageSync('CF_API_TOKEN') || '';
+  return _CF_API_TOKEN;
+}
 
 export function aiChat(message: string, history: any[] = []): Promise<{ code: number; data: { reply: string }; message?: string }> {
   return new Promise((resolve, reject) => {
@@ -182,7 +190,7 @@ export function aiChat(message: string, history: any[] = []): Promise<{ code: nu
     }
 
     wx.request({
-      url: `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
+      url: `https://api.cloudflare.com/client/v4/accounts/${getCFAccountId()}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
       method: 'POST',
       data: {
         prompt: `你是一个友善的校园互助平台智能助手。
@@ -200,7 +208,7 @@ export function aiChat(message: string, history: any[] = []): Promise<{ code: nu
       },
       header: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CF_API_TOKEN}`
+        'Authorization': `Bearer ${getCFApiToken()}`
       },
       success(res: any) {
         if (res.statusCode === 200 && res.data && res.data.success) {

@@ -1,5 +1,6 @@
 import { getTaskList } from '../../api/task';
 import { getFullAvatarUrl } from '../../utils/api';
+import { getStatusText, getTypeText, formatListTime } from '../../utils/common';
 
 Page({
   data: {
@@ -10,19 +11,13 @@ Page({
     showTypeBar: false, // 是否显示类型横条（在筛选弹窗打开时显示）
     selectedFilter: 'time',
     keyword: '',
-    testKeyword: '',
     taskList: [],
     page: 1,
     limit: 10,
     total: 0,
     loading: false
   },
-  searchTimer: null as any,
-
-  testInput(e) {
-  this.setData({ testKeyword: e.detail.value });
-  console.log('输入了：', e.detail.value);
-},
+  searchTimer: null, // any (timer ref)
 
   onSearchInput(e: WechatMiniprogram.Input) {
     const keyword = e.detail.value.trim();
@@ -232,21 +227,10 @@ Page({
     }));
   },
 
-  // 类型映射（与数据库保持一致：0全部 1取件代送 2跑腿代办 3学习辅导 4其他）
-  _adaptTaskType(type: number) {
-    const dict = ['全部','取件代送','跑腿代办','学习辅导','其他'];
-    return dict[type] || '';
-  },
-
-  _adaptStatus(status: number) {
-    const dict = ['待接取','进行中','待确认','已完成','已取消'];
-    return dict[status] || '';
-  },
-
-  _formatTime(create: string, deadline: string) {
-    if (deadline) return `截止 ${deadline.substring(0,16).replace('T',' ')}`;
-    return create ? create.substring(0,16).replace('T',' ') : '';
-  },
+  // 类型映射、状态映射、时间格式化 — 使用共享工具函数 (utils/common.ts)
+  _adaptTaskType(type: number) { return getTypeText(type); },
+  _adaptStatus(status: number) { return getStatusText(status); },
+  _formatTime(create: string, deadline: string) { return formatListTime(create, deadline); },
 
   onLoad() {
     this.refreshList();
