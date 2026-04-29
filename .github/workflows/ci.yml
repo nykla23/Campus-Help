@@ -34,7 +34,7 @@ jobs:
         run: npx jest --coverage --ci --coverageReporters=text --coverageReporters=lcov
 
       - name: 上传覆盖率到 Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: backend/coverage/lcov.info
@@ -67,7 +67,7 @@ jobs:
         run: npx jest --config=frontend/jest.config.js --coverage --ci --coverageReporters=text --coverageReporters=lcov
 
       - name: 上传覆盖率到 Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: frontend/coverage/lcov.info
