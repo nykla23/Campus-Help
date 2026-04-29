@@ -15,7 +15,7 @@ exports.verifyToken = (req, res, next) => {
     };
     
     next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(401).json({ code: 401, message: '登录已失效' });
   }
 };

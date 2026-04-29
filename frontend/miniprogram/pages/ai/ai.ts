@@ -1,4 +1,4 @@
-import { aiChat, getFullAvatarUrl } from '../../utils/api';
+import { aiChat } from '../../utils/api';
 
 interface MsgItem {
   type: 'send' | 'receive';

@@ -37,7 +37,7 @@ const db = require('../config/db');
 const userModel = require('../models/user');
 const taskModel = require('../models/task');
 const bcrypt = require('bcryptjs');
-const jwtUtil = require('../utils/jwt');
+const _jwtUtil = require('../utils/jwt');
 const axios = require('axios');
 
 describe('=== User Controller 单元测试 ===', () => {

@@ -104,7 +104,7 @@ exports.getChatDetail = async (req, res) => {
     }));
 
     res.json({ code: 200, data: result });
-  } catch (e) {
+  } catch (_e) {
     res.json({ code: CODE.SERVER_ERROR });   // getChatDetail catch
   }
 };
@@ -135,7 +135,7 @@ exports.sendMsg = async (req, res) => {
       [fromId, toId, taskId, content]
     );
     res.json({ code: 200, message: '发送成功' });
-  } catch (e) {
+  } catch (_e) {
     res.json({ code: CODE.SERVER_ERROR });   // sendMsg catch
   }
 };

@@ -1,5 +1,9 @@
 # 校园帮 - 校园互助平台
 
+[![CI](https://github.com/nykla23/Campus-Help/actions/workflows/ci.yml/badge.svg)](https://github.com/nykla23/Campus-Help/actions/workflows/ci.yml)
+[![Backend Coverage](https://codecov.io/gh/nykla23/Campus-Help/branch/main/graph/badge.svg?flag=backend)](https://codecov.io/gh/nykla23/Campus-Help)
+[![Frontend Coverage](https://codecov.io/gh/nykla23/Campus-Help/branch/main/graph/badge.svg?flag=frontend)](https://codecov.io/gh/nykla23/Campus-Help)
+
 ## 团队成员
 
 | 姓名   | 学号       | 分工                           |

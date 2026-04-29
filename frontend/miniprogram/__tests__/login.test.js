@@ -71,7 +71,7 @@ describe('Login Page', () => {
       page.setData({ username: 'admin', password: '123456' });
       
       // 调用登录
-      const result = await page.onLogin();
+      const _result = await page.onLogin();
       
       // 验证同步行为：login被正确调用，参数匹配
       expect(login).toHaveBeenCalledWith({ username: 'admin', password: '123456' });

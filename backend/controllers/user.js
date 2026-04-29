@@ -2,7 +2,6 @@ const db = require('../config/db');
 const userModel = require('../models/user');
 const jwtUtil = require('../utils/jwt');
 const bcrypt = require('bcryptjs');
-const { STATUS_MAP, TYPE_MAP, CODE } = require('../constants');
 
 exports.register = async (req, res) => {
   const { username, nickname, password, confirmPassword } = req.body;
@@ -63,7 +62,7 @@ exports.getProfile = async (req, res) => {
         }
       }
     });
-  } catch (err) {
+  } catch (_err) {
     res.json({ code: 500 });
   }
 };
@@ -80,7 +79,7 @@ exports.getPublishTasks = async (req, res) => {
     `, [req.user.id]);
 
     res.json({ code: 200, data: tasks });
-  } catch (e) {
+  } catch (_e) {
     res.json({ code: 500 });
   }
 };
@@ -97,7 +96,7 @@ exports.getReceiveTasks = async (req, res) => {
     `, [req.user.id]);
 
     res.json({ code: 200, data: tasks });
-  } catch (e) {
+  } catch (_e) {
     res.json({ code: 500 });
   }
 };

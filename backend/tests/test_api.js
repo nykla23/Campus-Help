@@ -31,7 +31,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/ai', aiRoutes);
 
 // 全局错误处理
-app.use((err, req, res, next) => {
+app.use((_err, req, res, _next) => {
   res.status(500).json({ code: 5000 });
 });
 

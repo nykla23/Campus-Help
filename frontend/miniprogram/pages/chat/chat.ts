@@ -81,8 +81,8 @@ Page({
         this.setData({ 'chatInfo.taskTitle': `任务${this.data.taskId}` });
         this.setData({ 'chatInfo.nickname': this.data.targetName || '聊天' });
       }
-    } catch (err) {
-      console.error('获取任务信息失败', err);
+    } catch (_err) {
+      console.error('获取任务信息失败', _err);
       this.setData({ 'chatInfo.taskTitle': `任务${this.data.taskId}` });
       this.setData({ 'chatInfo.nickname': this.data.targetName || '聊天' });
     }
@@ -143,8 +143,8 @@ Page({
       } else {
         wx.showToast({ title: res.message || '加载失败', icon: 'none' });
       }
-    } catch (err) {
-      console.error('加载聊天记录失败', err);
+    } catch (_err) {
+      console.error('加载聊天记录失败', _err);
       wx.showToast({ title: '加载失败', icon: 'none' });
     } finally {
       wx.hideLoading();
@@ -175,7 +175,7 @@ Page({
       } else {
         wx.showToast({ title: res.message || '发送失败', icon: 'none' });
       }
-    } catch (err) {
+    } catch (_err) {
       wx.showToast({ title: '发送失败', icon: 'none' });
     } finally {
       wx.hideLoading();

@@ -50,8 +50,8 @@ app.get('/', (req, res) => {
 });
 
 // 错误处理中间件（占位）
-app.use((err, req, res, next) => {
-    console.error(err.stack);
+app.use((_err, req, res, _next) => {
+    console.error(_err.stack);
     res.status(500).json({ code: 5000, message: '服务器内部错误' });
 });
 

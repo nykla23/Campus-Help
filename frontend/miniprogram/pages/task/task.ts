@@ -101,10 +101,10 @@ Page({
         wx.showToast({ title: '接取成功', icon: 'success' });
         this.loadTaskDetail();
       } else {
-        wx.showToast({ title: res.message, icon: 'none' });
-      }
-    } catch (err) {
-      wx.showToast({ title: '接取失败', icon: 'none' });
+      wx.showToast({ title: res.message, icon: 'none' });
+    }
+  } catch (_err) {
+    wx.showToast({ title: '接取失败', icon: 'none' });
     } finally {
       wx.hideLoading();
     }
@@ -126,7 +126,7 @@ Page({
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -152,7 +152,7 @@ Page({
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -178,7 +178,7 @@ Page({
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -204,7 +204,7 @@ Page({
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();

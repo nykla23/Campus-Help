@@ -4,33 +4,72 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
-  lint-and-test:
+  # ========== 后端任务 ==========
+  backend:
+    name: 后端测试与 Lint
     runs-on: ubuntu-latest
-
     steps:
-      - name: 签出代码
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 设置 Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: 安装根依赖
         run: npm ci
 
       - name: 安装后端依赖
-        run: cd backend && npm ci
+        working-directory: backend
+        run: npm ci
 
-      - name: 代码规范检查 (Lint)
-        run: npm run lint
+      - name: Lint 检查
+        run: npx eslint backend --ext .js --max-warnings 0
 
-      - name: 运行前端测试
-        run: npm test
+      - name: 运行后端测试并收集覆盖率
+        working-directory: backend
+        run: npx jest --coverage --ci --coverageReporters=text --coverageReporters=lcov
 
-      - name: 运行后端测试
-        run: npm run test:backend
+      - name: 上传覆盖率到 Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/coverage/lcov.info
+          flags: backend
+          fail_ci_if_error: false
+
+  # ========== 前端任务 ==========
+  frontend:
+    name: 前端测试与 Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint 检查
+        run: npx eslint frontend --ext .ts,.js --max-warnings 0
+
+      - name: 运行前端测试并收集覆盖率
+        run: npx jest --config=frontend/jest.config.js --coverage --ci --coverageReporters=text --coverageReporters=lcov
+
+      - name: 上传覆盖率到 Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: frontend/coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: false
