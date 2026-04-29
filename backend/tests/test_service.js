@@ -916,8 +916,8 @@ describe('=== AI Controller 单元测试 ===', () => {
     );
   });
 
-  test('chat - 默认 provider 应走 groq 分支', async () => {
-    process.env.AI_PROVIDER = undefined;  // undefined -> default 'groq'
+  test('chat - provider=groq 应走 groq 分支', async () => {
+    process.env.AI_PROVIDER = 'groq';
     process.env.GROQ_API_KEY = 'key';
     axios.post.mockResolvedValue({
       data: { choices: [{ message: { content: '默认回复' } }] }

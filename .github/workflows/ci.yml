@@ -20,8 +20,11 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: 安装依赖
+      - name: 安装根依赖
         run: npm ci
+
+      - name: 安装后端依赖
+        run: cd backend && npm ci
 
       - name: 代码规范检查 (Lint)
         run: npm run lint
