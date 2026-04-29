@@ -3,7 +3,7 @@
   }, "keywords": [], "author": "", "license": "", "dependencies": {}, "devDependencies": {
     "@babel/preset-env": "^7.24.0",
     "@babel/preset-typescript": "^7.24.0",
-    "jest": "^29.7.0",
+    "jest": "^30.3.0",
     "miniprogram-api-typings": "^2.8.3-1"
   }, "jest": {
     "rootDir": "./miniprogram",
