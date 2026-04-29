@@ -1,5 +1,4 @@
-const BASE_URL = 'http://localhost:3000/api';
-const SERVER_HOST = 'http://localhost:3000';
+const BASE_URL = 'http://127.0.0.1:3000/api';
 
 // 处理头像URL，拼接完整服务器地址
 export function getFullAvatarUrl(avatarUrl: string): string {
@@ -9,7 +8,7 @@ export function getFullAvatarUrl(avatarUrl: string): string {
     return avatarUrl;
   }
   if (avatarUrl.startsWith('http')) return avatarUrl;
-  return SERVER_HOST + avatarUrl;
+  return 'http://127.0.0.1:3000' + avatarUrl;
 }
 
 // 定义发布任务的请求参数类型
@@ -64,11 +63,13 @@ export function request<T = any>(
       url: fullUrl,
       method,
       data: requestData,
+      dataType: 'json',  // 明确告诉微信将响应解析为 JSON 对象
       header: {
         'Content-Type': 'application/json',
         ...(options.noAuth ? {} : { Authorization: "Bearer " + getToken() }),
       },
       success(res) {
+        console.log('[api.ts] request success:', { statusCode: res.statusCode, data: res.data, typeOfData: typeof res.data });
         if (res.statusCode === 200 && typeof res.data === 'object') {
           resolve(res.data as ApiResponse<T>);
         } else {
@@ -77,6 +78,7 @@ export function request<T = any>(
         }
       },
       fail(err) {
+        console.log('[api.ts] request fail:', err);
         wx.showToast({ title: '网络异常', icon: 'none' });
         reject(err);
       }
@@ -167,60 +169,9 @@ export function changePassword(data: { oldPassword: string; newPassword: string 
   return request('/user/change-password', 'POST', data);
 }
 
-// AI 智能客服聊天 (直接调用 Cloudflare Workers AI)
-// 配置从本地存储读取，首次使用需在 app.js 中初始化
-const CF_ACCOUNT_ID = wx.getStorageSync('CF_ACCOUNT_ID') || '';
-const CF_API_TOKEN = wx.getStorageSync('CF_API_TOKEN') || '';
-
+// AI 智能客服聊天（通过后端代理，用户无需配置 API Key）
 export function aiChat(message: string, history: any[] = []): Promise<{ code: number; data: { reply: string }; message?: string }> {
-  return new Promise((resolve, reject) => {
-    // 构建消息历史用于上下文
-    let prompt = message;
-    if (history.length > 0) {
-      const recentHistory = history.slice(-6);
-      prompt = recentHistory.map((h: any) => `${h.role === 'user' ? '用户' : '助手'}: ${h.content}`).join('\n') + `\n用户: ${message}`;
-    }
-
-    wx.request({
-      url: `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct`,
-      method: 'POST',
-      data: {
-        prompt: `你是一个友善的校园互助平台智能助手。
-
-关于平台功能：
-- 发布任务：用户可以发布取件代送、跑腿代办、学习辅导、其他类型的互助任务
-- 接取任务：用户可以浏览并接取其他用户发布的任务
-- 任务状态：待接取 → 进行中 → 待确认 → 已完成
-- 奖励机制：完成任务可获得金币奖励
-- 信用评分：用户的信用评分会影响接单资格
-
-请用友好、简洁的方式回答用户的问题。如果问题与平台无关，请礼貌引导用户咨询平台相关问题。
-
-用户问题：${prompt}`
-      },
-      header: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CF_API_TOKEN}`
-      },
-      success(res: any) {
-        if (res.statusCode === 200 && res.data && res.data.success) {
-          resolve({
-            code: 200,
-            data: {
-              reply: res.data.result?.response || '抱歉，我暂时无法回答这个问题。'
-            }
-          });
-        } else {
-          console.error('Cloudflare AI 错误:', res.data);
-          reject(new Error('AI 服务暂时不可用'));
-        }
-      },
-      fail(err: any) {
-        console.error('AI 请求失败:', err);
-        reject(err);
-      }
-    });
-  });
+  return request('/ai/chat', 'POST', { message, history }, { noAuth: true });
 }
 
 // 上传头像（需后端实现对应接口）

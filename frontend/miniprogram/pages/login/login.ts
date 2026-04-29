@@ -18,9 +18,11 @@ Page({
       wx.showToast({ title: "请填写完整信息", icon: "none" });
       return;
     }
+    console.log('[login] 开始登录, user:', username);
     wx.showLoading({ title: '登录中...' });
     login({ username, password })
       .then(res => {
+        console.log('[login] then res:', JSON.stringify(res));
         if (res.code === 0) {
           wx.setStorageSync('token', res.data.token);
           wx.setStorageSync('userId', res.data.userId);
@@ -52,7 +54,8 @@ Page({
           wx.showToast({ title: res.message, icon: 'none' });
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log('[login] catch error:', err);
         wx.hideLoading();
         wx.showToast({ title: "网络错误", icon: "none" });
       });

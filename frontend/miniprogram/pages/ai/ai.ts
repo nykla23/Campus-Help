@@ -1,4 +1,4 @@
-import { aiChat, getFullAvatarUrl } from '../../utils/api';
+import { aiChat } from '../../utils/api';
 
 interface MsgItem {
   type: 'send' | 'receive';
@@ -13,7 +13,7 @@ interface ChatHistoryItem {
 
 Page({
   data: {
-    msgList: [] as MsgItem[],
+    msgList: [], // MsgItem[]
     inputMsg: '',
     loading: false,
     scrollTop: 0,
@@ -33,12 +33,10 @@ Page({
   onShow() {
     // 每次显示页面时刷新头像
     const storedAvatar = wx.getStorageSync('avatar') || '';
-    console.log('AI页面 - 头像数据:', storedAvatar);
     let myAvatar = storedAvatar;
     if (!storedAvatar.startsWith('http') && storedAvatar) {
-      myAvatar = 'http://localhost:3000' + storedAvatar;
+      myAvatar = 'http://127.0.0.1:3000' + storedAvatar;
     }
-    console.log('AI页面 - 处理后头像:', myAvatar);
     this.setData({ myAvatar });
 
     // 从本地存储读取对话历史
@@ -69,8 +67,6 @@ Page({
   },
 
   onUnload() {
-    console.log(wx.getStorageSync('avatar'))
-
     // 退出时保存对话历史到本地
     if (this.chatHistory.length > 0) {
       wx.setStorageSync('aiChatHistory', this.chatHistory);

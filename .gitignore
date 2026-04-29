@@ -1,15 +1,22 @@
 # Node
 node_modules/
 npm-debug.log
+*.log
 .env
+.env.local
+.env.production
 
-# macOS
+# macOS / Windows
 .DS_Store
+Thumbs.db
 
 # 微信小程序
 miniprogram_npm/
 dist/
 frontend/miniprogram/config/
+
+# 用户上传文件
+backend/uploads/
 
 # 测试覆盖率
 coverage/

@@ -1,0 +1,119 @@
+# ============================================
+# CodeRabbit AI Review 配置
+# ============================================
+
+# --- 跳过审查的文件/目录 ---
+exclude_patterns:
+  # 依赖 & 构建产物
+  - "node_modules/**"
+  - "**/miniprogram_npm/**"
+  - "coverage/**"
+  - "frontend/coverage/**"
+
+  # 文档
+  - "*.md"
+
+  # 类型声明（自动生成/第三方）
+  - "**/*.d.ts"
+  - "frontend/typings/**"
+
+  # 配置 & 环境文件
+  - ".env*"
+  - "*.config.js"
+  - "project.config.json"
+  - "project.private.config.json"
+
+  # 测试文件（降低审查优先级，不跳过）
+  - "backend/tests/**"
+  - "frontend/miniprogram/__tests__/**"
+
+# --- 按路径设置审查强度 ---
+review_rules:
+  # 🔴 核心业务逻辑：严格审查
+  - path: "backend/controllers/"
+    severity: high
+    focus:
+      - 安全性（SQL注入、XSS、认证鉴权）
+      - 错误处理完整性
+      - 输入校验
+    require_review: true
+
+  - path: "backend/models/"
+    severity: high
+    focus:
+      - SQL查询安全性
+      - 数据一致性
+    require_review: true
+
+  - path: "backend/middleware/"
+    severity: high
+    focus:
+      - 认证逻辑正确性
+      - 权限控制
+    require_review: true
+
+  # 🟡 前端页面逻辑：中等审查
+  - path: "frontend/miniprogram/pages/"
+    severity: medium
+    focus:
+      - 用户体验逻辑
+      - 数据绑定正确性
+      - 错误边界处理
+    require_review: false
+
+  - path: "frontend/miniprogram/api/"
+    severity: medium
+    focus:
+      - API 调用参数
+      - 错误响应处理
+    require_review: false
+
+  # 🟢 工具函数 & 配置：宽松审查
+  - path: "frontend/miniprogram/utils/"
+    severity: low
+    require_review: false
+
+  - path: "backend/utils/"
+    severity: low
+    require_review: false
+
+  - path: "backend/routes/"
+    severity: low
+    focus:
+      - 路由注册正确性
+    require_review: false
+
+  # ⚪ CI/CD & 项目配置：仅语法检查
+  - path: ".github/"
+    severity: low
+    require_review: false
+    disable_suggestions: true
+
+# --- 全局设置 ---
+default_severity: medium
+
+# 禁止的代码模式（安全红线）
+forbidden_patterns:
+  - pattern: "eval\\("
+    description: "禁止使用 eval()，存在代码注入风险"
+    severity: error
+  - pattern: "innerHTML\\s*="
+    description: "禁止直接赋值 innerHTML，存在 XSS 风险"
+    severity: error
+  - pattern: "(?i)(password|passwd|pwd)\\s*=.*['\"][^'\"]{0,8}['\"]"
+    description: "禁止硬编码密码或敏感凭据"
+    severity: error
+  - pattern: "console\\.log\\("
+    description: "生产代码中禁止遗留 console.log"
+    severity: warning
+    exception_paths:
+      - "backend/tests/**"
+      - "frontend/miniprogram/__tests__/**"
+
+# --- 审查指令 ---
+instructions: |
+  - 使用中文进行代码审查反馈
+  - 对于后端代码，重点关注 SQL 注入防护、认证授权、输入校验
+  - 对于前端微信小程序代码，关注 setData 性能、页面生命周期使用规范
+  - 建议优先级按 🔴 必须修复 → 🟡 建议改进 → ⚪ 可选优化 排列
+  - 单次 review 评论控制在 10 条以内，优先报告最关键的问题

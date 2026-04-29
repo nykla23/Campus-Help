@@ -85,7 +85,7 @@ describe('消息列表页 Message', () => {
 
     test('loadList network error shows error toast', async () => {
       api.getMsgList.mockRejectedValueOnce(new Error('net'));
-      try { await page.loadList(); } catch (e) {}
+      try { await page.loadList(); } catch (_e) {}
       // 确保触发了错误提示
       const errorCalls = wx.showToast.mock.calls.filter(c => c[0]?.icon === 'none');
       expect(errorCalls.length).toBeGreaterThan(0);

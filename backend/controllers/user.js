@@ -38,27 +38,17 @@ exports.login = async (req, res) => {
   res.json({ code: 0, data: { userId: user.id, token }, message: '登录成功' });
 };
 
-// 状态映射（和前端一致）
-const statusMap = {
-  0: '待接取',
-  1: '进行中',
-  2: '已完成',
-  3: '已取消'
-};
-
-// 类型映射
-const typeMap = {
-  0: '取件代送',
-  1: '跑腿代办',
-  2: '学习辅导',
-  3: '其他'
-};
+// 状态映射和类型映射已统一到 ../constants.js (STATUS_MAP, TYPE_MAP)
+// 此处不再重复定义，直接引用共享常量
 
 // 获取个人信息
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const [user] = await db.query('SELECT id, nickname, avatar, signature, coins, credit_score FROM users WHERE id = ?', [userId]);
+    if (!user || user.length === 0) {
+      return res.json({ code: 404, message: '用户不存在' });
+    }
     // 统计用户作为接单者且任务已完成的数目（更合理）
     const [finish] = await db.query('SELECT COUNT(*) AS count FROM tasks WHERE acceptor_id = ? AND status = 3', [userId]);
     res.json({
@@ -72,7 +62,7 @@ exports.getProfile = async (req, res) => {
         }
       }
     });
-  } catch (err) {
+  } catch (_err) {
     res.json({ code: 500 });
   }
 };
@@ -89,7 +79,7 @@ exports.getPublishTasks = async (req, res) => {
     `, [req.user.id]);
 
     res.json({ code: 200, data: tasks });
-  } catch (e) {
+  } catch (_e) {
     res.json({ code: 500 });
   }
 };
@@ -106,7 +96,7 @@ exports.getReceiveTasks = async (req, res) => {
     `, [req.user.id]);
 
     res.json({ code: 200, data: tasks });
-  } catch (e) {
+  } catch (_e) {
     res.json({ code: 500 });
   }
 };
@@ -177,7 +167,7 @@ exports.changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
     const { oldPassword, newPassword } = req.body;
-    console.log('修改密码请求:', { userId, oldPassword, newPassword }); // 调试日志
+    console.log('修改密码请求:', { userId }); // 调试日志（脱敏）
     if (!oldPassword || !newPassword) {
       return res.json({ code: 400, message: '原密码和新密码不能为空' });
     }

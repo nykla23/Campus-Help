@@ -10,6 +10,7 @@ import {
   changePassword,
   getFullAvatarUrl
 } from '../../utils/api';
+import { getStatusText, getTypeTextNoAll, formatListTime } from '../../utils/common';
 
 Page({
   data: {
@@ -61,25 +62,13 @@ Page({
     this.loadProfileData();
   },
 
-  // ========== 数据适配函数 ==========
-  // 类型映射（数字 -> 中文）
-  adaptTaskType(type: number): string {
-    const dict = ['取件代送', '跑腿代办', '学习辅导', '其他'];
-    return dict[type] || '其他';
-  },
-
+  // ========== 数据适配函数（使用共享工具函数 utils/common.ts）==========
+  // 类型映射（数字 -> 中文，不含"全部"）
+  adaptTaskType(type: number): string { return getTypeTextNoAll(type); },
   // 状态映射（数字 -> 中文）
-  adaptStatus(status: number): string {
-    const dict = ['待接取', '进行中', '待确认', '已完成', '已取消'];
-    return dict[status] || '未知';
-  },
-
+  adaptStatus(status: number): string { return getStatusText(status); },
   // 时间格式化
-  formatTime(create: string, deadline: string): string {
-    if (deadline) return `截止 ${deadline.substring(0, 16).replace('T', ' ')}`;
-    if (create) return create.substring(0, 16).replace('T', ' ');
-    return '';
-  },
+  formatTime(create: string, deadline: string): string { return formatListTime(create, deadline); },
 
   // 单个任务数据适配（后端字段 -> 前端卡片字段）
   adaptTaskItem(item: any): any {
@@ -102,12 +91,9 @@ Page({
   adaptTradeItem(item: any): any {
     // 假设后端返回的 type 是数字 1(收入) 或 2(支出)
     // 如果后端已经映射为字符串 'income'/'expense'，则直接使用 item.type
-    let typeStr = '';
-    if (typeof item.type === 'number') {
-      typeStr = item.type === 1 ? 'income' : 'expense';
-    } else {
-      typeStr = item.type; // 已经是字符串
-    }
+    const typeStr = typeof item.type === 'number'
+      ? (item.type === 1 ? 'income' : 'expense')
+      : item.type;
     return {
       id: item.id,
       title: item.description || item.title || '交易',
@@ -177,9 +163,9 @@ Page({
     wx.navigateTo({ url: `/pages/task/task?id=${id}` });
   },
 
-  // 跳转到设置页
+  // 跳转到设置页（在个人主页内切换弹窗）
   toSetting() {
-    wx.navigateTo({ url: '/pages/setting/setting' });
+    this.showSettingMenu();
   },
 
   // 退出登录

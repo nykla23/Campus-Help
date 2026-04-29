@@ -17,6 +17,7 @@ global.wx = {
   setNavigationBarTitle: jest.fn(),
   chooseImage: jest.fn(),
   uploadFile: jest.fn(),
+  stopPullDownRefresh: jest.fn(),
   request: jest.fn()
 };
 

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './config';
+const { API_BASE_URL } = require('./config');
 
 // 新增：登录跳转锁，防止重复跳转
 let isNavigatingToLogin = false;
@@ -93,7 +93,7 @@ const request = (url, method, data, needAuth = true) => {
     });
 };
 
-export default {
+module.exports = {
     get: (url, data, needAuth = true) => request(url, 'GET', data, needAuth),
     post: (url, data, needAuth = true) => request(url, 'POST', data, needAuth),
     put: (url, data, needAuth = true) => request(url, 'PUT', data, needAuth),

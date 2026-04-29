@@ -76,7 +76,7 @@ describe('Register Page', () => {
     test('register network error - show network error toast', async () => {
       register.mockImplementation(() => Promise.reject(new Error('net')));
       page.setData({ username: 'u', nickname: 'n', password: '123', confirmPwd: '123' });
-      try { await page.onRegister(); } catch(e) {}
+      try { await page.onRegister(); } catch(_e) {}
       await new Promise(r => setTimeout(r, 20));
       expect(wx.showToast).toHaveBeenCalledWith({ title: '网络错误', icon: 'none' });
     });

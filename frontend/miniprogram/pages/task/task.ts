@@ -23,15 +23,8 @@ Page({
 
   onLoad(options: { id: string }) {
     const taskId = options.id;
-    // 尝试多种方式获取 userId
     let userId = wx.getStorageSync('userId');
-    if (!userId) userId = wx.getStorageSync('id');
-    if (!userId) {
-      const app = getApp();
-      userId = app.globalData?.userId;
-    }
     userId = Number(userId || 0);
-    console.log('最终 userId:', userId);
     this.setData({ taskId, userId });
     this.loadTaskDetail();
   },
@@ -108,10 +101,10 @@ Page({
         wx.showToast({ title: '接取成功', icon: 'success' });
         this.loadTaskDetail();
       } else {
-        wx.showToast({ title: res.message, icon: 'none' });
-      }
-    } catch (err) {
-      wx.showToast({ title: '接取失败', icon: 'none' });
+      wx.showToast({ title: res.message, icon: 'none' });
+    }
+  } catch (_err) {
+    wx.showToast({ title: '接取失败', icon: 'none' });
     } finally {
       wx.hideLoading();
     }
@@ -133,7 +126,7 @@ Page({
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -159,7 +152,7 @@ Page({
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -185,7 +178,7 @@ Page({
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();
@@ -211,7 +204,7 @@ Page({
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
-          } catch (err) {
+          } catch (_err) {
             wx.showToast({ title: '操作失败', icon: 'none' });
           } finally {
             wx.hideLoading();

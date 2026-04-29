@@ -32,23 +32,26 @@ describe('个人主页 Profile', () => {
     api.changePassword.mockResolvedValue({ code: 200, message: 'ok' });
   });
 
+  // getTypeTextNoAll 映射: ['', '取件代送', '跑腿代办', '学习辅导', '其他']  type从1开始
+  // getStatusText 映射:     {0:'待接取', 1:'进行中', 2:'待确认', 3:'已完成', 4:'已取消'}
   describe('组件渲染 / 交互 - 数据适配函数', () => {
 
-    test('adaptTaskType 类型映射', () => {
-      expect(page.adaptTaskType(0)).toBe('取件代送');
-      expect(page.adaptTaskType(1)).toBe('跑腿代办');
-      expect(page.adaptTaskType(2)).toBe('学习辅导');
-      expect(page.adaptTaskType(3)).toBe('其他');
-      expect(page.adaptTaskType(99)).toBe('其他');
+    test('adaptTaskType 类型映射（基于 getTypeTextNoAll，type 从 1 开始）', () => {
+      expect(page.adaptTaskType(1)).toBe('取件代送');   // type 1
+      expect(page.adaptTaskType(2)).toBe('跑腿代办');   // type 2
+      expect(page.adaptTaskType(3)).toBe('学习辅导');   // type 3
+      expect(page.adaptTaskType(4)).toBe('其他');       // type 4
+      expect(page.adaptTaskType(0)).toBe('其他');       // type 0 → ''||fallback → '其他'
+      expect(page.adaptTaskType(99)).toBe('其他');      // 99 → fallback '其他'
     });
 
-    test('adaptStatus 状态映射', () => {
+    test('adaptStatus 状态映射（基于 getStatusText）', () => {
       expect(page.adaptStatus(0)).toBe('待接取');
       expect(page.adaptStatus(1)).toBe('进行中');
       expect(page.adaptStatus(2)).toBe('待确认');
       expect(page.adaptStatus(3)).toBe('已完成');
       expect(page.adaptStatus(4)).toBe('已取消');
-      expect(page.adaptStatus(99)).toBe('未知');
+      expect(page.adaptStatus(99)).toBe('');
     });
 
     test('formatTime 有截止时间优先显示', () => {
@@ -60,10 +63,10 @@ describe('个人主页 Profile', () => {
       expect(page.formatTime('2025-06-15T08:30:00', '')).toContain('2025-06-15');
     });
 
-    test('adaptTaskItem 正确适配字段', () => {
+    test('adaptTaskItem 正确适配字段（type=1 → 取件代送, status=1 → 进行中）', () => {
       const result = page.adaptTaskItem({
         id: 100, avatar: '/a.jpg', nickname: '张三', credit_score: 95,
-        status: 1, title: '帮买饭', description: '食堂带饭', type: 0,
+        status: 1, title: '帮买饭', description: '食堂带饭', type: 1,
         reward: 5, created_at: '2025-06-01T12:00:00'
       });
       expect(result.id).toBe(100);
@@ -79,8 +82,9 @@ describe('个人主页 Profile', () => {
       expect(page.adaptTradeItem({ id: 3, type: 'income' }).type).toBe('income');
     });
 
-    test('changeTab 切换标签', () => {
+    test('changeTab 切换标签', async () => {
       page.changeTab({ currentTarget: { dataset: { index: '2' } } });
+      await new Promise(r => setTimeout(r, 0));
       expect(page.data.activeTab).toBe(2);
     });
 
@@ -155,7 +159,6 @@ describe('个人主页 Profile', () => {
   });
 
   describe('工具函数 getFullAvatarUrl', () => {
-
     test('各场景URL处理', () => {
       expect(api.getFullAvatarUrl('')).toBe('/images/default-avatar.png');
       expect(api.getFullAvatarUrl('/images/default-avatar.png')).toBe('/images/default-avatar.png');

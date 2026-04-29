@@ -1,6 +1,7 @@
 /** @type {import('jest').Config} */
+// 配置文件位于 frontend/jest.config.js，所有相对路径相对于此文件
 module.exports = {
-  rootDir: __dirname,
+  rootDir: './miniprogram',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.js'],
   moduleFileExtensions: ['js', 'json', 'ts'],
@@ -18,7 +19,7 @@ module.exports = {
     'utils/**/*.ts',
     'api/**/*.ts'
   ],
-  coverageDirectory: '../../coverage',
+  coverageDirectory: '../coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   verbose: true
 };

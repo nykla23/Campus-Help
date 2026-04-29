@@ -4,8 +4,8 @@ const taskController = require('../controllers/task');
 const {verifyToken} = require('../middleware/auth');
 const {publishTask} = require('../controllers/publish');
 
-// 获取任务列表
-router.get('/', taskController.list);
+// 获取任务列表（需登录）
+router.get('/', verifyToken, taskController.list);
 
 // 发布任务
 router.post('/', verifyToken, publishTask);

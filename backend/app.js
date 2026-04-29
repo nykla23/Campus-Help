@@ -13,7 +13,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // 中间件
 app.use(cors());
-app.use(express.json());
 // app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', (req, res, next) => {
   console.log('静态文件请求:', req.url);
@@ -25,14 +24,11 @@ app.use('/uploads', (req, res, next) => {
 const userRouter = require('./routes/user');
 const authRouter = require('./routes/auth');
 const taskRouter = require('./routes/task');
-const publishRouter = require('./routes/task'); // 发布任务的路由
 
-app.use('/api/users', userRouter); // 注册接口路径变为 POST /users
-app.use('/api/auth', authRouter);  // 新增：给 user 路由挂载 /auth 前缀
-app.use('/api/tasks', taskRouter); // 任务接口路径变为 /tasks
-app.use('/api/tasks', publishRouter); // 发布任务接口路径变为 /tasks POST
-// 个人主页路由
-app.use('/api/user', require('./routes/user'));
+app.use('/api/users', userRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/tasks', taskRouter);
+app.use('/api/user', userRouter);
 
 // 消息系统路由
 app.use('/api/messages', require('./routes/message'));
@@ -54,8 +50,8 @@ app.get('/', (req, res) => {
 });
 
 // 错误处理中间件（占位）
-app.use((err, req, res, next) => {
-    console.error(err.stack);
+app.use((_err, req, res, _next) => {
+    console.error(_err.stack);
     res.status(500).json({ code: 5000, message: '服务器内部错误' });
 });
 
