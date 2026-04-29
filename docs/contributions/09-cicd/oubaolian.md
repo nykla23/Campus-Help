@@ -54,6 +54,14 @@
   - 未使用的参数统一加 `_` 前缀（`_err`, `_e`），配置 `caughtErrorsIgnorePattern: "^_"` 忽略
   - 删除真正无用的 import（如 `STATUS_MAP`, `TYPE_MAP`, `CODE`）
 
+### 问题 6：Codecov 徽章显示 unknown
+- **原因**：GitHub Secrets 未配置 `CODECOV_TOKEN`，CI 虽然步骤显示绿色但数据未真正上传
+- **解决**：在仓库 Settings → Secrets → Actions 中添加 `CODECOV_TOKEN`，重新触发 CI 后数据成功上传
+- **原因**：大量 catch 块中未使用的 err/e 变量、未使用的 import 等
+- **解决**：
+  - 未使用的参数统一加 `_` 前缀（`_err`, `_e`），配置 `caughtErrorsIgnorePattern: "^_"` 忽略
+  - 删除真正无用的 import（如 `STATUS_MAP`, `TYPE_MAP`, `CODE`）
+
 ## 心得体会
 本次作业完成了从零搭建完整 CI/CD 流水线的过程。核心收获包括：
 1. monorepo 项目需要分目录安装依赖和配置独立的 lint/test 规则
