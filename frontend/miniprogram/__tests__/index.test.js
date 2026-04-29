@@ -114,15 +114,15 @@ describe('Index Page (任务列表)', () => {
     });
   });
 
-  // getTypeText 映射: ['', '全部', '取件代送', '跑腿代办', '学习辅导', '其他']
+  // getTypeText 映射: ['', '取件代送', '跑腿代办', '学习辅导', '其他']
   describe('数据适配 _adaptTaskList', () => {
     test('_adaptTaskType 返回正确映射（基于 getTypeText）', () => {
-      expect(page._adaptTaskType(1)).toBe('全部');     // type 1 = 全部
-      expect(page._adaptTaskType(2)).toBe('取件代送');   // type 2
-      expect(page._adaptTaskType(3)).toBe('跑腿代办');   // type 3
-      expect(page._adaptTaskType(4)).toBe('学习辅导');   // type 4
-      expect(page._adaptTaskType(5)).toBe('其他');       // type 5+
-      expect(page._adaptTaskType(0)).toBe('');           // type 0 = 空
+      expect(page._adaptTaskType(1)).toBe('取件代送');   // type 1
+      expect(page._adaptTaskType(2)).toBe('跑腿代办');     // type 2
+      expect(page._adaptTaskType(3)).toBe('学习辅导');     // type 3
+      expect(page._adaptTaskType(4)).toBe('其他');         // type 4
+      expect(page._adaptTaskType(5)).toBe('');             // type 5+ 不存在
+      expect(page._adaptTaskType(0)).toBe('');             // type 0 = 空
       expect(page._adaptTaskType(99)).toBe('');
     });
 
@@ -158,7 +158,7 @@ describe('Index Page (任务列表)', () => {
       expect(adapted).toHaveLength(1);
       expect(adapted[0].id).toBe(1);
       expect(adapted[0].title).toBe('代取快递');
-      expect(adapted[0].tag).toBe('取件代送');  // type 2 → 取件代送
+      expect(adapted[0].tag).toBe('跑腿代办');  // type 2 → 跑腿代办
       expect(adapted[0].status).toBe('待接取');  // status 0 → 待接取
       expect(adapted[0].coin).toBe(5);
       expect(adapted[0].nickname).toBe('张三');
