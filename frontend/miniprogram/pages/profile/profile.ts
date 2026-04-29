@@ -91,12 +91,9 @@ Page({
   adaptTradeItem(item: any): any {
     // 假设后端返回的 type 是数字 1(收入) 或 2(支出)
     // 如果后端已经映射为字符串 'income'/'expense'，则直接使用 item.type
-    let typeStr = '';
-    if (typeof item.type === 'number') {
-      typeStr = item.type === 1 ? 'income' : 'expense';
-    } else {
-      typeStr = item.type; // 已经是字符串
-    }
+    const typeStr = typeof item.type === 'number'
+      ? (item.type === 1 ? 'income' : 'expense')
+      : item.type;
     return {
       id: item.id,
       title: item.description || item.title || '交易',

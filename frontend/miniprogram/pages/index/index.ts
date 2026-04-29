@@ -111,7 +111,8 @@ Page({
   // 核心：刷新任务列表（带所有筛选参数）
   refreshList(isSearch = false) {
     console.log('refreshList 调用，keyword:', this.data.keyword, 'isSearch:', isSearch);
-    let { activeTab, activeType, limit, selectedFilter, keyword } = this.data;
+    let { activeTab, activeType } = this.data;
+    const { limit, selectedFilter, keyword } = this.data;
     
     // 搜索模式下重置其他筛选条件为"全部"
     if (isSearch && keyword.trim()) {
@@ -123,9 +124,9 @@ Page({
     if (activeTab === 1) status = 0;
     else if (activeTab === 2) status = 1;
     else if (activeTab === 3) status = 3;
-    let type: number | undefined = activeType === 0 ? undefined : activeType;
-    let sort = selectedFilter;
-    let searchKeyword = keyword.trim() || undefined;
+    const type: number | undefined = activeType === 0 ? undefined : activeType;
+    const sort = selectedFilter;
+    const searchKeyword = keyword.trim() || undefined;
 
     console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
     this.setData({ page: 1, loading: true });
@@ -178,8 +179,8 @@ Page({
       if (activeTab === 1) status = 0;
       else if (activeTab === 2) status = 1;
       else if (activeTab === 3) status = 3;
-      let type: number | undefined = activeType === 0 ? undefined : activeType;
-      let sort = selectedFilter;
+      const type: number | undefined = activeType === 0 ? undefined : activeType;
+      const sort = selectedFilter;
 
       //console.log('请求参数:', { page: nextPage, limit, status, type, sort, keyword });
       this.setData({ loading: true });

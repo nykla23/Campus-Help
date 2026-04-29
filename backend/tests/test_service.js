@@ -425,7 +425,6 @@ describe('=== Task Controller 单元测试 ===', () => {
   });
 
   test('getTaskDetail - 任务不存在返回404', async () => {
-    db_query = db.query;
     db.query.mockResolvedValue([[]]);
     const req = { params: { id: '999' } };
     const res = { json: jest.fn() };
