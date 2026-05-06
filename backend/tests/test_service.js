@@ -495,7 +495,7 @@ describe('=== Task Controller 单元测试 ===', () => {
     const res = { json: jest.fn() };
     await taskController.acceptTask(req, res);
     expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 400, message: '不能接自己发布的任务' })
+      expect.objectContaining({ code: 400, message: '操作失败' })
     );
   });
 

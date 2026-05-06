@@ -1,5 +1,7 @@
 // 后端 API/接口测试 - 使用 supertest 测试接口正常响应、参数校验和异常处理
 
+require('dotenv').config(); // 必须在 require 路由之前加载环境变量
+
 const request = require('supertest');
 const express = require('express');
 

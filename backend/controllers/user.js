@@ -196,6 +196,6 @@ exports.uploadAvatar = async (req, res) => {
     res.json({ code: 200, data: { url: avatarUrl }, message: '头像更新成功' });
   } catch (err) {
     console.error('上传头像失败:', err);
-    res.json({ code: 500, message: err.message || '服务器错误'  });
+    res.json({ code: 500, message: '上传失败，请重试' });
   }
 };
