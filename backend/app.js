@@ -11,8 +11,18 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 中间件
-app.use(cors());
+// 中间件 - CORS 限制来源
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',');
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(allowed => origin.includes(allowed))) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy: not allowed'));
+    }
+  },
+  credentials: true,
+}));
 // app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', (req, res, next) => {
   console.log('静态文件请求:', req.url);

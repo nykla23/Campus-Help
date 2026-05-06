@@ -97,7 +97,11 @@ exports.acceptTask = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('接单失败:', err);
-    res.json({ code: CODE.BAD_REQUEST, message: err.message || '服务器错误' });
+    const msg = err.message.includes('不存在') ? '任务不存在'
+      : err.message.includes('已被接单') ? '该任务已不可接取'
+      : err.message.includes('自己发布') ? '操作失败'
+      : '操作失败，请重试';
+    res.json({ code: CODE.BAD_REQUEST, message: msg });
   } finally {
     connection.release();
   }
@@ -124,7 +128,11 @@ exports.completeTask = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('提交完成失败:', err);
-    res.json({ code: CODE.BAD_REQUEST, message: err.message || '服务器错误' });
+    const msg = err.message.includes('不存在') ? '任务不存在'
+      : err.message.includes('无权限') ? '无权限操作'
+      : err.message.includes('状态异常') ? '当前状态不允许此操作'
+      : '操作失败，请重试';
+    res.json({ code: CODE.BAD_REQUEST, message: msg });
   } finally {
     connection.release();
   }
@@ -188,7 +196,12 @@ exports.confirmCompleteTask = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('确认完成失败:', err);
-    res.json({ code: CODE.BAD_REQUEST, message: err.message || '服务器错误' });
+    const msg = err.message.includes('不存在') ? '任务不存在'
+      : err.message.includes('无权限') ? '无权限操作'
+      : err.message.includes('状态异常') ? '当前状态不允许此操作'
+      : err.message.includes('余额不足') ? '余额不足，请先充值虚拟币'
+      : '操作失败，请重试';
+    res.json({ code: CODE.BAD_REQUEST, message: msg });
   } finally {
     connection.release();
   }
@@ -236,7 +249,11 @@ exports.cancelTask = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('取消任务失败:', err);
-    res.json({ code: CODE.BAD_REQUEST, message: err.message || '服务器错误' });
+    const msg = err.message.includes('不存在') ? '任务不存在'
+      : err.message.includes('无权限') ? '无权限操作'
+      : err.message.includes('被接单') ? '当前状态不允许取消'
+      : '操作失败，请重试';
+    res.json({ code: CODE.BAD_REQUEST, message: msg });
   } finally {
     connection.release();
   }
@@ -263,7 +280,11 @@ exports.giveUpTask = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     console.error('放弃任务失败:', err);
-    res.json({ code: CODE.BAD_REQUEST, message: err.message || '服务器错误' });
+    const msg = err.message.includes('不存在') ? '任务不存在'
+      : err.message.includes('无权限') ? '无权限操作'
+      : err.message.includes('状态异常') ? '当前状态不允许放弃'
+      : '操作失败，请重试';
+    res.json({ code: CODE.BAD_REQUEST, message: msg });
   } finally {
     connection.release();
   }
