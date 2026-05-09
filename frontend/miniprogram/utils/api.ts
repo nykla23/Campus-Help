@@ -169,9 +169,19 @@ export function changePassword(data: { oldPassword: string; newPassword: string 
   return request('/user/change-password', 'POST', data);
 }
 
+// 获取其他用户公开信息
+export function getOtherUserInfo(userId: string) {
+  return request(`/user/${userId}`, 'GET');
+}
+
+// 获取其他用户发布的任务列表
+export function getUserPublishTasks(userId: string) {
+  return request(`/user/${userId}/tasks`, 'GET');
+}
+
 // AI 智能客服聊天（通过后端代理，用户无需配置 API Key）
 export function aiChat(message: string, history: any[] = []): Promise<{ code: number; data: { reply: string }; message?: string }> {
-  return request('/ai/chat', 'POST', { message, history }, { noAuth: true });
+  return request('/ai/chat', 'POST', { message, history });
 }
 
 // 上传头像（需后端实现对应接口）

@@ -52,5 +52,16 @@ Page({
     wx.navigateTo({
       url: `/pages/chat/chat?taskId=${task}&targetId=${target}&targetName=${encodeURIComponent(name || '')}&targetAvatar=${encodeURIComponent(avatarraw || '')}`
     });
-  }
+  },
+
+  // 查看他人主页
+  viewUserProfile(e: any) {
+    const userId = e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: `/pages/user-profile/user-profile?userId=${userId}` });
+    }
+  },
+
+  // 阻止事件冒泡（头像点击不触发会话点击）
+  stopPropagation() {},
 });

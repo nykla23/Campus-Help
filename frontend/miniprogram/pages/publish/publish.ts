@@ -17,10 +17,15 @@ Page({
     deadlineDate: "",
     deadlineTime: "",
     minDate: "",
-    minTime: "00:00"
+    minTime: "00:00",
+    navBarTop: 0
   },
 
   onLoad() {
+    const menuBtn = wx.getMenuButtonBoundingClientRect();
+    this.setData({ 
+      navBarTop: menuBtn.bottom
+    });
     // 初始化最小日期为今天
     const now = new Date();
     const year = now.getFullYear();

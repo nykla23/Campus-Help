@@ -18,10 +18,12 @@ Page({
       createTime: '',
       publisher: { id: 0, nickname: '', avatar: '', credit: 0 },
       acceptor: null as { id: number; nickname: string; avatar: string; credit: number } | null
-    }
+    },
+    statusBarHeight: 0
   },
 
   onLoad(options: { id: string }) {
+    this.setData({ statusBarHeight: wx.getSystemInfoSync().statusBarHeight });
     const taskId = options.id;
     let userId = wx.getStorageSync('userId');
     userId = Number(userId || 0);
@@ -186,6 +188,14 @@ Page({
         }
       }
     });
+  },
+
+  // 查看他人主页
+  viewUserProfile(e: any) {
+    const userId = e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: `/pages/user-profile/user-profile?userId=${userId}` });
+    }
   },
 
   // 接单者放弃任务

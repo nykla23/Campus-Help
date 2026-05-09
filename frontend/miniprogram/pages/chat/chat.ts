@@ -12,10 +12,16 @@ Page({
     inputMsg: '',
     lastMsgId: '',
     myAvatar: '',
-    myId: 0
+    myId: 0,
+    statusBarHeight: 0,
+    // 滑动返回
+    touchStartX: 0,
+    touchCurrentX: 0,
+    isSwipingBack: false
   },
 
   onLoad(options: any) {
+    this.setData({ statusBarHeight: wx.getSystemInfoSync().statusBarHeight });
 
     console.log('聊天页接收参数:', options);
     console.log('taskId:', options.taskId, 'targetId:', options.targetId);
@@ -184,5 +190,33 @@ Page({
 
   goBack() {
     wx.navigateBack();
+  },
+
+  // 查看对方主页
+  viewUserProfile(e: any) {
+    const userId = e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: `/pages/user-profile/user-profile?userId=${userId}` });
+    }
+  },
+
+  // 滑动返回
+  onTouchStart(e: any) {
+    this.setData({ touchStartX: e.touches[0].clientX, isSwipingBack: false });
+  },
+  onTouchMove(e: any) {
+    const dx = e.touches[0].clientX - this.data.touchStartX;
+    if (dx > 60) {
+      this.setData({ touchCurrentX: Math.min(dx, 200), isSwipingBack: true });
+    } else {
+      this.setData({ touchCurrentX: 0, isSwipingBack: false });
+    }
+  },
+  onTouchEnd() {
+    if (this.data.touchCurrentX > 120 && this.data.isSwipingBack) {
+      wx.navigateBack();
+    } else {
+      this.setData({ touchCurrentX: 0, isSwipingBack: false });
+    }
   }
 });

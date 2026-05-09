@@ -1,0 +1,71 @@
+<view class="user-profile-container">
+  <!-- 用户信息 -->
+  <view class="profile-user-header">
+    <image src="{{userInfo.avatar || '/images/default-avatar.png'}}" class="profile-avatar" />
+    <view class="profile-user-details">
+      <text class="profile-username">{{userInfo.nickname || '用户'}}</text>
+      <text class="profile-usertag">{{userInfo.signature || '这个人很懒，什么都没写~'}}</text>
+    </view>
+  </view>
+
+  <!-- 统计区域 -->
+  <view class="user-stats">
+    <view class="stat-item">
+      <view class="stat-number-wrapper">
+        <text class="stat-icon">📊</text>
+        <text class="stat-num">{{stats.credit}}</text>
+      </view>
+      <text class="stat-label">信用分</text>
+    </view>
+    <view class="stat-item">
+      <view class="stat-number-wrapper">
+        <text class="stat-icon">✅</text>
+        <text class="stat-num">{{stats.finishCount}}</text>
+      </view>
+      <text class="stat-label">完成委托</text>
+    </view>
+  </view>
+
+  <!-- 发私信按钮（非自己时显示） -->
+  <view wx:if="{{userInfo.id && !isSelf}}" class="action-area">
+    <button class="msg-btn" bindtap="goToChat">发私信</button>
+  </view>
+
+  <!-- Ta发布的任务 -->
+  <view class="task-section-header">
+    <text class="section-title-text">Ta 发布的任务</text>
+    <text class="task-count">{{taskList.length}} 个</text>
+  </view>
+
+  <!-- 加载中 / 空状态 -->
+  <view wx:if="{{loading}}" class="empty-tip">加载中...</view>
+  <view wx:if="{{!loading && !userInfo.id}}" class="empty-tip">用户不存在</view>
+  <view wx:if="{{!loading && userInfo.id && taskList.length === 0}}" class="empty-tip">暂无发布任务</view>
+
+  <!-- 任务列表 -->
+  <scroll-view scroll-y class="task-list" wx:if="{{!loading && taskList.length > 0}}">
+    <view class="task-card" wx:for="{{taskList}}" wx:key="id" bindtap="toTaskDetail" data-id="{{item.id}}">
+      <view class="card-header">
+        <view class="status-tag
+          {{item.status === 0 ? 'orange' : ''}}
+          {{item.status === 1 ? 'green' : ''}}
+          {{item.status === 2 ? 'blue' : ''}}
+          {{item.status === 3 ? 'done' : ''}}
+          {{item.status === 4 ? 'cancel' : ''}}
+        ">
+          {{item.statusText}}
+        </view>
+        <view class="task-coin">⭐ {{item.reward}} 虚拟币</view>
+      </view>
+      <view class="card-title">{{item.title}}</view>
+      <view class="card-desc">{{item.description}}</view>
+      <view class="card-footer">
+        <view class="card-tag {{item.type === 1 ? 'blue' : item.type === 2 ? 'orange' : item.type === 3 ? 'purple' : 'gray'}}">
+          {{item.typeText}}
+        </view>
+        <view wx:if="{{item.location}}" class="card-location">📍 {{item.location}}</view>
+        <view class="card-time">{{item.timeStr}}</view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

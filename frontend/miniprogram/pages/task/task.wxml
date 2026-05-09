@@ -1,11 +1,4 @@
 <view class="detail-container">
-  <!-- 返回栏 -->
-  <view class="nav-bar">
-    <image src="/images/icon-back.png" class="back-icon" bindtap="goBack" />
-    <text class="nav-title">任务详情</text>
-    <view class="placeholder"></view>
-  </view>
-
   <!-- 任务头部 -->
   <view class="task-header">
     <view class="task-tag {{task.type === 1 ? 'blue' : task.type === 2 ? 'orange' : task.type === 3 ? 'purple' : 'gray'}}">
@@ -47,7 +40,7 @@
   <view class="section">
     <view class="section-title">发布者</view>
     <view class="user-card">
-      <image src="{{task.publisher.avatar || '/images/default-avatar.png'}}" class="avatar" />
+      <image src="{{task.publisher.avatar || '/images/default-avatar.png'}}" class="avatar" bindtap="viewUserProfile" data-userid="{{task.publisher.id}}" />
       <view class="user-info">
         <text class="user-name">{{task.publisher.nickname}}</text>
         <text class="credit">⭐ 信用分 {{task.publisher.credit}}</text>
@@ -65,7 +58,7 @@
   <view class="section" wx:if="{{task.acceptor && task.acceptor.id}}">
     <view class="section-title">接单者</view>
     <view class="user-card">
-      <image src="{{task.acceptor.avatar || '/images/default-avatar.png'}}" class="avatar" />
+      <image src="{{task.acceptor.avatar || '/images/default-avatar.png'}}" class="avatar" bindtap="viewUserProfile" data-userid="{{task.acceptor.id}}" />
       <view class="user-info">
         <text class="user-name">{{task.acceptor.nickname}}</text>
         <text class="credit">⭐ 信用分 {{task.acceptor.credit}}</text>

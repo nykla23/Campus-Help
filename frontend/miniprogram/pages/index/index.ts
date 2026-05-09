@@ -214,7 +214,8 @@ Page({
   // 字段适配
   _adaptTaskList(list: any[]) {
     return (list || []).map(item => ({
-      id: item.taskId ,
+      id: item.taskId,
+      userId: item.publisher_id || item.publisher?.id,
       avatar: getFullAvatarUrl(item.avatar || item.publisher?.avatar),
       nickname: item.nickname || item.publisher?.nickname || '匿名用户',
       credit: item.credit_score || item.publisher?.creditScore || '0',
@@ -270,5 +271,16 @@ Page({
   goToAI() {
     wx.navigateTo({ url: '/pages/ai/ai' });
   },
+
+  // 查看他人主页
+  viewUserProfile(e: any) {
+    const userId = e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: `/pages/user-profile/user-profile?userId=${userId}` });
+    }
+  },
+
+  // 阻止事件冒泡（头像点击不触卡片点击）
+  stopPropagation() {},
 
 });

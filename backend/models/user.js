@@ -5,6 +5,12 @@ exports.findByUsername = async (username) => {
   return rows[0];
 };
 
+// 查询用户(根据ID)
+exports.findById = async (id) => {
+  const [rows] = await db.query('SELECT id, nickname, avatar, signature, coins, credit_score FROM users WHERE id = ?', [id]);
+  return rows[0] || null;
+};
+
 // 新增用户
 exports.create = async (user) => {
   const { username, password, nickname } = user;

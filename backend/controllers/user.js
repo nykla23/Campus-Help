@@ -41,6 +41,54 @@ exports.login = async (req, res) => {
 // 状态映射和类型映射已统一到 ../constants.js (STATUS_MAP, TYPE_MAP)
 // 此处不再重复定义，直接引用共享常量
 
+// 获取其他用户公开信息
+exports.getUserById = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (!targetId || isNaN(Number(targetId))) {
+      return res.json({ code: 400, message: '无效的用户ID' });
+    }
+    const user = await userModel.findById(targetId);
+    if (!user) {
+      return res.json({ code: 404, message: '用户不存在' });
+    }
+    // 统计完成数
+    const [finish] = await db.query('SELECT COUNT(*) AS count FROM tasks WHERE acceptor_id = ? AND status = 3', [targetId]);
+    res.json({
+      code: 200,
+      data: {
+        user,
+        stats: {
+          credit: user.credit_score,
+          finishCount: finish[0].count
+        }
+      }
+    });
+  } catch (_err) {
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};
+
+// 获取其他用户发布的任务列表
+exports.getUserPublishTasks = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (!targetId || isNaN(Number(targetId))) {
+      return res.json({ code: 400, message: '无效的用户ID' });
+    }
+    const [tasks] = await db.query(`
+      SELECT t.*, u.nickname, u.avatar
+      FROM tasks t
+      LEFT JOIN users u ON t.publisher_id = u.id
+      WHERE t.publisher_id = ?
+      ORDER BY t.created_at DESC
+    `, [targetId]);
+    res.json({ code: 200, data: tasks });
+  } catch (_e) {
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};
+
 // 获取个人信息
 exports.getProfile = async (req, res) => {
   try {

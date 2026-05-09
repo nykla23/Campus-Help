@@ -16,12 +16,25 @@ App<IAppOption>({
       emit(event, ...args) { (this._handlers[event] || []).forEach(fn => fn(...args)); }
     };
     this.globalData.eventEmitter = emitter;
-    // 登录
-    wx.login({
-      success: res => {
-        console.log(res.code)
-        // 发送 res.code 到后台换取 openId, sessionKey, unionId
-      },
-    })
+
+    const token = wx.getStorageSync('token')
+    if (token) {
+      console.log('Token exists:', token)
+      wx.reLaunch({
+        url: '/pages/index/index',
+      })
+    } else {
+      console.log('No token found')
+      wx.reLaunch({
+        url: '/pages/login/login',
+      })  
+    }
+    // // 登录
+    // wx.login({
+    //   success: res => {
+    //     console.log(res.code)
+    //     // 发送 res.code 到后台换取 openId, sessionKey, unionId
+    //   },
+    // })
   },
 })

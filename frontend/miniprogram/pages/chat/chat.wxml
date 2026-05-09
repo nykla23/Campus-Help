@@ -1,13 +1,4 @@
 <view class="chat-container">
-  <!-- 顶部导航栏 -->
-  <view class="chat-nav">
-    <image src="/images/icon-back.png" class="back-icon" bindtap="goBack" />
-    <view class="chat-info">
-      <text class="chat-name">{{chatInfo.nickname}}</text>
-      <text class="chat-task">任务：{{chatInfo.taskTitle}}</text>
-    </view>
-    <view class="placeholder"></view>
-  </view>
 
   <!-- 消息列表 -->
   <scroll-view scroll-y class="msg-list" scroll-into-view="{{lastMsgId}}" scroll-with-animation>
@@ -16,7 +7,7 @@
       <view wx:if="{{item.showTime}}" class="msg-time-divider">{{item.timeStr}}</view>
       
       <view class="msg-item {{item.type}}" id="msg-{{item.id}}">
-        <image wx:if="{{item.type === 'receive'}}" src="{{item.avatar}}" class="msg-avatar" />
+        <image wx:if="{{item.type === 'receive'}}" src="{{item.avatar}}" class="msg-avatar" bindtap="viewUserProfile" data-userid="{{targetId}}" />
         <view class="msg-bubble-wrapper">
           <view class="msg-bubble">
             <text class="msg-content">{{item.content}}</text>
