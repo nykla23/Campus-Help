@@ -2,6 +2,8 @@ const db = require('../config/db');
 const userModel = require('../models/user');
 const jwtUtil = require('../utils/jwt');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
 
 exports.register = async (req, res) => {
   const { username, nickname, password, confirmPassword } = req.body;
@@ -259,12 +261,11 @@ exports.getAvatarImage = async (req, res) => {
     const avatarPath = users[0].avatar;
     if (!avatarPath || avatarPath === '/images/default-avatar.png') {
       // 返回默认头像（从前端项目目录读取）
-      const defaultPaths = [
+            const defaultPaths = [
         path.join(__dirname, '../../frontend/miniprogram/images/default-avatar.png'),
         path.join(__dirname, '../public/images/default-avatar.png'),
         path.join(__dirname, '../uploads/default-avatar.png')
       ];
-      let defaultFound = false;
       for (const dp of defaultPaths) {
         try {
           if (fs.existsSync(dp)) {
