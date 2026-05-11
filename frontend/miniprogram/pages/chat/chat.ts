@@ -1,4 +1,4 @@
-import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl, downloadAvatar, fetchAvatarBase64 } from '../../utils/api';
+import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl, fetchAvatarBase64 } from '../../utils/api';
 import { formatChatTimeShort, formatChatTimeDivider } from '../../utils/common';
 
 const app = getApp<IAppOption>();
