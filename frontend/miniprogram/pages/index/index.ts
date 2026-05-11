@@ -213,8 +213,8 @@ Page({
     }
   },
 
-      // 字段适配
-  async _adaptTaskList(list: any[]) {
+        // 字段适配
+  _adaptTaskList(list: any[]) {
     return (list || []).map(item => {
       const rawAvatarUrl = item.avatar || (item.publisher && item.publisher.avatar);
       return {
