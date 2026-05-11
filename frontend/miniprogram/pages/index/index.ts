@@ -128,13 +128,15 @@ Page({
     const sort = selectedFilter;
     const searchKeyword = keyword.trim() || undefined;
 
-    console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
+        console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
         this.setData({ page: 1, loading: true });
     getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(res => {
-      console.log('API响应:', res);
+      console.log('API响应:', JSON.stringify(res));
       if (res.code === 0 && res.data) {
+        const list = this._adaptTaskList(res.data.list);
+        console.log('适配后列表:', JSON.stringify(list));
         this.setData({
-          taskList: this._adaptTaskList(res.data.list),
+          taskList: list,
           total: res.data.total,
           page: 1
         });
