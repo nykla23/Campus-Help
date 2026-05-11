@@ -1,5 +1,5 @@
 import { getTaskList } from '../../api/task';
-import { getFullAvatarUrl } from '../../utils/api';
+import { getFullAvatarUrl, downloadAvatar } from '../../utils/api';
 import { getStatusText, getTypeText, formatListTime } from '../../utils/common';
 
 Page({
@@ -130,11 +130,12 @@ Page({
 
     console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
     this.setData({ page: 1, loading: true });
-    getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(res => {
+        getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(async res => {
       console.log('API响应:', res);
       if (res.code === 0 && res.data) {
+        const adaptedList = await this._adaptTaskList(res.data.list);
         this.setData({
-          taskList: this._adaptTaskList(res.data.list),
+          taskList: adaptedList,
           total: res.data.total,
           page: 1
         });
@@ -184,11 +185,11 @@ Page({
 
       //console.log('请求参数:', { page: nextPage, limit, status, type, sort, keyword });
       this.setData({ loading: true });
-      getTaskList({ page: nextPage, limit, status, type, sort, keyword })
-        .then(res => {
+            getTaskList({ page: nextPage, limit, status, type, sort, keyword })
+        .then(async res => {
           console.log('loadMore 收到响应:', res);
           if (res.code === 0 && res.data) {
-            const newTasks = this._adaptTaskList(res.data.list);
+            const newTasks = await this._adaptTaskList(res.data.list);
             console.log('新任务数量:', newTasks.length);
             this.setData({
               taskList: this.data.taskList.concat(newTasks),
@@ -211,22 +212,27 @@ Page({
     }
   },
 
-  // 字段适配
-  _adaptTaskList(list: any[]) {
-    return (list || []).map(item => ({
-      id: item.taskId,
-      userId: item.publisher_id || (item.publisher && item.publisher.id),
-      avatar: getFullAvatarUrl(item.avatar || (item.publisher && item.publisher.avatar)),
-      nickname: item.nickname || (item.publisher && item.publisher.nickname) || '匿名用户',
-      credit: item.credit_score || (item.publisher && item.publisher.creditScore) || '0',
-      title: item.title,
-      desc: item.description,
-      tag: this._adaptTaskType(item.type),
-      location: item.location,
-      coin: item.reward,
-      time: this._formatTime(item.createdAt, item.deadline),
-      status: this._adaptStatus(item.status)
+    // 字段适配（异步下载头像）
+  async _adaptTaskList(list: any[]) {
+    const adaptedTasks = await Promise.all((list || []).map(async (item) => {
+      const rawAvatarUrl = item.avatar || (item.publisher && item.publisher.avatar);
+      const avatarLocal = await downloadAvatar(rawAvatarUrl);
+      return {
+        id: item.taskId,
+        userId: item.publisher_id || (item.publisher && item.publisher.id),
+        avatar: avatarLocal,
+        nickname: item.nickname || (item.publisher && item.publisher.nickname) || '匿名用户',
+        credit: item.credit_score || (item.publisher && item.publisher.creditScore) || '0',
+        title: item.title,
+        desc: item.description,
+        tag: this._adaptTaskType(item.type),
+        location: item.location,
+        coin: item.reward,
+        time: this._formatTime(item.createdAt, item.deadline),
+        status: this._adaptStatus(item.status)
+      };
     }));
+    return adaptedTasks;
   },
 
   // 类型映射、状态映射、时间格式化 — 使用共享工具函数 (utils/common.ts)

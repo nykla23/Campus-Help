@@ -1,11 +1,11 @@
-import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl } from '../../utils/api';
+import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl, fetchAvatarBase64 } from '../../utils/api';
 
-const WS_BASE = 'ws://10.234.51.12:3000';
+const app = getApp<IAppOption>();
 
 Page({
   data: {
     taskId: '',
-    userId: 0,           // 改为数字类型
+    userId: 0,
     task: {
       id: 0,
       title: '',
@@ -24,103 +24,62 @@ Page({
     statusBarHeight: 0
   },
 
-    onLoad(options: { id: string }) {
+  onLoad(options: { id: string }) {
     this.setData({ statusBarHeight: wx.getSystemInfoSync().statusBarHeight });
     const taskId = options.id;
     let userId = wx.getStorageSync('userId');
     userId = Number(userId || 0);
     this.setData({ taskId, userId });
     this.loadTaskDetail();
-    // 🔗 建立 WebSocket，实时接收任务状态变更
-    this.connectSocket();
-  },
 
-  onUnload() {
-    if (this.socketTask) {
-      this.socketTask.close({});
-      this.socketTask = null;
+    // 注册全局 taskUpdate 事件
+    const emitter = app.globalData.eventEmitter;
+    if (emitter) {
+      emitter.on('taskUpdate', this._onTaskUpdate);
     }
   },
 
-  // 🔗 WebSocket 连接
-  connectSocket() {
-    const userId = wx.getStorageSync('userId');
-    if (!userId) return;
-
-    this.socketTask = wx.connectSocket({
-      url: WS_BASE + '/socket.io/?EIO=4&transport=websocket',
-      fail: (err) => console.error('[Task Socket] 连接失败:', err)
-    });
-
-    this.socketTask.onOpen(() => {
-      setTimeout(() => {
-        if (this.socketTask) {
-          this.socketTask.send({
-            data: `42${JSON.stringify(['register', String(userId)])}`
-          });
-          this.socketTask.send({
-            data: `42${JSON.stringify(['joinTask', String(this.data.taskId)])}`
-          });
-        }
-      }, 200);
-    });
-
-    this.socketTask.onMessage((res) => {
-      try {
-        const data = res.data as string;
-        if (data.startsWith('42')) {
-          const payload = JSON.parse(data.slice(2));
-          const eventName = payload[0];
-          const eventData = payload[1];
-
-          if (eventName === 'taskUpdate' && String(eventData.taskId) === String(this.data.taskId)) {
-            console.log('[Task Socket] 任务状态变更:', eventData);
-            this.loadTaskDetail();
-            if (eventData.message) {
-              wx.showToast({ title: eventData.message, icon: 'none', duration: 3000 });
-            }
-          }
-        } else if (data === '3') {
-          if (this.socketTask) {
-            this.socketTask.send({ data: '2' });
-          }
-        }
-      } catch (e) {
-        console.error('[Task Socket] 消息解析失败:', e);
-      }
-    });
-
-    this.socketTask.onClose(() => {
-      console.log('[Task Socket] 连接关闭');
-      this.socketTask = null;
-      setTimeout(() => {
-        if (!this.socketTask && this.data.taskId) {
-          this.connectSocket();
-        }
-      }, 10000);
-    });
+  onUnload() {
+    const emitter = app.globalData.eventEmitter;
+    if (emitter) {
+      emitter.off('taskUpdate', this._onTaskUpdate);
+    }
   },
 
-  async loadTaskDetail() {
+  // 任务状态变更回调
+  _onTaskUpdate(eventData: any) {
+    const that = this;
+    if (String(eventData.taskId) === String(that.data.taskId)) {
+      console.log('[Task Event] 任务状态变更:', eventData);
+      that.loadTaskDetail();
+      if (eventData.message) {
+        wx.showToast({ title: eventData.message, icon: 'none', duration: 3000 });
+      }
+    }
+  },
+
+    async loadTaskDetail() {
     wx.showLoading({ title: '加载中...' });
     try {
       const res = await getTaskDetail(this.data.taskId);
       if (res.code === 200) {
         const taskData = res.data;
-        // 统一转换 ID 类型为数字
         if (taskData.publisher) taskData.publisher.id = Number(taskData.publisher.id);
         if (taskData.acceptor && taskData.acceptor.id) {
           taskData.acceptor.id = Number(taskData.acceptor.id);
         }
-        // 处理头像URL
-        if (taskData.publisher) taskData.publisher.avatar = getFullAvatarUrl(taskData.publisher.avatar);
-        if (taskData.acceptor) taskData.acceptor.avatar = getFullAvatarUrl(taskData.acceptor.avatar);
-        // 格式化时间显示
+        // 使用 base64 加载头像
+        if (taskData.publisher) {
+          const pubAvatar = await fetchAvatarBase64(taskData.publisher.id);
+          taskData.publisher.avatar = pubAvatar || getFullAvatarUrl(taskData.publisher.avatar);
+        }
+        if (taskData.acceptor) {
+          const accAvatar = await fetchAvatarBase64(taskData.acceptor.id);
+          taskData.acceptor.avatar = accAvatar || getFullAvatarUrl(taskData.acceptor.avatar);
+        }
         taskData.deadlineStr = taskData.deadline ? taskData.deadline.substring(0, 16).replace('T', ' ') : '';
         taskData.createTimeStr = taskData.createTime ? taskData.createTime.substring(0, 16).replace('T', ' ') : '';
         this.setData({ task: taskData });
-        console.log('task.acceptor:', taskData.acceptor);
-        console.log('userId:', this.data.userId);
       } else {
         wx.showToast({ title: res.message, icon: 'none' });
       }
@@ -136,7 +95,6 @@ Page({
     wx.navigateBack();
   },
 
-  // 私信发布者
   sendMsgPublisher() {
     const { task, userId } = this.data;
     if (task.publisher.id === userId) {
@@ -148,7 +106,6 @@ Page({
     });
   },
 
-  // 私信接单者（仅发布者可见）
   sendMsgAcceptor() {
     const { task, userId } = this.data;
     if (!task.acceptor || !task.acceptor.id) {
@@ -164,7 +121,6 @@ Page({
     });
   },
 
-  // 接单
   async acceptTask() {
     wx.showLoading({ title: '接取中...' });
     try {
@@ -183,7 +139,6 @@ Page({
     }
   },
 
-  // 接单者提交完成（状态 1→2）
   async completeTask() {
     wx.showModal({
       title: '确认完成',
@@ -210,7 +165,6 @@ Page({
     });
   },
 
-  // 发布者确认完成（状态 2→3）
   async confirmCompleteTask() {
     wx.showModal({
       title: '确认完成',
@@ -237,7 +191,6 @@ Page({
     });
   },
 
-  // 发布者取消任务（待接取状态）
   async cancelTask() {
     wx.showModal({
       title: '确认取消',
@@ -264,7 +217,6 @@ Page({
     });
   },
 
-  // 查看他人主页
   viewUserProfile(e: any) {
     const userId = e.currentTarget.dataset.userid;
     if (userId) {
@@ -272,7 +224,6 @@ Page({
     }
   },
 
-  // 接单者放弃任务
   async giveUpTask() {
     wx.showModal({
       title: '确认放弃',

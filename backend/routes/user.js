@@ -23,6 +23,9 @@ router.get('/:id', auth.verifyToken, userController.getUserById);
 // 查看其他用户发布的任务列表
 router.get('/:id/tasks', auth.verifyToken, userController.getUserPublishTasks);
 
+// 获取用户头像 base64（不需要 auth，任何页面加载头像时使用）
+router.get('/avatar/:userId', userController.getAvatarImage);
+
 // 修改个人信息
 router.post('/update', auth.verifyToken, userController.updateUserInfo);
 

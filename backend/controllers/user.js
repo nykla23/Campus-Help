@@ -247,3 +247,50 @@ exports.uploadAvatar = async (req, res) => {
     res.json({ code: 500, message: '上传失败，请重试' });
   }
 };
+
+// 获取头像图片（返回 base64 数据，解决小程序真机无法显示网络图片的问题）
+exports.getAvatarImage = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const [users] = await db.query('SELECT avatar FROM users WHERE id = ?', [userId]);
+    if (!users || users.length === 0) {
+      return res.json({ code: 404, message: '用户不存在' });
+    }
+    const avatarPath = users[0].avatar;
+    if (!avatarPath || avatarPath === '/images/default-avatar.png') {
+      // 返回默认头像（从前端项目目录读取）
+      const defaultPaths = [
+        path.join(__dirname, '../../frontend/miniprogram/images/default-avatar.png'),
+        path.join(__dirname, '../public/images/default-avatar.png'),
+        path.join(__dirname, '../uploads/default-avatar.png')
+      ];
+      let defaultFound = false;
+      for (const dp of defaultPaths) {
+        try {
+          if (fs.existsSync(dp)) {
+            const imgData = fs.readFileSync(dp);
+            const ext = path.extname(dp).toLowerCase();
+            const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+            const base64 = imgData.toString('base64');
+            return res.json({ code: 200, data: { base64: `data:${mimeMap[ext] || 'image/png'};base64,${base64}` } });
+          }
+        } catch (e) { /* 忽略 */ }
+      }
+      return res.json({ code: 200, data: { base64: '' } });
+    }
+    // 解析实际文件路径（avatarPath = /uploads/avatars/xxx.jpg）
+    const filePath = path.join(__dirname, '..', avatarPath);
+    if (!fs.existsSync(filePath)) {
+      return res.json({ code: 404, message: '头像文件不存在' });
+    }
+    const imgData = fs.readFileSync(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+    const mime = mimeMap[ext] || 'image/png';
+    const base64 = imgData.toString('base64');
+    res.json({ code: 200, data: { base64: `data:${mime};base64,${base64}` } });
+  } catch (err) {
+    console.error('获取头像失败:', err);
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};

@@ -12,16 +12,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ... existing CORS config ...
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',');
+// CORS 配置 - 允许所有来源（开发环境）
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(allowed => origin.includes(allowed))) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS policy: not allowed'));
-    }
-  },
+  origin: '*',
   credentials: true,
 }));
 app.use('/uploads', (req, res, next) => {
