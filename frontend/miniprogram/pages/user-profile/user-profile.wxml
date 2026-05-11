@@ -46,13 +46,7 @@
   <scroll-view scroll-y class="task-list" wx:if="{{!loading && taskList.length > 0}}">
     <view class="task-card" wx:for="{{taskList}}" wx:key="id" bindtap="toTaskDetail" data-id="{{item.id}}">
       <view class="card-header">
-        <view class="status-tag
-          {{item.status === 0 ? 'orange' : ''}}
-          {{item.status === 1 ? 'green' : ''}}
-          {{item.status === 2 ? 'blue' : ''}}
-          {{item.status === 3 ? 'done' : ''}}
-          {{item.status === 4 ? 'cancel' : ''}}
-        ">
+        <view class="status-tag {{item.status === 0 ? 'orange' : ''}}{{item.status === 1 ? 'green' : ''}}{{item.status === 2 ? 'blue' : ''}}{{item.status === 3 ? 'done' : ''}}{{item.status === 4 ? 'cancel' : ''}}">
           {{item.statusText}}
         </view>
         <view class="task-coin">⭐ {{item.reward}} 虚拟币</view>

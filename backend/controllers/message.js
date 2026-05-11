@@ -119,24 +119,57 @@ exports.sendMsg = async (req, res) => {
 
   try {
     // 校验目标用户是否存在
-    const [users] = await db.query('SELECT id FROM users WHERE id = ?', [toId]);
-    if (users.length === 0) return res.json({ code: CODE.NOT_FOUND, message: '目标用户不存在' });
+        const [users] = await db.query('SELECT id FROM users WHERE id = ?', [toId]);
+        if (users.length === 0) return res.json({ code: CODE.NOT_FOUND, message: '目标用户不存在' });
 
-    // 校验任务是否存在且当前用户是参与者（发布者或接单者）
-    const [tasks] = await db.query('SELECT publisher_id, acceptor_id FROM tasks WHERE id = ?', [taskId]);
-    if (tasks.length === 0) return res.json({ code: CODE.NOT_FOUND, message: '任务不存在' });
-    const task = tasks[0];
-    if (task.publisher_id !== fromId && task.acceptor_id !== fromId) {
-      return res.json({ code: CODE.FORBIDDEN, message: '无权向该任务发送消息' });
-    }
+        // 查询发送者信息（用于推送）
+        const [fromUsers] = await db.query('SELECT id, nickname, avatar FROM users WHERE id = ?', [fromId]);
+        const fromUser = fromUsers[0];
 
-    await db.query(
-      'INSERT INTO messages (from_id, to_id, task_id, content) VALUES (?,?,?,?)',
-      [fromId, toId, taskId, content]
-    );
-    res.json({ code: 200, message: '发送成功' });
-  } catch (_e) {
-    res.json({ code: CODE.SERVER_ERROR });   // sendMsg catch
-  }
+        // 校验任务是否存在且当前用户是参与者（发布者或接单者）
+        const [tasks] = await db.query('SELECT publisher_id, acceptor_id FROM tasks WHERE id = ?', [taskId]);
+        if (tasks.length === 0) return res.json({ code: CODE.NOT_FOUND, message: '任务不存在' });
+        const task = tasks[0];
+        if (task.publisher_id !== fromId && task.acceptor_id !== fromId) {
+          return res.json({ code: CODE.FORBIDDEN, message: '无权向该任务发送消息' });
+        }
+
+        const [result] = await db.query(
+          'INSERT INTO messages (from_id, to_id, task_id, content) VALUES (?,?,?,?)',
+          [fromId, toId, taskId, content]
+        );
+
+        // 🔔 Socket.IO 实时推送新消息
+        const io = req.app.get('io');
+        const userSockets = req.app.get('userSockets');
+        const newMsg = {
+          id: result.insertId,
+          from_id: fromId,
+          to_id: parseInt(toId),
+          task_id: parseInt(taskId),
+          content,
+          created_at: new Date(),
+          from_avatar: fromUser.avatar,
+          from_nickname: fromUser.nickname
+        };
+
+        // 推送给接收方（如果在线）
+        const targetSocketId = userSockets.get(String(toId));
+        if (targetSocketId) {
+          io.to(targetSocketId).emit('newMessage', newMsg);
+          console.log(`[Socket.IO] 推送消息到用户 ${toId}`);
+        }
+
+        // 也推送给发送方自身（用于多端同步）
+        const fromSocketId = userSockets.get(String(fromId));
+        if (fromSocketId) {
+          io.to(fromSocketId).emit('newMessage', newMsg);
+        }
+
+        res.json({ code: 200, message: '发送成功', data: { id: result.insertId, created_at: new Date() } });
+      } catch (_e) {
+        console.error('sendMsg error:', _e);
+        res.json({ code: CODE.SERVER_ERROR });
+      }
 };
 

@@ -1,6 +1,8 @@
 import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl } from '../../utils/api';
 import { formatChatTimeShort, formatChatTimeDivider } from '../../utils/common';
 
+const WS_BASE = 'ws://10.234.51.12:3000';
+
 Page({
   data: {
     taskId: '',
@@ -47,8 +49,134 @@ Page({
     console.log('头像信息 - myAvatar:', myAvatar, 'targetAvatar:', targetAvatar);
     // 先设置默认导航标题，等获取到真实昵称后再更新
     wx.setNavigationBarTitle({ title: targetName || '聊天' });
-    this.loadTaskAndUserInfo(); // 获取任务标题和对方信息
+        this.loadTaskAndUserInfo(); // 获取任务标题和对方信息
     this.loadChat();
+    // 🔗 建立 WebSocket 连接，实现消息实时推送
+    this.connectSocket();
+  },
+
+  onUnload() {
+    // 页面卸载时断开 WebSocket 连接
+    if (this.socketTask) {
+      this.socketTask.close({});
+      this.socketTask = null;
+    }
+  },
+
+  // 🔗 建立 WebSocket 连接
+  connectSocket() {
+    const userId = wx.getStorageSync('userId');
+    if (!userId) return;
+
+    this.socketTask = wx.connectSocket({
+      url: WS_BASE + '/socket.io/?EIO=4&transport=websocket',
+      success: () => console.log('[Socket] 连接请求已发送'),
+      fail: (err) => console.error('[Socket] 连接失败:', err)
+    });
+
+    this.socketTask.onOpen(() => {
+      console.log('[Socket] 连接已建立');
+      // Socket.IO v4 协议: 发送 42["register","userId"]
+      setTimeout(() => {
+        if (this.socketTask) {
+          this.socketTask.send({
+            data: `42${JSON.stringify(['register', String(userId)])}`
+          });
+        }
+      }, 200);
+    });
+
+    this.socketTask.onMessage((res) => {
+      try {
+        const data = res.data as string;
+        // 处理 Socket.IO 协议
+        if (data.startsWith('42')) {
+          // 42["eventName", payload]
+          const payload = JSON.parse(data.slice(2));
+          const eventName = payload[0];
+          const eventData = payload[1];
+
+          if (eventName === 'newMessage') {
+            this.handleNewMessage(eventData);
+          }
+        } else if (data === '40') {
+          console.log('[Socket] 命名空间已打开');
+        } else if (data === '3') {
+          // Socket.IO ping - 回复 pong
+          if (this.socketTask) {
+            this.socketTask.send({ data: '2' });
+          }
+        }
+      } catch (e) {
+        console.error('[Socket] 消息解析失败:', e);
+      }
+    });
+
+    this.socketTask.onError((err) => {
+      console.error('[Socket] 错误:', err);
+    });
+
+    this.socketTask.onClose(() => {
+      console.log('[Socket] 连接已关闭');
+      this.socketTask = null;
+      // 自动重连
+      setTimeout(() => {
+        if (!this.socketTask && this.data.taskId) {
+          this.connectSocket();
+        }
+      }, 10000);
+    });
+  },
+
+  // 📩 处理实时收到的新消息
+  handleNewMessage(msg: any) {
+    // 只处理当前聊天相关的消息
+    if (String(msg.task_id) !== String(this.data.taskId)) return;
+    const isTarget = String(msg.from_id) === String(this.data.targetId);
+    const isSelf = String(msg.from_id) === String(this.data.myId);
+    if (!isTarget && !isSelf) return;
+
+    const list = this.data.msgList;
+    const lastItem = list[list.length - 1];
+    // 防止重复添加
+    if (lastItem && lastItem.id === msg.id) return;
+
+    const msgDate = new Date(msg.created_at);
+    let showTime = false;
+    let timeStr = '';
+    if (!lastItem) {
+      showTime = true;
+      timeStr = this.formatTimeDivider(msgDate);
+    } else {
+      const lastTime = new Date(lastItem.created_at);
+      if (msgDate.getTime() - lastTime.getTime() > 5 * 60 * 1000) {
+        showTime = true;
+        timeStr = this.formatTimeDivider(msgDate);
+      }
+    }
+
+    const isSend = String(msg.from_id) === String(this.data.myId);
+    const avatar = isSend ? this.data.myAvatar : this.data.targetAvatar;
+
+    list.push({
+      id: msg.id,
+      type: isSend ? 'send' : 'receive',
+      content: msg.content,
+      avatar: avatar,
+      timeShort: this.formatTimeShort(msgDate),
+      showTime,
+      timeStr,
+      created_at: msg.created_at
+    });
+
+    this.setData({
+      msgList: list,
+      lastMsgId: 'msg-' + msg.id
+    });
+
+    if (isSend) {
+      this.setData({ inputMsg: '' });
+    }
   },
 
   async loadTaskAndUserInfo() {
@@ -115,16 +243,20 @@ Page({
           }
           lastTime = msgDate;
           
-          // 优先使用后端返回的头像，否则使用初始化时保存的头像
+          // 确定消息方向和头像
           const isSend = item.from_id == myId;
-          const fromAvatar = getFullAvatarUrl(item.from_avatar || '');
+          const rawFromAvatar = item.from_avatar || '';
+          // 判断是否为有效图片URL（http开头或以/uploads开头）
+          const isValidImageUrl = rawFromAvatar && (rawFromAvatar.startsWith('http') || rawFromAvatar.startsWith('/uploads'));
+          const fromAvatar = isValidImageUrl ? getFullAvatarUrl(rawFromAvatar) : '';
           const avatar = isSend 
-            ? (fromAvatar !== '/images/default-avatar.png' ? fromAvatar : myAvatar)
-            : (fromAvatar !== '/images/default-avatar.png' ? fromAvatar : targetAvatar);
+            ? (fromAvatar || myAvatar)
+            : (fromAvatar || targetAvatar);
           
           return {
-            ...item,
+            id: item.id,
             type: isSend ? 'send' : 'receive',
+            content: item.content,
             avatar: avatar,
             timeShort,
             showTime,
@@ -143,7 +275,7 @@ Page({
         
         this.setData({
           msgList: list,
-          lastMsgId: 'msg-' + (list[list.length - 1]?.id || ''),
+          lastMsgId: 'msg-' + ((list[list.length - 1] && list[list.length - 1].id) || ''),
           'chatInfo.nickname': this.data.targetName
         });
       } else {
@@ -165,7 +297,7 @@ Page({
     this.setData({ inputMsg: e.detail.value });
   },
 
-  async sendMsg() {
+    async sendMsg() {
     const content = this.data.inputMsg.trim();
     if (!content) return;
     wx.showLoading({ title: '发送中...' });
@@ -176,8 +308,8 @@ Page({
         content
       });
       if (res.code === 200) {
+        // 不再手动 loadChat，WebSocket 会推送新消息回来
         this.setData({ inputMsg: '' });
-        this.loadChat(); // 重新加载消息列表
       } else {
         wx.showToast({ title: res.message || '发送失败', icon: 'none' });
       }

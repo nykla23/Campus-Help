@@ -11,7 +11,7 @@ App<IAppOption>({
     // 简易事件总线（替代 Node.js events 模块）
     const emitter = {
       _handlers: {},
-      on(event, fn) { (this._handlers[event] ||= []).push(fn); },
+      on(event, fn) { (this._handlers[event] = this._handlers[event] || []).push(fn); },
       off(event, fn) { this._handlers[event] = (this._handlers[event] || []).filter(h => h !== fn); },
       emit(event, ...args) { (this._handlers[event] || []).forEach(fn => fn(...args)); }
     };

@@ -324,9 +324,12 @@ Page({
           showEditAvatarFlag: false,
           tempAvatar: ''
         });
+        wx.hideLoading();
         wx.showToast({ title: '头像更新成功' });
-        // 更新本地存储
-        wx.setStorageSync('avatar', avatarWithTimestamp);
+        // 更新本地存储（不含时间戳，让其他页面自己加）
+        wx.setStorageSync('avatar', newAvatarUrl);
+        // 重新加载个人数据确保最新状态
+        this.loadProfileData();
         
       } else {
         wx.showToast({ title: res.message || '上传失败', icon: 'none' });

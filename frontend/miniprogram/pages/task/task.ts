@@ -1,5 +1,7 @@
 import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl } from '../../utils/api';
 
+const WS_BASE = 'ws://10.234.51.12:3000';
+
 Page({
   data: {
     taskId: '',
@@ -22,13 +24,81 @@ Page({
     statusBarHeight: 0
   },
 
-  onLoad(options: { id: string }) {
+    onLoad(options: { id: string }) {
     this.setData({ statusBarHeight: wx.getSystemInfoSync().statusBarHeight });
     const taskId = options.id;
     let userId = wx.getStorageSync('userId');
     userId = Number(userId || 0);
     this.setData({ taskId, userId });
     this.loadTaskDetail();
+    // 🔗 建立 WebSocket，实时接收任务状态变更
+    this.connectSocket();
+  },
+
+  onUnload() {
+    if (this.socketTask) {
+      this.socketTask.close({});
+      this.socketTask = null;
+    }
+  },
+
+  // 🔗 WebSocket 连接
+  connectSocket() {
+    const userId = wx.getStorageSync('userId');
+    if (!userId) return;
+
+    this.socketTask = wx.connectSocket({
+      url: WS_BASE + '/socket.io/?EIO=4&transport=websocket',
+      fail: (err) => console.error('[Task Socket] 连接失败:', err)
+    });
+
+    this.socketTask.onOpen(() => {
+      setTimeout(() => {
+        if (this.socketTask) {
+          this.socketTask.send({
+            data: `42${JSON.stringify(['register', String(userId)])}`
+          });
+          this.socketTask.send({
+            data: `42${JSON.stringify(['joinTask', String(this.data.taskId)])}`
+          });
+        }
+      }, 200);
+    });
+
+    this.socketTask.onMessage((res) => {
+      try {
+        const data = res.data as string;
+        if (data.startsWith('42')) {
+          const payload = JSON.parse(data.slice(2));
+          const eventName = payload[0];
+          const eventData = payload[1];
+
+          if (eventName === 'taskUpdate' && String(eventData.taskId) === String(this.data.taskId)) {
+            console.log('[Task Socket] 任务状态变更:', eventData);
+            this.loadTaskDetail();
+            if (eventData.message) {
+              wx.showToast({ title: eventData.message, icon: 'none', duration: 3000 });
+            }
+          }
+        } else if (data === '3') {
+          if (this.socketTask) {
+            this.socketTask.send({ data: '2' });
+          }
+        }
+      } catch (e) {
+        console.error('[Task Socket] 消息解析失败:', e);
+      }
+    });
+
+    this.socketTask.onClose(() => {
+      console.log('[Task Socket] 连接关闭');
+      this.socketTask = null;
+      setTimeout(() => {
+        if (!this.socketTask && this.data.taskId) {
+          this.connectSocket();
+        }
+      }, 10000);
+    });
   },
 
   async loadTaskDetail() {
@@ -100,8 +170,9 @@ Page({
     try {
       const res = await acceptTask(this.data.taskId);
       if (res.code === 200) {
+        wx.hideLoading();
         wx.showToast({ title: '接取成功', icon: 'success' });
-        this.loadTaskDetail();
+        setTimeout(() => this.loadTaskDetail(), 500);
       } else {
       wx.showToast({ title: res.message, icon: 'none' });
     }
@@ -123,8 +194,9 @@ Page({
           try {
             const result = await completeTask(this.data.taskId);
             if (result.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '已提交，等待确认', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
@@ -149,8 +221,9 @@ Page({
           try {
             const result = await confirmCompleteTask(this.data.taskId);
             if (result.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '任务已完成', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
@@ -175,8 +248,9 @@ Page({
           try {
             const res = await cancelTask(this.data.taskId);
             if (res.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '任务已取消', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
@@ -209,8 +283,9 @@ Page({
           try {
             const res = await giveUpTask(this.data.taskId);
             if (res.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '任务已放弃', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }

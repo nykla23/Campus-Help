@@ -32,7 +32,7 @@ Page({
             console.log('登录获取头像:', profileRes);
             wx.hideLoading();
             console.log('code:', profileRes.code, 'data:', profileRes.data);
-            const user = profileRes.data?.user;
+            const user = profileRes.data && profileRes.data.user;
             if (user && user.avatar) {
               const avatar = user.avatar;
               const fullAvatar = getFullAvatarUrl(avatar);

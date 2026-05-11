@@ -215,10 +215,10 @@ Page({
   _adaptTaskList(list: any[]) {
     return (list || []).map(item => ({
       id: item.taskId,
-      userId: item.publisher_id || item.publisher?.id,
-      avatar: getFullAvatarUrl(item.avatar || item.publisher?.avatar),
-      nickname: item.nickname || item.publisher?.nickname || '匿名用户',
-      credit: item.credit_score || item.publisher?.creditScore || '0',
+      userId: item.publisher_id || (item.publisher && item.publisher.id),
+      avatar: getFullAvatarUrl(item.avatar || (item.publisher && item.publisher.avatar)),
+      nickname: item.nickname || (item.publisher && item.publisher.nickname) || '匿名用户',
+      credit: item.credit_score || (item.publisher && item.publisher.creditScore) || '0',
       title: item.title,
       desc: item.description,
       tag: this._adaptTaskType(item.type),

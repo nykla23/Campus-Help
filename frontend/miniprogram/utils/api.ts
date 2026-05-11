@@ -1,14 +1,21 @@
-const BASE_URL = 'http://127.0.0.1:3000/api';
+const BASE_URL = 'http://10.234.51.12:3000/api';
 
 // 处理头像URL，拼接完整服务器地址
+const SERVER_BASE = 'http://10.234.51.12:3000';
 export function getFullAvatarUrl(avatarUrl: string): string {
   if (!avatarUrl) return '/images/default-avatar.png';
   // 默认头像是小程序本地资源，不需要拼接服务器地址
-  if (avatarUrl === '/images/default-avatar.png' || avatarUrl === '/images/default-avatar.png') {
-    return avatarUrl;
+  if (avatarUrl === '/images/default-avatar.png') return avatarUrl;
+  // 已经是完整URL（http开头）或本地路径（wxfile://），直接返回
+  if (avatarUrl.startsWith('http') || avatarUrl.startsWith('wxfile://')) return avatarUrl;
+  // 如果是本地小程序图片路径，直接返回
+  if (avatarUrl.startsWith('/images/')) return avatarUrl;
+  // 以 /uploads 开头的路径，拼接服务器地址
+  if (avatarUrl.startsWith('/uploads')) {
+    return SERVER_BASE + avatarUrl;
   }
-  if (avatarUrl.startsWith('http')) return avatarUrl;
-  return 'http://127.0.0.1:3000' + avatarUrl;
+  // 其他情况也拼接服务器地址
+  return SERVER_BASE + avatarUrl;
 }
 
 // 定义发布任务的请求参数类型

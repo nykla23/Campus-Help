@@ -4,13 +4,7 @@
     <view class="task-tag {{task.type === 1 ? 'blue' : task.type === 2 ? 'orange' : task.type === 3 ? 'purple' : 'gray'}}">
       {{task.typeText}}
     </view>
-    <view class="status-tag
-      {{task.status === 0 ? 'orange' : ''}}
-      {{task.status === 1 ? 'green' : ''}}
-      {{task.status === 2 ? 'blue' : ''}}
-      {{task.status === 3 ? 'done' : ''}}
-      {{task.status === 4 ? 'cancel' : ''}}
-    ">
+    <view class="status-tag {{task.status === 0 ? 'orange' : ''}}{{task.status === 1 ? 'green' : ''}}{{task.status === 2 ? 'blue' : ''}}{{task.status === 3 ? 'done' : ''}}{{task.status === 4 ? 'cancel' : ''}}">
       {{task.statusText}}
     </view>
   </view>
