@@ -52,6 +52,11 @@ app.get('/', (req, res) => {
     res.send('校园帮 API 服务运行中');
 });
 
+// 健康检查端点
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.use((_err, req, res, _next) => {
     console.error(_err.stack);
     res.status(500).json({ code: 5000, message: '服务器内部错误' });

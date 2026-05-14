@@ -1,0 +1,75 @@
+name: campus-help-prod
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: campus-help-db-prod
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-campus_help}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+      - ./backend/sql/db_init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+  backend:
+    image: ghcr.io/nykla23/campus-help-backend:latest
+    container_name: campus-help-backend-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-campus_help}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: "3000"
+      NODE_ENV: production
+    volumes:
+      - backend_uploads_prod:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+        reservations:
+          cpus: "0.5"
+          memory: 128M
+    secrets:
+      - jwt_secret
+
+secrets:
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+
+volumes:
+  mysql_data_prod:
+  backend_uploads_prod:

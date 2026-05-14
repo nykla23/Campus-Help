@@ -1,5 +1,5 @@
 // app.ts
-const WS_BASE = 'ws://10.234.51.12:3000';
+const WS_BASE = 'ws://192.168.129.128:3000';
 
 App<IAppOption>({
   globalData: {
