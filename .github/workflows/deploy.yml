@@ -4,15 +4,34 @@ on:
   push:
     branches: [main, develop]
     paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - ".gitignore"
+      - 'docs/**'
+      - '**.md'
+      - '.gitignore'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: backend/
+          format: table
+          exit-code: 1
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
   test:
     name: Test
     runs-on: ubuntu-latest
-
     services:
       mysql:
         image: mysql:8.4
@@ -23,22 +42,17 @@ jobs:
           MYSQL_PASSWORD: campus_pass
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
-
+        options: --health-cmd='mysqladmin ping' --health-interval=10s --health-timeout=5s --health-retries=5
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Initialize Database
         run: mysql -h 127.0.0.1 -u root -proot123 campus_help < backend/sql/db_init.sql
-
       - name: Install Backend Dependencies
         run: cd backend && npm ci
-
       - name: Backend Tests
         run: cd backend && npm test
         env:
@@ -47,48 +61,60 @@ jobs:
           DB_PASSWORD: root123
           DB_NAME: campus_help
           JWT_SECRET: test-secret
-          PORT: "3000"
-
+          PORT: '3000'
       - name: Install Frontend Dependencies
         run: cd frontend && npm ci
-
       - name: Frontend Tests
         run: cd frontend && npm test
 
   build-and-push:
-    name: Build & Push Docker Images
-    needs: test
+    name: Build & Push to GHCR
+    needs: [test, security-scan]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata for Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=,format=short
       - name: Build and Push Backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/campus-help-backend:latest
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Build and Push Frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/campus-help-frontend:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Check Image Sizes
+        run: |
+          docker images --filter=reference=${{ env.REGISTRY }}/* --format '{{.Repository}}:{{.Tag}} Size: {{.Size}}'

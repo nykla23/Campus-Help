@@ -84,14 +84,14 @@ Page({
 
   // 处理新消息事件
   _onNewMessage(msg: any) {
-    const that = this; // 保存 this 引用
+    //const that = this; // 保存 this 引用
     // 只处理当前聊天相关的消息
-    if (String(msg.task_id) !== String(that.data.taskId)) return;
-    const isTarget = String(msg.from_id) === String(that.data.targetId);
-    const isSelf = String(msg.from_id) === String(that.data.myId);
+    if (String(msg.task_id) !== String(this.data.taskId)) return;
+    const isTarget = String(msg.from_id) === String(this.data.targetId);
+    const isSelf = String(msg.from_id) === String(this.data.myId);
     if (!isTarget && !isSelf) return;
 
-    const list = that.data.msgList;
+    const list = this.data.msgList;
     const lastItem = list[list.length - 1];
     // 防止重复添加
     if (lastItem && lastItem.id === msg.id) return;
@@ -101,36 +101,36 @@ Page({
     let timeStr = '';
     if (!lastItem) {
       showTime = true;
-      timeStr = that.formatTimeDivider(msgDate);
+      timeStr = this.formatTimeDivider(msgDate);
     } else {
       const lastTime = new Date(lastItem.created_at);
       if (msgDate.getTime() - lastTime.getTime() > 5 * 60 * 1000) {
         showTime = true;
-        timeStr = that.formatTimeDivider(msgDate);
+        timeStr = this.formatTimeDivider(msgDate);
       }
     }
 
-    const isSend = String(msg.from_id) === String(that.data.myId);
-    const avatar = isSend ? that.data.myAvatar : that.data.targetAvatar;
+    const isSend = String(msg.from_id) === String(this.data.myId);
+    const avatar = isSend ? this.data.myAvatar : this.data.targetAvatar;
 
     list.push({
       id: msg.id,
       type: isSend ? 'send' : 'receive',
       content: msg.content,
       avatar: avatar,
-      timeShort: that.formatTimeShort(msgDate),
+      timeShort: this.formatTimeShort(msgDate),
       showTime,
       timeStr,
       created_at: msg.created_at
     });
 
-    that.setData({
+    this.setData({
       msgList: list,
       lastMsgId: 'msg-' + msg.id
     });
 
     if (isSend) {
-      that.setData({ inputMsg: '' });
+      this.setData({ inputMsg: '' });
     }
   },
 
@@ -247,7 +247,7 @@ Page({
     const content = this.data.inputMsg.trim();
     if (!content) return;
     
-    const myId = this.data.myId;
+    const _myId = this.data.myId;
     const tempId = Date.now() + Math.random(); // 临时 ID
 
     // 乐观更新：立即在列表中添加自己发送的消息

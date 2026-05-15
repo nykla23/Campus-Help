@@ -48,10 +48,10 @@ Page({
 
   // 任务状态变更回调
   _onTaskUpdate(eventData: any) {
-    const that = this;
-    if (String(eventData.taskId) === String(that.data.taskId)) {
+    
+    if (String(eventData.taskId) === String(this.data.taskId)) {
       console.log('[Task Event] 任务状态变更:', eventData);
-      that.loadTaskDetail();
+      this.loadTaskDetail();
       if (eventData.message) {
         wx.showToast({ title: eventData.message, icon: 'none', duration: 3000 });
       }

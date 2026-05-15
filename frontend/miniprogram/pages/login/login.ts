@@ -22,7 +22,7 @@ Page({
     }
     console.log('[login] 开始登录, user:', username);
     wx.showLoading({ title: '登录中...' });
-    login({ username, password })
+    void login({ username, password })
       .then(res => {
         console.log('[login] then res:', JSON.stringify(res));
         if (res.code === 0) {
