@@ -2,6 +2,8 @@ const db = require('../config/db');
 const userModel = require('../models/user');
 const jwtUtil = require('../utils/jwt');
 const bcrypt = require('bcryptjs');
+const path = require('path');
+const fs = require('fs');
 
 exports.register = async (req, res) => {
   const { username, nickname, password, confirmPassword } = req.body;
@@ -40,6 +42,54 @@ exports.login = async (req, res) => {
 
 // 状态映射和类型映射已统一到 ../constants.js (STATUS_MAP, TYPE_MAP)
 // 此处不再重复定义，直接引用共享常量
+
+// 获取其他用户公开信息
+exports.getUserById = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (!targetId || isNaN(Number(targetId))) {
+      return res.json({ code: 400, message: '无效的用户ID' });
+    }
+    const user = await userModel.findById(targetId);
+    if (!user) {
+      return res.json({ code: 404, message: '用户不存在' });
+    }
+    // 统计完成数
+    const [finish] = await db.query('SELECT COUNT(*) AS count FROM tasks WHERE acceptor_id = ? AND status = 3', [targetId]);
+    res.json({
+      code: 200,
+      data: {
+        user,
+        stats: {
+          credit: user.credit_score,
+          finishCount: finish[0].count
+        }
+      }
+    });
+  } catch (_err) {
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};
+
+// 获取其他用户发布的任务列表
+exports.getUserPublishTasks = async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (!targetId || isNaN(Number(targetId))) {
+      return res.json({ code: 400, message: '无效的用户ID' });
+    }
+    const [tasks] = await db.query(`
+      SELECT t.*, u.nickname, u.avatar
+      FROM tasks t
+      LEFT JOIN users u ON t.publisher_id = u.id
+      WHERE t.publisher_id = ?
+      ORDER BY t.created_at DESC
+    `, [targetId]);
+    res.json({ code: 200, data: tasks });
+  } catch (_e) {
+    res.json({ code: 500, message: '服务器错误' });
+  }
+};
 
 // 获取个人信息
 exports.getProfile = async (req, res) => {
@@ -197,5 +247,51 @@ exports.uploadAvatar = async (req, res) => {
   } catch (err) {
     console.error('上传头像失败:', err);
     res.json({ code: 500, message: '上传失败，请重试' });
+  }
+};
+
+// 获取头像图片（返回 base64 数据，解决小程序真机无法显示网络图片的问题）
+exports.getAvatarImage = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const [users] = await db.query('SELECT avatar FROM users WHERE id = ?', [userId]);
+    if (!users || users.length === 0) {
+      return res.json({ code: 404, message: '用户不存在' });
+    }
+    const avatarPath = users[0].avatar;
+    if (!avatarPath || avatarPath === '/images/default-avatar.png') {
+      // 返回默认头像（从前端项目目录读取）
+            const defaultPaths = [
+        path.join(__dirname, '../../frontend/miniprogram/images/default-avatar.png'),
+        path.join(__dirname, '../public/images/default-avatar.png'),
+        path.join(__dirname, '../uploads/default-avatar.png')
+      ];
+      for (const dp of defaultPaths) {
+        try {
+          if (fs.existsSync(dp)) {
+            const imgData = fs.readFileSync(dp);
+            const ext = path.extname(dp).toLowerCase();
+            const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+            const base64 = imgData.toString('base64');
+            return res.json({ code: 200, data: { base64: `data:${mimeMap[ext] || 'image/png'};base64,${base64}` } });
+          }
+        } catch (_e) { /* 忽略 */ }
+      }
+      return res.json({ code: 200, data: { base64: '' } });
+    }
+    // 解析实际文件路径（avatarPath = /uploads/avatars/xxx.jpg）
+    const filePath = path.join(__dirname, '..', avatarPath);
+    if (!fs.existsSync(filePath)) {
+      return res.json({ code: 404, message: '头像文件不存在' });
+    }
+    const imgData = fs.readFileSync(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+    const mime = mimeMap[ext] || 'image/png';
+    const base64 = imgData.toString('base64');
+    res.json({ code: 200, data: { base64: `data:${mime};base64,${base64}` } });
+  } catch (err) {
+    console.error('获取头像失败:', err);
+    res.json({ code: 500, message: '服务器错误' });
   }
 };

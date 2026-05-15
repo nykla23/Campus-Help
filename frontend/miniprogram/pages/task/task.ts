@@ -1,9 +1,11 @@
-import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl } from '../../utils/api';
+import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl, fetchAvatarBase64 } from '../../utils/api';
+
+const app = getApp<IAppOption>();
 
 Page({
   data: {
     taskId: '',
-    userId: 0,           // 改为数字类型
+    userId: 0,
     task: {
       id: 0,
       title: '',
@@ -18,37 +20,66 @@ Page({
       createTime: '',
       publisher: { id: 0, nickname: '', avatar: '', credit: 0 },
       acceptor: null as { id: number; nickname: string; avatar: string; credit: number } | null
-    }
+    },
+    statusBarHeight: 0
   },
 
   onLoad(options: { id: string }) {
+    this.setData({ statusBarHeight: wx.getSystemInfoSync().statusBarHeight });
     const taskId = options.id;
     let userId = wx.getStorageSync('userId');
     userId = Number(userId || 0);
     this.setData({ taskId, userId });
     this.loadTaskDetail();
+
+    // 注册全局 taskUpdate 事件
+    const emitter = app.globalData.eventEmitter;
+    if (emitter) {
+      emitter.on('taskUpdate', this._onTaskUpdate);
+    }
   },
 
-  async loadTaskDetail() {
+  onUnload() {
+    const emitter = app.globalData.eventEmitter;
+    if (emitter) {
+      emitter.off('taskUpdate', this._onTaskUpdate);
+    }
+  },
+
+  // 任务状态变更回调
+  _onTaskUpdate(eventData: any) {
+    
+    if (String(eventData.taskId) === String(this.data.taskId)) {
+      console.log('[Task Event] 任务状态变更:', eventData);
+      this.loadTaskDetail();
+      if (eventData.message) {
+        wx.showToast({ title: eventData.message, icon: 'none', duration: 3000 });
+      }
+    }
+  },
+
+    async loadTaskDetail() {
     wx.showLoading({ title: '加载中...' });
     try {
       const res = await getTaskDetail(this.data.taskId);
       if (res.code === 200) {
         const taskData = res.data;
-        // 统一转换 ID 类型为数字
         if (taskData.publisher) taskData.publisher.id = Number(taskData.publisher.id);
         if (taskData.acceptor && taskData.acceptor.id) {
           taskData.acceptor.id = Number(taskData.acceptor.id);
         }
-        // 处理头像URL
-        if (taskData.publisher) taskData.publisher.avatar = getFullAvatarUrl(taskData.publisher.avatar);
-        if (taskData.acceptor) taskData.acceptor.avatar = getFullAvatarUrl(taskData.acceptor.avatar);
-        // 格式化时间显示
+        // 使用 base64 加载头像
+        if (taskData.publisher) {
+          const pubAvatar = await fetchAvatarBase64(taskData.publisher.id);
+          taskData.publisher.avatar = pubAvatar || getFullAvatarUrl(taskData.publisher.avatar);
+        }
+        if (taskData.acceptor) {
+          const accAvatar = await fetchAvatarBase64(taskData.acceptor.id);
+          taskData.acceptor.avatar = accAvatar || getFullAvatarUrl(taskData.acceptor.avatar);
+        }
         taskData.deadlineStr = taskData.deadline ? taskData.deadline.substring(0, 16).replace('T', ' ') : '';
         taskData.createTimeStr = taskData.createTime ? taskData.createTime.substring(0, 16).replace('T', ' ') : '';
         this.setData({ task: taskData });
-        console.log('task.acceptor:', taskData.acceptor);
-        console.log('userId:', this.data.userId);
       } else {
         wx.showToast({ title: res.message, icon: 'none' });
       }
@@ -64,7 +95,6 @@ Page({
     wx.navigateBack();
   },
 
-  // 私信发布者
   sendMsgPublisher() {
     const { task, userId } = this.data;
     if (task.publisher.id === userId) {
@@ -76,7 +106,6 @@ Page({
     });
   },
 
-  // 私信接单者（仅发布者可见）
   sendMsgAcceptor() {
     const { task, userId } = this.data;
     if (!task.acceptor || !task.acceptor.id) {
@@ -92,14 +121,14 @@ Page({
     });
   },
 
-  // 接单
   async acceptTask() {
     wx.showLoading({ title: '接取中...' });
     try {
       const res = await acceptTask(this.data.taskId);
       if (res.code === 200) {
+        wx.hideLoading();
         wx.showToast({ title: '接取成功', icon: 'success' });
-        this.loadTaskDetail();
+        setTimeout(() => this.loadTaskDetail(), 500);
       } else {
       wx.showToast({ title: res.message, icon: 'none' });
     }
@@ -110,7 +139,6 @@ Page({
     }
   },
 
-  // 接单者提交完成（状态 1→2）
   async completeTask() {
     wx.showModal({
       title: '确认完成',
@@ -121,8 +149,9 @@ Page({
           try {
             const result = await completeTask(this.data.taskId);
             if (result.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '已提交，等待确认', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
@@ -136,7 +165,6 @@ Page({
     });
   },
 
-  // 发布者确认完成（状态 2→3）
   async confirmCompleteTask() {
     wx.showModal({
       title: '确认完成',
@@ -147,8 +175,9 @@ Page({
           try {
             const result = await confirmCompleteTask(this.data.taskId);
             if (result.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '任务已完成', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: result.message, icon: 'none' });
             }
@@ -162,7 +191,6 @@ Page({
     });
   },
 
-  // 发布者取消任务（待接取状态）
   async cancelTask() {
     wx.showModal({
       title: '确认取消',
@@ -173,8 +201,9 @@ Page({
           try {
             const res = await cancelTask(this.data.taskId);
             if (res.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '任务已取消', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }
@@ -188,7 +217,13 @@ Page({
     });
   },
 
-  // 接单者放弃任务
+  viewUserProfile(e: any) {
+    const userId = e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: `/pages/user-profile/user-profile?userId=${userId}` });
+    }
+  },
+
   async giveUpTask() {
     wx.showModal({
       title: '确认放弃',
@@ -199,8 +234,9 @@ Page({
           try {
             const res = await giveUpTask(this.data.taskId);
             if (res.code === 200) {
+              wx.hideLoading();
               wx.showToast({ title: '任务已放弃', icon: 'success' });
-              this.loadTaskDetail();
+              setTimeout(() => this.loadTaskDetail(), 500);
             } else {
               wx.showToast({ title: res.message, icon: 'none' });
             }

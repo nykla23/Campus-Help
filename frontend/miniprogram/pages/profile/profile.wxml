@@ -64,25 +64,14 @@
           <view class="user-name">{{item.nickname}}</view>
           <view class="credit-score">信用分 {{item.credit}}</view>
         </view>
-        <view class="status-tag 
-          {{item.status === '待接取' ? 'orange' : ''}}
-          {{item.status === '进行中' ? 'green' : ''}}
-          {{item.status === '待确认' ? 'blue' : ''}}
-          {{item.status === '已完成' ? 'done' : ''}}
-          {{item.status === '已取消' ? 'cancel' : ''}}
-        ">
+        <view class="status-tag {{item.status === '待接取' ? 'orange' : ''}}{{item.status === '进行中' ? 'green' : ''}}{{item.status === '待确认' ? 'blue' : ''}}{{item.status === '已完成' ? 'done' : ''}}{{item.status === '已取消' ? 'cancel' : ''}}">
           {{item.status}}
         </view>
       </view>
       <view class="task-title">{{item.title}}</view>
       <view class="task-desc">{{item.desc}}</view>
       <view class="task-tag-area">
-        <view class="task-tag 
-          {{item.tag === '跑腿代办' ? 'orange' : ''}}
-          {{item.tag === '取件代送' ? 'blue' : ''}}
-          {{item.tag === '学习辅导' ? 'purple' : ''}}
-          {{item.tag === '其他' ? 'gray' : ''}}
-        ">
+        <view class="task-tag {{item.tag === '跑腿代办' ? 'orange' : ''}}{{item.tag === '取件代送' ? 'blue' : ''}}{{item.tag === '学习辅导' ? 'purple' : ''}}{{item.tag === '其他' ? 'gray' : ''}}">
           {{item.tag}}
         </view>
         <view wx:if="{{item.location && item.location !== 'null'}}" class="task-location">📍 {{item.location}}</view>
@@ -104,24 +93,14 @@
           <view class="user-name">{{item.nickname}}</view>
           <view class="credit-score">信用分 {{item.credit}}</view>
         </view>
-        <view class="status-tag 
-          {{item.status === '待接取' ? 'orange' : ''}}
-          {{item.status === '进行中' ? 'green' : ''}}
-          {{item.status === '已完成' ? 'done' : ''}}
-          {{item.status === '已取消' ? 'cancel' : ''}}
-        ">
+        <view class="status-tag {{item.status === '待接取' ? 'orange' : ''}}{{item.status === '进行中' ? 'green' : ''}}{{item.status === '已完成' ? 'done' : ''}}{{item.status === '已取消' ? 'cancel' : ''}}">
           {{item.status}}
         </view>
       </view>
       <view class="task-title">{{item.title}}</view>
       <view class="task-desc">{{item.desc}}</view>
       <view class="task-tag-area">
-        <view class="task-tag 
-          {{item.tag === '跑腿代办' ? 'orange' : ''}}
-          {{item.tag === '取件代送' ? 'blue' : ''}}
-          {{item.tag === '学习辅导' ? 'purple' : ''}}
-          {{item.tag === '其他' ? 'gray' : ''}}
-        ">
+        <view class="task-tag {{item.tag === '跑腿代办' ? 'orange' : ''}}{{item.tag === '取件代送' ? 'blue' : ''}}{{item.tag === '学习辅导' ? 'purple' : ''}}{{item.tag === '其他' ? 'gray' : ''}}">
           {{item.tag}}
         </view>
         <view wx:if="{{item.location && item.location !== 'null'}}" class="task-location">📍 {{item.location}}</view>
@@ -205,5 +184,4 @@
       <button class="popup-btn confirm" bindtap="savePassword">确认</button>
     </view>
   </view>
-  
 </view>

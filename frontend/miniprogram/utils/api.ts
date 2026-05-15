@@ -1,14 +1,87 @@
-const BASE_URL = 'http://127.0.0.1:3000/api';
+const BASE_URL = 'http://192.168.129.128:3000/api';
 
 // 处理头像URL，拼接完整服务器地址
+const SERVER_BASE = 'http://192.168.129.128:3000';
+
+/**
+ * 获取头像的完整 URL
+ * 对于网络图片（/uploads 开头），拼接服务器地址
+ */
 export function getFullAvatarUrl(avatarUrl: string): string {
   if (!avatarUrl) return '/images/default-avatar.png';
-  // 默认头像是小程序本地资源，不需要拼接服务器地址
-  if (avatarUrl === '/images/default-avatar.png' || avatarUrl === '/images/default-avatar.png') {
-    return avatarUrl;
+  if (avatarUrl === '/images/default-avatar.png') return avatarUrl;
+  if (avatarUrl.startsWith('http') || avatarUrl.startsWith('wxfile://')) return avatarUrl;
+  if (avatarUrl.startsWith('/images/')) return avatarUrl;
+  if (avatarUrl.startsWith('/uploads')) {
+    return SERVER_BASE + avatarUrl;
   }
-  if (avatarUrl.startsWith('http')) return avatarUrl;
-  return 'http://127.0.0.1:3000' + avatarUrl;
+  return SERVER_BASE + avatarUrl;
+}
+
+/**
+ * 通过后端 API 获取头像 base64（解决小程序真机网络图片限制）
+ * 使用缓存避免重复请求
+ */
+const avatarBase64Cache: Map<string, string> = new Map();
+export function fetchAvatarBase64(userId: number | string): Promise<string> {
+  const cacheKey = String(userId);
+  if (avatarBase64Cache.has(cacheKey)) {
+    return Promise.resolve(avatarBase64Cache.get(cacheKey)!);
+  }
+  return new Promise((resolve) => {
+    wx.request({
+      url: BASE_URL + '/user/avatar/' + cacheKey,
+      method: 'GET',
+      success: (res: any) => {
+        if (res.statusCode === 200 && res.data && res.data.code === 200 && res.data.data && res.data.data.base64) {
+          avatarBase64Cache.set(cacheKey, res.data.data.base64);
+          resolve(res.data.data.base64);
+        } else {
+          resolve('/images/default-avatar.png');
+        }
+      },
+      fail: () => {
+        resolve('/images/default-avatar.png');
+      }
+    });
+  });
+}
+
+/**
+ * 将网络图片下载为本地临时路径（使用 downloadFile）
+ * 也尝试通过 API 获取 base64
+ */
+export function downloadAvatar(avatarUrl: string): Promise<string> {
+  const fullUrl = getFullAvatarUrl(avatarUrl);
+  // 如果是本地图片路径，直接返回
+  if (fullUrl.startsWith('/images/') || fullUrl.startsWith('wxfile://') || !fullUrl.startsWith('http')) {
+    return Promise.resolve(fullUrl);
+  }
+  // 默认头像
+  if (avatarUrl === '/images/default-avatar.png' || !avatarUrl) {
+    return Promise.resolve('/images/default-avatar.png');
+  }
+  // 本地缓存
+  if (avatarCache.has(fullUrl)) {
+    return Promise.resolve(avatarCache.get(fullUrl)!);
+  }
+  // 通过 downloadFile 下载
+  return new Promise((resolve) => {
+    wx.downloadFile({
+      url: fullUrl,
+      success: (res) => {
+        if (res.statusCode === 200 && res.tempFilePath) {
+          avatarCache.set(fullUrl, res.tempFilePath);
+          resolve(res.tempFilePath);
+        } else {
+          resolve('/images/default-avatar.png');
+        }
+      },
+      fail: () => {
+        resolve('/images/default-avatar.png');
+      }
+    });
+  });
 }
 
 // 定义发布任务的请求参数类型
@@ -169,9 +242,19 @@ export function changePassword(data: { oldPassword: string; newPassword: string 
   return request('/user/change-password', 'POST', data);
 }
 
+// 获取其他用户公开信息
+export function getOtherUserInfo(userId: string) {
+  return request(`/user/${userId}`, 'GET');
+}
+
+// 获取其他用户发布的任务列表
+export function getUserPublishTasks(userId: string) {
+  return request(`/user/${userId}/tasks`, 'GET');
+}
+
 // AI 智能客服聊天（通过后端代理，用户无需配置 API Key）
 export function aiChat(message: string, history: any[] = []): Promise<{ code: number; data: { reply: string }; message?: string }> {
-  return request('/ai/chat', 'POST', { message, history }, { noAuth: true });
+  return request('/ai/chat', 'POST', { message, history });
 }
 
 // 上传头像（需后端实现对应接口）

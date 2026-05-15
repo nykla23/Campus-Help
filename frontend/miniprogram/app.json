@@ -1,14 +1,15 @@
 {
   "pages": [
-    "pages/register/register",
     "pages/login/login",
+    "pages/register/register",
     "pages/index/index",
     "pages/publish/publish",
     "pages/profile/profile",
     "pages/chat/chat",
     "pages/task/task",
     "pages/message/message",
-    "pages/ai/ai"
+    "pages/ai/ai",
+    "pages/user-profile/user-profile"
   ],
   "tabBar": {
     "color": "#86909C",     

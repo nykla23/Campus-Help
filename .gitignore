@@ -18,6 +18,9 @@ frontend/miniprogram/config/
 # 用户上传文件
 backend/uploads/
 
+# 生产环境密钥
+secrets/
+
 # 测试覆盖率
 coverage/
 frontend/coverage/

@@ -91,8 +91,19 @@ exports.acceptTask = async (req, res) => {
     const task = tasks[0];
     if (task.status !== 0) throw new Error('任务已被接单/已完成');
     if (task.publisher_id === userId) throw new Error('不能接自己发布的任务');
-    await connection.query('UPDATE tasks SET status = 1, acceptor_id = ? WHERE id = ?', [userId, taskId]);
+        await connection.query('UPDATE tasks SET status = 1, acceptor_id = ? WHERE id = ?', [userId, taskId]);
     await connection.commit();
+
+    // 🔔 Socket.IO 通知发布者任务被接单
+    const io = req.app.get('io');
+    const userSockets = req.app.get('userSockets');
+    const msg = `您的任务「${task.title}」已被接单`;
+    io.to(`task:${taskId}`).emit('taskUpdate', { taskId, status: 1, message: msg });
+    const pubSocketId = userSockets.get(String(task.publisher_id));
+    if (pubSocketId) {
+      io.to(pubSocketId).emit('taskUpdate', { taskId, status: 1, message: msg });
+    }
+
     res.json({ code: CODE.OK, message: '接单成功' });
   } catch (err) {
     await connection.rollback();
@@ -122,8 +133,18 @@ exports.completeTask = async (req, res) => {
     const task = tasks[0];
     if (task.acceptor_id !== userId) throw new Error('无权限操作');
     if (task.status !== 1) throw new Error('任务状态异常');
-    await connection.query('UPDATE tasks SET status = 2 WHERE id = ?', [taskId]);
+        await connection.query('UPDATE tasks SET status = 2 WHERE id = ?', [taskId]);
     await connection.commit();
+
+    // 🔔 Socket.IO 通知发布者任务已完成待确认
+    const io = req.app.get('io');
+    const userSockets = req.app.get('userSockets');
+    const msg = `接单者已提交任务「${task.title}」，请确认完成`;
+    const pubSocketId = userSockets.get(String(task.publisher_id));
+    if (pubSocketId) {
+      io.to(pubSocketId).emit('taskUpdate', { taskId, status: 2, message: msg });
+    }
+
     res.json({ code: CODE.OK, message: '已提交完成，等待发布者确认' });
   } catch (err) {
     await connection.rollback();
@@ -191,7 +212,17 @@ exports.confirmCompleteTask = async (req, res) => {
       [task.acceptor_id, task.reward, accUser[0].coins, taskId, `完成任务-${task.title}`]
     );
 
-    await connection.commit();
+        await connection.commit();
+
+    // 🔔 Socket.IO 通知接单者任务已完成
+    const io = req.app.get('io');
+    const userSockets = req.app.get('userSockets');
+    const msg = `任务「${task.title}」已完成，虚拟币已结算`;
+    const accSocketId = userSockets.get(String(task.acceptor_id));
+    if (accSocketId) {
+      io.to(accSocketId).emit('taskUpdate', { taskId, status: 3, message: msg });
+    }
+
     res.json({ code: CODE.OK, message: '任务已完成，虚拟币已结算' });
   } catch (err) {
     await connection.rollback();
@@ -244,7 +275,13 @@ exports.cancelTask = async (req, res) => {
       [userId, task.reward, userAfter[0].coins, taskId, `取消任务-${task.title}`]
     );
 
-    await connection.commit();
+        await connection.commit();
+
+    // 🔔 Socket.IO 通知相关方任务已取消（目前只有发布者操作，无需通知他人）
+    // 如果有接单者则通知，但取消时状态为0，没有接单者
+    const io = req.app.get('io');
+    io.to(`task:${taskId}`).emit('taskUpdate', { taskId, status: 4, message: `任务「${task.title}」已取消` });
+
     res.json({ code: CODE.OK, message: '任务已取消，虚拟币已返还' });
   } catch (err) {
     await connection.rollback();
@@ -274,8 +311,19 @@ exports.giveUpTask = async (req, res) => {
     const task = tasks[0];
     if (task.acceptor_id !== userId) throw new Error('无权限操作');
     if (task.status !== 1) throw new Error('任务状态异常，无法放弃');
-    await connection.query('UPDATE tasks SET status = 0, acceptor_id = NULL WHERE id = ?', [taskId]);
+        await connection.query('UPDATE tasks SET status = 0, acceptor_id = NULL WHERE id = ?', [taskId]);
     await connection.commit();
+
+    // 🔔 Socket.IO 通知发布者接单者已放弃任务
+    const io = req.app.get('io');
+    const userSockets = req.app.get('userSockets');
+    const msg = `接单者已放弃任务「${task.title}」，任务恢复待接取状态`;
+    const pubSocketId = userSockets.get(String(task.publisher_id));
+    if (pubSocketId) {
+      io.to(pubSocketId).emit('taskUpdate', { taskId, status: 0, message: msg });
+    }
+    io.to(`task:${taskId}`).emit('taskUpdate', { taskId, status: 0, message: msg });
+
     res.json({ code: CODE.OK, message: '任务已放弃，恢复待接取状态' });
   } catch (err) {
     await connection.rollback();

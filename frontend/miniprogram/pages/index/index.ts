@@ -128,13 +128,15 @@ Page({
     const sort = selectedFilter;
     const searchKeyword = keyword.trim() || undefined;
 
-    console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
-    this.setData({ page: 1, loading: true });
+        console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
+        this.setData({ page: 1, loading: true });
     getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(res => {
-      console.log('API响应:', res);
+      console.log('API响应:', JSON.stringify(res));
       if (res.code === 0 && res.data) {
+        const list = this._adaptTaskList(res.data.list);
+        console.log('适配后列表:', JSON.stringify(list));
         this.setData({
-          taskList: this._adaptTaskList(res.data.list),
+          taskList: list,
           total: res.data.total,
           page: 1
         });
@@ -184,7 +186,7 @@ Page({
 
       //console.log('请求参数:', { page: nextPage, limit, status, type, sort, keyword });
       this.setData({ loading: true });
-      getTaskList({ page: nextPage, limit, status, type, sort, keyword })
+                  getTaskList({ page: nextPage, limit, status, type, sort, keyword })
         .then(res => {
           console.log('loadMore 收到响应:', res);
           if (res.code === 0 && res.data) {
@@ -211,21 +213,25 @@ Page({
     }
   },
 
-  // 字段适配
+        // 字段适配
   _adaptTaskList(list: any[]) {
-    return (list || []).map(item => ({
-      id: item.taskId ,
-      avatar: getFullAvatarUrl(item.avatar || item.publisher?.avatar),
-      nickname: item.nickname || item.publisher?.nickname || '匿名用户',
-      credit: item.credit_score || item.publisher?.creditScore || '0',
-      title: item.title,
-      desc: item.description,
-      tag: this._adaptTaskType(item.type),
-      location: item.location,
-      coin: item.reward,
-      time: this._formatTime(item.createdAt, item.deadline),
-      status: this._adaptStatus(item.status)
-    }));
+    return (list || []).map(item => {
+      const rawAvatarUrl = item.avatar || (item.publisher && item.publisher.avatar);
+      return {
+        id: item.taskId,
+        userId: item.publisher_id || (item.publisher && item.publisher.id),
+        avatar: getFullAvatarUrl(rawAvatarUrl) || '/images/default-avatar.png',
+        nickname: item.nickname || (item.publisher && item.publisher.nickname) || '匿名用户',
+        credit: item.credit_score || (item.publisher && item.publisher.creditScore) || '0',
+        title: item.title,
+        desc: item.description,
+        tag: this._adaptTaskType(item.type),
+        location: item.location,
+        coin: item.reward,
+        time: this._formatTime(item.createdAt, item.deadline),
+        status: this._adaptStatus(item.status)
+      };
+    });
   },
 
   // 类型映射、状态映射、时间格式化 — 使用共享工具函数 (utils/common.ts)
@@ -270,5 +276,16 @@ Page({
   goToAI() {
     wx.navigateTo({ url: '/pages/ai/ai' });
   },
+
+  // 查看他人主页
+  viewUserProfile(e: any) {
+    const userId = e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: `/pages/user-profile/user-profile?userId=${userId}` });
+    }
+  },
+
+  // 阻止事件冒泡（头像点击不触卡片点击）
+  stopPropagation() {},
 
 });

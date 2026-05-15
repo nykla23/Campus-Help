@@ -1,5 +1,7 @@
-import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl } from '../../utils/api';
+import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl, fetchAvatarBase64 } from '../../utils/api';
 import { formatChatTimeShort, formatChatTimeDivider } from '../../utils/common';
+
+const app = getApp<IAppOption>();
 
 Page({
   data: {
@@ -12,10 +14,16 @@ Page({
     inputMsg: '',
     lastMsgId: '',
     myAvatar: '',
-    myId: 0
+    myId: 0,
+    statusBarHeight: 0,
+    // 滑动返回
+    touchStartX: 0,
+    touchCurrentX: 0,
+    isSwipingBack: false
   },
 
-  onLoad(options: any) {
+    onLoad(options: any) {
+    this.setData({ statusBarHeight: wx.getSystemInfoSync().statusBarHeight });
 
     console.log('聊天页接收参数:', options);
     console.log('taskId:', options.taskId, 'targetId:', options.targetId);
@@ -23,9 +31,8 @@ Page({
     const taskId = options.taskId;
     const targetId = options.targetId;
     const targetName = decodeURIComponent(options.targetName || '聊天');
-    // 解码并处理头像URL
-    const rawTargetAvatar = decodeURIComponent(options.targetAvatar || '');
-    const targetAvatar = getFullAvatarUrl(rawTargetAvatar);
+    const myId = Number(wx.getStorageSync('userId') || 0);
+    
     // 从本地存储获取自己的头像
     const storedAvatar = wx.getStorageSync('avatar') || '';
     const myAvatar = storedAvatar.startsWith('http') ? storedAvatar : getFullAvatarUrl(storedAvatar);
@@ -34,15 +41,97 @@ Page({
       taskId,
       targetId,
       targetName,
-      targetAvatar,
-      myId: Number(wx.getStorageSync('userId') || 0),
+      targetAvatar: '/images/default-avatar.png', // 先使用默认值
+      myId,
       myAvatar
     });
-    console.log('头像信息 - myAvatar:', myAvatar, 'targetAvatar:', targetAvatar);
-    // 先设置默认导航标题，等获取到真实昵称后再更新
+    
+    // 异步加载双方头像为 base64
+    this.loadAvatars(targetId, myId);
+    
     wx.setNavigationBarTitle({ title: targetName || '聊天' });
-    this.loadTaskAndUserInfo(); // 获取任务标题和对方信息
+    this.loadTaskAndUserInfo();
     this.loadChat();
+
+    // 注册全局事件监听
+    const emitter = app.globalData.eventEmitter;
+    if (emitter) {
+      emitter.on('newMessage', this._onNewMessage);
+    }
+  },
+
+  // 加载双方头像
+  async loadAvatars(targetId: string, myId: number) {
+    // 加载自己的头像
+    const myAvatarB64 = await fetchAvatarBase64(myId);
+    if (myAvatarB64) {
+      this.setData({ myAvatar: myAvatarB64 });
+    }
+    // 加载对方头像
+    const targetAvatarB64 = await fetchAvatarBase64(targetId);
+    if (targetAvatarB64) {
+      this.setData({ targetAvatar: targetAvatarB64 });
+    }
+  },
+
+  onUnload() {
+    // 移除全局事件监听
+    const emitter = app.globalData.eventEmitter;
+    if (emitter) {
+      emitter.off('newMessage', this._onNewMessage);
+    }
+  },
+
+  // 处理新消息事件
+  _onNewMessage(msg: any) {
+    //const that = this; // 保存 this 引用
+    // 只处理当前聊天相关的消息
+    if (String(msg.task_id) !== String(this.data.taskId)) return;
+    const isTarget = String(msg.from_id) === String(this.data.targetId);
+    const isSelf = String(msg.from_id) === String(this.data.myId);
+    if (!isTarget && !isSelf) return;
+
+    const list = this.data.msgList;
+    const lastItem = list[list.length - 1];
+    // 防止重复添加
+    if (lastItem && lastItem.id === msg.id) return;
+
+    const msgDate = new Date(msg.created_at);
+    let showTime = false;
+    let timeStr = '';
+    if (!lastItem) {
+      showTime = true;
+      timeStr = this.formatTimeDivider(msgDate);
+    } else {
+      const lastTime = new Date(lastItem.created_at);
+      if (msgDate.getTime() - lastTime.getTime() > 5 * 60 * 1000) {
+        showTime = true;
+        timeStr = this.formatTimeDivider(msgDate);
+      }
+    }
+
+    const isSend = String(msg.from_id) === String(this.data.myId);
+    const avatar = isSend ? this.data.myAvatar : this.data.targetAvatar;
+
+    list.push({
+      id: msg.id,
+      type: isSend ? 'send' : 'receive',
+      content: msg.content,
+      avatar: avatar,
+      timeShort: this.formatTimeShort(msgDate),
+      showTime,
+      timeStr,
+      created_at: msg.created_at
+    });
+
+    this.setData({
+      msgList: list,
+      lastMsgId: 'msg-' + msg.id
+    });
+
+    if (isSend) {
+      this.setData({ inputMsg: '' });
+    }
   },
 
   async loadTaskAndUserInfo() {
@@ -50,10 +139,7 @@ Page({
       const res = await getTaskDetail(this.data.taskId);
       if (res.code === 200 && res.data) {
         const task = res.data;
-        // 设置任务标题
         this.setData({ 'chatInfo.taskTitle': task.title });
-
-        // 获取对方用户信息 - 优先使用任务详情中的数据（更准确）
         let targetNickname = this.data.targetName;
         let targetAvatar = this.data.targetAvatar;
         
@@ -73,9 +159,7 @@ Page({
           });
           wx.setNavigationBarTitle({ title: targetNickname });
         } else {
-          this.setData({
-            'chatInfo.nickname': this.data.targetName || '聊天'
-          });
+          this.setData({ 'chatInfo.nickname': this.data.targetName || '聊天' });
         }
       } else {
         this.setData({ 'chatInfo.taskTitle': `任务${this.data.taskId}` });
@@ -109,16 +193,18 @@ Page({
           }
           lastTime = msgDate;
           
-          // 优先使用后端返回的头像，否则使用初始化时保存的头像
           const isSend = item.from_id == myId;
-          const fromAvatar = getFullAvatarUrl(item.from_avatar || '');
+          const rawFromAvatar = item.from_avatar || '';
+          const isValidImageUrl = rawFromAvatar && (rawFromAvatar.startsWith('http') || rawFromAvatar.startsWith('/uploads'));
+          const fromAvatar = isValidImageUrl ? getFullAvatarUrl(rawFromAvatar) : '';
           const avatar = isSend 
-            ? (fromAvatar !== '/images/default-avatar.png' ? fromAvatar : myAvatar)
-            : (fromAvatar !== '/images/default-avatar.png' ? fromAvatar : targetAvatar);
+            ? (fromAvatar || myAvatar)
+            : (fromAvatar || targetAvatar);
           
           return {
-            ...item,
+            id: item.id,
             type: isSend ? 'send' : 'receive',
+            content: item.content,
             avatar: avatar,
             timeShort,
             showTime,
@@ -127,7 +213,6 @@ Page({
           };
         });
         
-        // 更新对方头像（如果之前没有获取到）
         if (list.length > 0) {
           const firstReceive = list.find((m: any) => m.type === 'receive');
           if (firstReceive && firstReceive.avatar !== '/images/default-avatar.png') {
@@ -137,7 +222,7 @@ Page({
         
         this.setData({
           msgList: list,
-          lastMsgId: 'msg-' + (list[list.length - 1]?.id || ''),
+          lastMsgId: 'msg-' + ((list[list.length - 1] && list[list.length - 1].id) || ''),
           'chatInfo.nickname': this.data.targetName
         });
       } else {
@@ -151,7 +236,6 @@ Page({
     }
   },
 
-  // 时间格式化 — 使用共享工具函数 (utils/common.ts)
   formatTimeShort(date: Date): string { return formatChatTimeShort(date); },
   formatTimeDivider(date: Date): string { return formatChatTimeDivider(date); },
 
@@ -162,7 +246,46 @@ Page({
   async sendMsg() {
     const content = this.data.inputMsg.trim();
     if (!content) return;
-    wx.showLoading({ title: '发送中...' });
+    
+    const _myId = this.data.myId;
+    const tempId = Date.now() + Math.random(); // 临时 ID
+
+    // 乐观更新：立即在列表中添加自己发送的消息
+    const msgDate = new Date();
+    const list = this.data.msgList;
+    const lastItem = list[list.length - 1];
+    let showTime = false;
+    let timeStr = '';
+    if (!lastItem) {
+      showTime = true;
+      timeStr = this.formatTimeDivider(msgDate);
+    } else {
+      const lastTime = new Date(lastItem.created_at);
+      if (msgDate.getTime() - lastTime.getTime() > 5 * 60 * 1000) {
+        showTime = true;
+        timeStr = this.formatTimeDivider(msgDate);
+      }
+    }
+
+    list.push({
+      id: tempId,
+      type: 'send',
+      content: content,
+      avatar: this.data.myAvatar,
+      timeShort: this.formatTimeShort(msgDate),
+      showTime,
+      timeStr,
+      created_at: msgDate.toISOString(),
+      _sending: true  // 标记为发送中
+    });
+
+    this.setData({
+      msgList: list,
+      inputMsg: '',
+      lastMsgId: 'msg-' + tempId
+    });
+
+    // 发送 HTTP 请求
     try {
       const res = await sendMsgApi({
         toId: this.data.targetId,
@@ -170,19 +293,68 @@ Page({
         content
       });
       if (res.code === 200) {
-        this.setData({ inputMsg: '' });
-        this.loadChat(); // 重新加载消息列表
+        // 更新消息 ID（从临时 ID 替换为真实 ID）
+        const updatedList = this.data.msgList.map((msg: any) => {
+          if (msg.id === tempId) {
+            return { ...msg, id: res.data.id, _sending: false };
+          }
+          return msg;
+        });
+        this.setData({
+          msgList: updatedList,
+          lastMsgId: 'msg-' + res.data.id
+        });
       } else {
+        // 发送失败，标记为失败
+        const failedList = this.data.msgList.map((msg: any) => {
+          if (msg.id === tempId) {
+            return { ...msg, _failed: true, _sending: false };
+          }
+          return msg;
+        });
+        this.setData({ msgList: failedList });
         wx.showToast({ title: res.message || '发送失败', icon: 'none' });
       }
     } catch (_err) {
+      const failedList = this.data.msgList.map((msg: any) => {
+        if (msg.id === tempId) {
+          return { ...msg, _failed: true, _sending: false };
+        }
+        return msg;
+      });
+      this.setData({ msgList: failedList });
       wx.showToast({ title: '发送失败', icon: 'none' });
-    } finally {
-      wx.hideLoading();
     }
   },
 
   goBack() {
     wx.navigateBack();
+  },
+
+  viewUserProfile(e: any) {
+    const userId = e.currentTarget.dataset.userid;
+    if (userId) {
+      wx.navigateTo({ url: `/pages/user-profile/user-profile?userId=${userId}` });
+    }
+  },
+
+  // 滑动返回
+  onTouchStart(e: any) {
+    this.setData({ touchStartX: e.touches[0].clientX, isSwipingBack: false });
+  },
+  onTouchMove(e: any) {
+    const dx = e.touches[0].clientX - this.data.touchStartX;
+    if (dx > 60) {
+      this.setData({ touchCurrentX: Math.min(dx, 200), isSwipingBack: true });
+    } else {
+      this.setData({ touchCurrentX: 0, isSwipingBack: false });
+    }
+  },
+  onTouchEnd() {
+    if (this.data.touchCurrentX > 120 && this.data.isSwipingBack) {
+      wx.navigateBack();
+    } else {
+      this.setData({ touchCurrentX: 0, isSwipingBack: false });
+    }
   }
 });

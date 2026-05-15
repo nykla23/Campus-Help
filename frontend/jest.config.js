@@ -21,5 +21,6 @@ module.exports = {
   ],
   coverageDirectory: '../coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  verbose: true
+  verbose: true,
+  forceExit: true
 };

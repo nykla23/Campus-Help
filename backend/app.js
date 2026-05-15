@@ -3,33 +3,27 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./config/db');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
-// 主路由（如 app.js）
 
-
-
+// ... existing code ...
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 中间件 - CORS 限制来源
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173').split(',');
+// CORS 配置 - 允许所有来源（开发环境）
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(allowed => origin.includes(allowed))) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS policy: not allowed'));
-    }
-  },
+  origin: '*',
   credentials: true,
 }));
-// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', (req, res, next) => {
   console.log('静态文件请求:', req.url);
   console.log('静态目录:', path.join(__dirname, 'uploads'));
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
+// ... existing routes ...
 
 const userRouter = require('./routes/user');
 const authRouter = require('./routes/auth');
@@ -54,18 +48,71 @@ db.getConnection()
         process.exit(1);
     });
 
-// 路由占位（后续添加）
 app.get('/', (req, res) => {
     res.send('校园帮 API 服务运行中');
 });
 
-// 错误处理中间件（占位）
+// 健康检查端点
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.use((_err, req, res, _next) => {
     console.error(_err.stack);
     res.status(500).json({ code: 5000, message: '服务器内部错误' });
 });
 
+const server = http.createServer(app);
+
+// 🔌 Socket.IO 配置
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// 用户ID -> socketId 映射
+const userSockets = new Map();
+
+io.on('connection', (socket) => {
+  console.log('[Socket.IO] 新连接:', socket.id);
+
+  // 用户登录后绑定 userId
+  socket.on('register', (userId) => {
+    console.log('[Socket.IO] 用户注册:', userId, 'socket:', socket.id);
+    // 清除旧映射
+    for (const [key, value] of userSockets) {
+      if (value === socket.id) {
+        userSockets.delete(key);
+      }
+    }
+    userSockets.set(String(userId), socket.id);
+    console.log('[Socket.IO] 当前在线用户:', [...userSockets.keys()]);
+  });
+
+  // 用户加入任务房间（用于任务状态变更通知）
+  socket.on('joinTask', (taskId) => {
+    socket.join(`task:${taskId}`);
+    console.log(`[Socket.IO] 用户 ${socket.id} 加入任务房间 task:${taskId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('[Socket.IO] 断开连接:', socket.id);
+    for (const [key, value] of userSockets) {
+      if (value === socket.id) {
+        userSockets.delete(key);
+        break;
+      }
+    }
+  });
+});
+
+// 导出 io 和 userSockets 供其他模块使用
+app.set('io', io);
+app.set('userSockets', userSockets);
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`服务器启动成功，端口 ${PORT}`);
+server.listen(PORT, () => {
+    console.log(`服务器启动成功，端口 ${PORT} (Socket.IO 已启用)`);
 });
