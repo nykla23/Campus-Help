@@ -41,14 +41,18 @@ Page({
               console.log('保存的头像:', fullAvatar);
             }
             // 建立全局 WebSocket 连接
-            app.connectSocket && app.connectSocket();
+            if (app.connectSocket) {
+              app.connectSocket();
+            }
             wx.showToast({ title: "登录成功" });
             wx.switchTab({ url: "/pages/index/index" });
           }).catch((err) => {
             console.log('获取头像失败:', err);
             wx.hideLoading();
             // 依然建立 WebSocket 连接
-            app.connectSocket && app.connectSocket();
+            if (app.connectSocket) {
+              app.connectSocket();
+            }
             wx.showToast({ title: "登录成功" });
             wx.switchTab({ url: "/pages/index/index" });
           });

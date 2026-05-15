@@ -78,7 +78,7 @@ App<IAppOption>({
           // Socket.IO 升级或错误
           console.log('[Global Socket] 协议消息:', data);
         }
-      } catch (e) {
+      } catch (_e) {
         // 忽略非 JSON 消息（如二进制数据）
       }
     });

@@ -275,7 +275,7 @@ exports.getAvatarImage = async (req, res) => {
             const base64 = imgData.toString('base64');
             return res.json({ code: 200, data: { base64: `data:${mimeMap[ext] || 'image/png'};base64,${base64}` } });
           }
-        } catch (e) { /* 忽略 */ }
+        } catch (_e) { /* 忽略 */ }
       }
       return res.json({ code: 200, data: { base64: '' } });
     }
