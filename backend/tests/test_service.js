@@ -1,6 +1,9 @@
 // 后端单元测试 - 业务逻辑 + Mock 隔离数据库和外部 API
 // 目标：覆盖核心代码 >60%
 
+// 在所有 describe 之前
+jest.useFakeTimers();
+
 const userController = require('../controllers/user');
 const msgController = require('../controllers/message');
 const aiController = require('../controllers/ai');
@@ -39,6 +42,42 @@ const taskModel = require('../models/task');
 const bcrypt = require('bcryptjs');
 const _jwtUtil = require('../utils/jwt');
 const axios = require('axios');
+
+// ========== 全局 Mock 连接工厂 ==========
+function createMockConnection() {
+  const mockQuery = jest.fn();
+  // 默认返回空数组，避免解构 undefined
+  mockQuery.mockResolvedValue([[]]);
+  return {
+    beginTransaction: jest.fn().mockResolvedValue(),
+    commit: jest.fn().mockResolvedValue(),
+    rollback: jest.fn().mockResolvedValue(),
+    release: jest.fn(),
+    query: mockQuery,
+    execute: jest.fn()  // 保留 execute 以兼容，但控制器实际不用
+  };
+}
+
+// 辅助：按顺序设置 connection.query 返回值
+function mockQueryChain(conn, results) {
+  conn.query.mockReset();
+  for (const res of results) {
+    conn.query.mockResolvedValueOnce(res);
+  }
+  // 防止额外调用返回 undefined
+  conn.query.mockResolvedValue([[]]);
+  return conn;
+}
+
+// 辅助：按顺序设置 db.query 返回值（用于 sendMsg）
+function mockDbQueryChain(results) {
+  db.query.mockReset();
+  for (const res of results) {
+    db.query.mockResolvedValueOnce(res);
+  }
+  db.query.mockResolvedValue([[]]);
+  return db;
+}
 
 describe('=== User Controller 单元测试 ===', () => {
 
@@ -225,11 +264,9 @@ describe('=== User Controller 单元测试 ===', () => {
   // ===== getProfile 获取个人信息 =====
 
   test('getProfile - 应调用数据库查询并返回结果', async () => {
-    // 直接验证函数存在且可被调用，不依赖复杂mock链
     expect(typeof userController.getProfile).toBe('function');
     const req = { user: { id: 1 } };
     const res = { json: jest.fn() };
-    // 无论DB状态如何（有/无），函数不应抛异常
     await expect(userController.getProfile(req, res)).resolves.not.toThrow();
     expect(res.json).toHaveBeenCalled();
   });
@@ -347,8 +384,6 @@ describe('=== User Controller 单元测试 ===', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
   });
 
-  // ===== changePassword 异常路径 =====
-
   test('changePassword - 数据库异常应返回500', async () => {
     db.query.mockRejectedValue(new Error('DB Error'));
     const req = { user: { id: 1 }, body: { oldPassword: 'old', newPassword: 'newpass123' } };
@@ -362,31 +397,16 @@ describe('=== User Controller 单元测试 ===', () => {
 
 describe('=== Task Controller 单元测试 ===', () => {
 
-  // 辅助：创建模拟连接对象
-  function createMockConnection() {
-    return {
-      beginTransaction: jest.fn().mockResolvedValue(),
-      commit: jest.fn().mockResolvedValue(),
-      rollback: jest.fn().mockResolvedValue(),
-      release: jest.fn(),
-      query: jest.fn()
-    };
-  }
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
-  // ===== list 任务列表 =====
 
   test('list - 成功返回任务数据', async () => {
     taskModel.getList.mockResolvedValue({ total: 10, list: [{ id: 1 }] });
     const req = { query: {} };
     const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
     await taskController.list(req, res);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 0 })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 0 }));
   });
 
   test('list - 数据库异常返回500', async () => {
@@ -395,12 +415,8 @@ describe('=== Task Controller 单元测试 ===', () => {
     const res = { json: jest.fn(), status: jest.fn().mockReturnThis() };
     await taskController.list(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 500 })  // CODE.SERVER_ERROR
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
   });
-
-  // ===== getTaskDetail 任务详情 =====
 
   test('getTaskDetail - 成功返回详情（含发布者和接单者）', async () => {
     db.query.mockResolvedValue([[{
@@ -461,10 +477,28 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('acceptTask - 成功接单', async () => {
     const conn = createMockConnection();
-    conn.query.mockResolvedValue([[{ id: 1, status: 0, publisher_id: 10 }]]);
+    // 顺序：SELECT 任务, UPDATE 接单
+    mockQueryChain(conn, [
+      [[{ id: 1, status: 0, publisher_id: 10, title: '测试任务' }]], // SELECT
+      [{ affectedRows: 1 }]                                            // UPDATE
+    ]);
     db.getConnection.mockResolvedValue(conn);
 
-    const req = { params: { id: '1' }, user: { id: 20 } };
+    const req = {
+      params: { id: '1' },
+      user: { id: 20 },
+      app: {
+        get: jest.fn().mockImplementation((key) => {
+          if (key === 'io') {
+            return { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+          }
+          if (key === 'userSockets') {
+            return { get: jest.fn().mockReturnValue(null) };
+          }
+          return undefined;
+        })
+      }
+    };
     const res = { json: jest.fn() };
     await taskController.acceptTask(req, res);
     expect(conn.commit).toHaveBeenCalled();
@@ -475,7 +509,7 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('acceptTask - 任务不存在应返回400', async () => {
     const conn = createMockConnection();
-    conn.query.mockResolvedValue([[]]);
+    conn.query.mockResolvedValue([[]]);  // SELECT 返回空
     db.getConnection.mockResolvedValue(conn);
 
     const req = { params: { id: '999' }, user: { id: 20 } };
@@ -516,10 +550,23 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('completeTask - 提交完成成功', async () => {
     const conn = createMockConnection();
-    conn.query.mockResolvedValueOnce([[{ id: 1, acceptor_id: 20, status: 1 }]]);
+    mockQueryChain(conn, [
+      [[{ id: 1, acceptor_id: 20, status: 1, title: '任务' }]], // SELECT
+      [{ affectedRows: 1 }]                                      // UPDATE status=2
+    ]);
     db.getConnection.mockResolvedValue(conn);
 
-    const req = { params: { id: '1' }, user: { id: 20 } };
+    const req = {
+      params: { id: '1' },
+      user: { id: 20 },
+      app: {
+        get: jest.fn().mockImplementation((key) => {
+          if (key === 'io') return { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+          if (key === 'userSockets') return { get: jest.fn().mockReturnValue(null) };
+          return undefined;
+        })
+      }
+    };
     const res = { json: jest.fn() };
     await taskController.completeTask(req, res);
     expect(conn.commit).toHaveBeenCalled();
@@ -545,18 +592,29 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('confirmCompleteTask - 确认完成成功并结算', async () => {
     const conn = createMockConnection();
-    conn.query
-      .mockResolvedValueOnce([[{ id: 1, status: 2, publisher_id: 10, acceptor_id: 20, reward: 50, title: '任务' }]]) // SELECT task
-      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE publisher coins (atomic)
-      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE acceptor coins
-      .mockResolvedValueOnce([[{ coins: 150 }]])        // SELECT pubUser coins
-      .mockResolvedValueOnce([[{ coins: 150 }]])        // SELECT accUser coins
-      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE task status = 3
-      .mockResolvedValueOnce([{ affectedRows: 1 }])     // INSERT transaction (pub)
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);    // INSERT transaction (acc)
+    mockQueryChain(conn, [
+      [[{ id: 1, status: 2, publisher_id: 10, acceptor_id: 20, reward: 50, title: '任务' }]], // SELECT task
+      [{ affectedRows: 1 }],     // UPDATE 发布者扣款
+      [{ affectedRows: 1 }],     // UPDATE 接单者加钱
+      [[{ coins: 150 }]],        // SELECT 发布者最新余额
+      [[{ coins: 150 }]],        // SELECT 接单者最新余额
+      [{ affectedRows: 1 }],     // UPDATE task status=3
+      [{ affectedRows: 1 }],     // INSERT 发布者交易记录
+      [{ affectedRows: 1 }]      // INSERT 接单者交易记录
+    ]);
     db.getConnection.mockResolvedValue(conn);
 
-    const req = { params: { id: '1' }, user: { id: 10 } };
+    const req = {
+      params: { id: '1' },
+      user: { id: 10 },
+      app: {
+        get: jest.fn().mockImplementation((key) => {
+          if (key === 'io') return { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+          if (key === 'userSockets') return { get: jest.fn().mockReturnValue(null) };
+          return undefined;
+        })
+      }
+    };
     const res = { json: jest.fn() };
     await taskController.confirmCompleteTask(req, res);
     expect(conn.commit).toHaveBeenCalled();
@@ -582,15 +640,25 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('cancelTask - 取消任务成功并返还虚拟币', async () => {
     const conn = createMockConnection();
-    conn.query
-      .mockResolvedValueOnce([[{ id: 1, status: 0, publisher_id: 10, reward: 30, title: '取消测试' }]]) // SELECT task
-      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE refund coins (atomic)
-      .mockResolvedValueOnce([{ affectedRows: 1 }])     // UPDATE task status = 4
-      .mockResolvedValueOnce([[{ coins: 130 }]])        // SELECT userAfter coins
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);    // INSERT transaction
+    mockQueryChain(conn, [
+      [[{ id: 1, status: 0, publisher_id: 10, reward: 30, title: '取消测试' }]], // SELECT task
+      [{ affectedRows: 1 }],     // UPDATE 返还虚拟币
+      [{ affectedRows: 1 }],     // UPDATE task status=4
+      [[{ coins: 130 }]],        // SELECT 用户最新余额
+      [{ affectedRows: 1 }]      // INSERT 交易记录
+    ]);
     db.getConnection.mockResolvedValue(conn);
 
-    const req = { params: { id: '1' }, user: { id: 10 } };
+    const req = {
+      params: { id: '1' },
+      user: { id: 10 },
+      app: {
+        get: jest.fn().mockImplementation((key) => {
+          if (key === 'io') return { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+          return undefined;
+        })
+      }
+    };
     const res = { json: jest.fn() };
     await taskController.cancelTask(req, res);
     expect(conn.commit).toHaveBeenCalled();
@@ -601,7 +669,7 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('cancelTask - 已被接取无法取消', async () => {
     const conn = createMockConnection();
-    conn.query.mockResolvedValueOnce([[{ id: 1, status: 1, publisher_id: 10, reward: 30, title: '任务' }]]);
+    conn.query.mockResolvedValue([[{ id: 1, status: 1, publisher_id: 10, reward: 30, title: '任务' }]]);
     db.getConnection.mockResolvedValue(conn);
 
     const req = { params: { id: '1' }, user: { id: 10 } };
@@ -616,10 +684,23 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('giveUpTask - 放弃任务成功', async () => {
     const conn = createMockConnection();
-    conn.query.mockResolvedValueOnce([[{ id: 1, acceptor_id: 20, status: 1 }]]);
+    mockQueryChain(conn, [
+      [[{ id: 1, acceptor_id: 20, status: 1, title: '任务' }]], // SELECT
+      [{ affectedRows: 1 }]                                      // UPDATE 清空接单者
+    ]);
     db.getConnection.mockResolvedValue(conn);
 
-    const req = { params: { id: '1' }, user: { id: 20 } };
+    const req = {
+      params: { id: '1' },
+      user: { id: 20 },
+      app: {
+        get: jest.fn().mockImplementation((key) => {
+          if (key === 'io') return { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+          if (key === 'userSockets') return { get: jest.fn().mockReturnValue(null) };
+          return undefined;
+        })
+      }
+    };
     const res = { json: jest.fn() };
     await taskController.giveUpTask(req, res);
     expect(conn.commit).toHaveBeenCalled();
@@ -630,7 +711,7 @@ describe('=== Task Controller 单元测试 ===', () => {
 
   test('giveUpTask - 非接单者无法放弃', async () => {
     const conn = createMockConnection();
-    conn.query.mockResolvedValueOnce([[{ id: 1, acceptor_id: 20, status: 1 }]]);
+    conn.query.mockResolvedValue([[{ id: 1, acceptor_id: 20, status: 1 }]]);
     db.getConnection.mockResolvedValue(conn);
 
     const req = { params: { id: '1' }, user: { id: 99 } };
@@ -644,23 +725,11 @@ describe('=== Task Controller 单元测试 ===', () => {
 
 describe('=== Publish Controller 单元测试 ===', () => {
 
-  // 辅助：创建模拟连接对象
-  function createMockConn() {
-    return {
-      beginTransaction: jest.fn().mockResolvedValue(),
-      commit: jest.fn().mockResolvedValue(),
-      rollback: jest.fn().mockResolvedValue(),
-      release: jest.fn(),
-      query: jest.fn()
-    };
-  }
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   test('publishTask - 参数缺失应返回400', async () => {
-    // 参数校验在获取连接之前，不需要 mock connection
     const req = { user: { id: 1 }, body: {} };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     await publishController.publishTask(req, res);
@@ -671,7 +740,6 @@ describe('=== Publish Controller 单元测试 ===', () => {
   });
 
   test('publishTask - reward<=0应返回400', async () => {
-    // 参数校验阶段，无需 connection
     const req = { user: { id: 1 }, body: { type: 0, title: '任务', description: '描述', reward: 0 } };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     await publishController.publishTask(req, res);
@@ -679,8 +747,8 @@ describe('=== Publish Controller 单元测试 ===', () => {
   });
 
   test('publishTask - 余额不足应返回400', async () => {
-    const conn = createMockConn();
-    // 原子操作：UPDATE SET coins=coins-? WHERE coins>=? 返回 affectedRows=0 表示余额不足
+    const conn = createMockConnection();
+    // 原子扣款返回 affectedRows=0
     conn.query.mockResolvedValue([{ affectedRows: 0 }]);
     db.getConnection.mockResolvedValue(conn);
 
@@ -688,45 +756,43 @@ describe('=== Publish Controller 单元测试 ===', () => {
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     await publishController.publishTask(req, res);
     expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 400, message: '虚拟币余额不足' })
+    );
   });
 
   test('publishTask - 发布成功路径应调用commit', async () => {
-    const conn = createMockConn();
-    // 新顺序：先原子UPDATE扣余额(affectedRows>0)，再INSERT任务(insertId)
-    let qCall = 0;
-    conn.query.mockImplementation(async (sql) => {
-      qCall++;
-      if (qCall === 1) return [{ affectedRows: 1 }]; // 原子扣款成功
-      if (sql.includes('INSERT')) return { insertId: 42 }; // 插入任务
-      return undefined;
-    });
+    const conn = createMockConnection();
+    mockQueryChain(conn, [
+      [{ affectedRows: 1 }],      // 原子扣款成功
+      [{ insertId: 42 }]          // 插入任务成功
+    ]);
     db.getConnection.mockResolvedValue(conn);
-    // 重置模块缓存确保使用最新mock
-    jest.resetModules();
 
     const req = { user: { id: 1 }, body: { type: 0, title: '新任务', description: '帮忙带饭', reward: 10, location: '', deadline: '' } };
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-    await expect(publishController.publishTask(req, res)).resolves.not.toThrow();
-    // 验证函数正常执行完毕即可
-    expect(res.json).toHaveBeenCalled();
+    await publishController.publishTask(req, res);
+    expect(conn.commit).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 200, message: '任务发布成功' })
+    );
   });
 
   test('publishTask - 数据库异常应触发catch并返回错误', async () => {
-    const conn = createMockConn();
-    let qCall = 0;
-    conn.query.mockImplementation(async () => {
-      qCall++;
-      if (qCall === 1) return [{ affectedRows: 1 }]; // 原子扣款通过
-      throw new Error('DB Error'); // INSERT 任务抛异常
-    });
+    const conn = createMockConnection();
+    // 扣款成功，但插入任务时抛异常
+    conn.query.mockResolvedValueOnce([{ affectedRows: 1 }]);
+    conn.query.mockRejectedValueOnce(new Error('DB Error'));
     db.getConnection.mockResolvedValue(conn);
 
     const req = { user: { id: 1 }, body: { type: 0, title: '任务', description: '描述', reward: 10 } };
-    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn().mockReturnThis() };
     await publishController.publishTask(req, res);
-    // 核心验证：不返回200成功码（可能是500或400）
-    const result = res.json.mock.calls[0][0];
-    expect(result.code).not.toBe(200);
+    // 应该返回 500
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 500, message: '服务器错误' })
+    );
   });
 });
 
@@ -735,10 +801,6 @@ describe('=== Message Controller 单元测试 ===', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
-// ===== 时间格式化已统一到前端 common.ts（formatMsgListTime），后端不再重复实现 =====
-
-// ===== sendMsg 发送消息 =====
 
   test('sendMsg - 内容为空应返回400', async () => {
     const req = { user: { id: 1 }, body: { toId: 2, taskId: 10, content: '' } };
@@ -750,11 +812,25 @@ describe('=== Message Controller 单元测试 ===', () => {
   });
 
   test('sendMsg - 发送成功应返回200', async () => {
-    db.query
-      .mockResolvedValueOnce([[{ id: 2 }]])                              // 目标用户存在
-      .mockResolvedValueOnce([[{ publisher_id: 1, acceptor_id: 2 }]])   // 任务存在且用户是参与者
-      .mockResolvedValueOnce([{ affectedRows: 1 }]);                     // INSERT message
-    const req = { user: { id: 1 }, body: { toId: 2, taskId: 10, content: '你好' } };
+    // 注意：sendMsg 内部使用 db.query（全局池），而不是 getConnection
+    mockDbQueryChain([
+      [[{ id: 2 }]],               // 查询目标用户存在
+      [[{ id: 1, nickname: 'Alice', avatar: '/a.jpg' }]], // 查询发送者信息
+      [[{ publisher_id: 1, acceptor_id: 2 }]], // 查询任务参与者
+      [{ insertId: 123 }]          // 插入消息成功
+    ]);
+
+    const req = {
+        user: { id: 1 },
+        body: { toId: 2, taskId: 10, content: '你好' },
+        app: {
+          get: jest.fn().mockImplementation((key) => {
+            if (key === 'io') return { to: jest.fn().mockReturnThis(), emit: jest.fn() };
+            if (key === 'userSockets') return { get: jest.fn().mockReturnValue(null) };
+            return undefined;
+          })
+        }
+    };
     const res = { json: jest.fn() };
     await msgController.sendMsg(req, res);
     expect(res.json).toHaveBeenCalledWith(
@@ -769,8 +845,6 @@ describe('=== Message Controller 单元测试 ===', () => {
     await msgController.sendMsg(req, res);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
   });
-
-  // ===== getMsgList 消息列表 =====
 
   test('getMsgList - 成功返回消息列表', async () => {
     db.query.mockResolvedValue([[{
@@ -790,16 +864,12 @@ describe('=== Message Controller 单元测试 ===', () => {
     const req = { user: { id: 1 } };
     const res = { json: jest.fn() };
     await msgController.getMsgList(req, res);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 500 })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
   });
-
-  // ===== getChatDetail 聊天详情 =====
 
   test('getChatDetail - 成功返回聊天记录', async () => {
     db.query
-      .mockResolvedValueOnce([[{ publisher_id: 1, acceptor_id: 2 }]])   // 权限校验：用户是发布者
+      .mockResolvedValueOnce([[{ publisher_id: 1, acceptor_id: 2 }]])   // 权限校验
       .mockResolvedValueOnce([[{ id: 1, avatar: '/a.jpg' }, { id: 2, avatar: '/b.jpg' }]])
       .mockResolvedValueOnce([[{ id: 10, content: '你好', from_id: 1, to_id: 2, from_avatar: '/a.jpg' }]]);
     const req = { params: { taskId: '1', targetId: '2' }, user: { id: 1 } };
@@ -811,7 +881,7 @@ describe('=== Message Controller 单元测试 ===', () => {
   });
 
   test('getChatDetail - 无权限查看应返回403', async () => {
-    db.query.mockResolvedValueOnce([[{ publisher_id: 99, acceptor_id: 88 }]]); // 用户1不是参与者
+    db.query.mockResolvedValueOnce([[{ publisher_id: 99, acceptor_id: 88 }]]);
     const req = { params: { taskId: '1', targetId: '2' }, user: { id: 1 } };
     const res = { json: jest.fn() };
     await msgController.getChatDetail(req, res);
@@ -821,7 +891,6 @@ describe('=== Message Controller 单元测试 ===', () => {
   });
 
   test('getChatDetail - 数据库异常应返回500', async () => {
-    // 权限校验阶段抛异常（在try块之前）
     db.query.mockRejectedValue(new Error('DB Error'));
     const req = { params: { taskId: '1', targetId: '2' }, user: { id: 1 } };
     const res = { json: jest.fn() };
@@ -892,15 +961,13 @@ describe('=== AI Controller 单元测试 ===', () => {
 
   test('chat - API Key 未配置应返回500', async () => {
     process.env.AI_PROVIDER = 'groq';
-    process.env.GROQ_API_KEY = '';  // 空 key
+    process.env.GROQ_API_KEY = '';
     delete process.env.DEEPSEEK_API_KEY;
 
     const req = { body: { message: '测试', history: [] } };
     const res = { json: jest.fn() };
     await aiController.chat(req, res);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 500 })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
   });
 
   test('chat - AI API 抛异常应返回500', async () => {
@@ -911,9 +978,7 @@ describe('=== AI Controller 单元测试 ===', () => {
     const req = { body: { message: '测试', history: [] } };
     const res = { json: jest.fn() };
     await aiController.chat(req, res);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 500 })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
   });
 
   test('chat - provider=groq 应走 groq 分支', async () => {
@@ -926,8 +991,17 @@ describe('=== AI Controller 单元测试 ===', () => {
     const req = { body: { message: 'hello' } };
     const res = { json: jest.fn() };
     await aiController.chat(req, res);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({ code: 200 })
-    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 200 }));
   });
+});
+
+// 全局清理，解决 Jest 强制退出问题
+// 在文件最后（所有 describe 之后）
+afterAll(() => {
+  // 恢复真实定时器并清理
+  jest.useRealTimers();
+  // 关闭所有数据库连接（如果存在真实连接池）
+  if (db.end) db.end();
+  // 强制结束所有未解决的 Promise（可选）
+  return new Promise(resolve => setTimeout(resolve, 10));
 });

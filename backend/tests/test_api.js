@@ -37,10 +37,36 @@ app.use((_err, req, res, _next) => {
   res.status(500).json({ code: 5000 });
 });
 
+// 启动服务器实例，以便正确关闭 TCP 连接
+let server;
+
+beforeAll(() => {
+  server = app.listen(0); // 使用随机端口，避免冲突
+});
+
+afterAll((done) => {
+  // 强制关闭所有活动连接（Node.js 18.2+）
+  if (server && server.closeAllConnections) {
+    server.closeAllConnections();
+  }
+  // 关闭服务器并等待回调
+  server.close((err) => {
+    if (err) console.warn('Server close error:', err);
+    done();
+  });
+  // 超时保护，防止 hang
+  setTimeout(() => {
+    if (server && server.listening) {
+      server.close();
+      done();
+    }
+  }, 500);
+});
+
 describe('=== Auth API 测试 ===', () => {
 
   test('POST /api/auth/login - 缺少参数应返回1001', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/auth/login')
       .send({});
     expect(res.status).toBe(200);
@@ -48,7 +74,7 @@ describe('=== Auth API 测试 ===', () => {
   });
 
   test('POST /api/auth/login - 用户不存在或DB不可用应返回错误码', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/auth/login')
       .send({ username: 'nobody', password: '123456' });
     // 有DB时返回200+code:1005，无DB时返回500，都算接口正常工作
@@ -61,7 +87,7 @@ describe('=== Auth API 测试 ===', () => {
 describe('=== User API 测试 ===', () => {
 
   test('POST /api/users/register - 缺少参数应返回1001', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/users')
       .send({});
     expect(res.status).toBe(200);
@@ -69,7 +95,7 @@ describe('=== User API 测试 ===', () => {
   });
 
   test('POST /api/users/register - 密码不一致应返回1007', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/users')
       .send({
         username: 'testuser',
@@ -82,14 +108,14 @@ describe('=== User API 测试 ===', () => {
   });
 
   test('GET /api/users/profile - 应返回响应（含code字段）', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .get('/api/users/profile');
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('code');
   });
 
   test('POST /api/users/change-password - 参数为空应返回400', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/users/change-password')
       .send({});
     expect(res.status).toBe(200);
@@ -97,7 +123,7 @@ describe('=== User API 测试 ===', () => {
   });
 
   test('POST /api/users/update - 无更新字段应返回400', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/users/update')
       .send({});
     expect(res.status).toBe(200);
@@ -109,7 +135,7 @@ describe('=== User API 测试 ===', () => {
 describe('=== Task API 测试 ===', () => {
 
   test('GET /api/tasks - 任务列表应返回响应', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .get('/api/tasks');
     // 有DB返回200，无DB返回500（内部错误处理），都说明路由正常
     expect([200, 500]).toContain(res.status);
@@ -117,7 +143,7 @@ describe('=== Task API 测试 ===', () => {
   });
 
   test('GET /api/tasks?status=0 - 按状态过滤', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .get('/api/tasks?status=0&type=0&keyword=test&page=1&limit=10');
     // 同上，兼容无DB环境
     expect([200, 500]).toContain(res.status);
@@ -128,7 +154,7 @@ describe('=== Task API 测试 ===', () => {
 describe('=== Message API 测试 ===', () => {
 
   test('POST /api/messages/send - 内容为空应返回400', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/messages/send')
       .send({ toId: 2, taskId: 10, content: '' });
     expect(res.status).toBe(200);
@@ -136,14 +162,14 @@ describe('=== Message API 测试 ===', () => {
   });
 
   test('GET /api/messages/chat/:taskId/:targetId - 聊天详情应返回响应', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .get('/api/messages/chat/1/2');
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('code');
   });
 
   test('GET /api/messages/list - 消息列表应返回响应', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .get('/api/messages/list');
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('code');
@@ -154,7 +180,7 @@ describe('=== Message API 测试 ===', () => {
 describe('=== AI API 测试 ===', () => {
 
   test('POST /api/ai/chat - 消息为空应返回400', async () => {
-    const res = await request(app)
+    const res = await request(server)
       .post('/api/ai/chat')
       .send({});
     expect(res.status).toBe(200);
