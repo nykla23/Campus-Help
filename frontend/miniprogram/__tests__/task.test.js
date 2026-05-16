@@ -8,6 +8,7 @@ jest.mock('../utils/api', () => ({
   cancelTask: jest.fn(),
   giveUpTask: jest.fn(),
   confirmCompleteTask: jest.fn(),
+  fetchAvatarBase64: jest.fn().mockResolvedValue('data:image/png;base64,mock'),
   getFullAvatarUrl: (url) => url || '/images/default-avatar.png'
 }));
 const api = require('../utils/api');

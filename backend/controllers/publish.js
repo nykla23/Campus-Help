@@ -11,7 +11,7 @@ exports.publishTask = async (req, res) => {
     const userId = req.user.id;
 
     // 参数校验
-    if (!type || !title || !description || !reward || reward <= 0) {
+    if (type === undefined || type === null || !title || !description || !reward || reward <= 0) {
       return res.status(400).json({ code: CODE.BAD_REQUEST, message: '必填参数不能为空' });
     }
 

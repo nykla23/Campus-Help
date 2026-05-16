@@ -1,6 +1,13 @@
 /**
  * 发布任务页面组件测试
  */
+
+// ===== 新增：Mock 微信 API 方法 =====
+if (typeof wx === 'undefined') {
+  global.wx = {};
+}
+wx.getMenuButtonBoundingClientRect = jest.fn().mockReturnValue({ bottom: 100 });
+
 jest.mock('../utils/api', () => ({
   publishTask: jest.fn(),
   getFullAvatarUrl: (url) => url || '/images/default-avatar.png'
