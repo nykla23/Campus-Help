@@ -92,7 +92,7 @@ describe('他人主页 UserProfile', () => {
     });
 
     test('goToChat 显示提示信息', () => {
-      wx.showModal.mockImplementation((opts) => {});
+      wx.showModal.mockImplementation((_opts) => {});
       page.goToChat();
       expect(wx.showModal).toHaveBeenCalledWith({
         title: '提示',
