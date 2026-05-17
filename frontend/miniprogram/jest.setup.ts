@@ -56,7 +56,8 @@ let pageInstance: any = null;
 (global as any).getCurrentPages = () => [{}, {}]; // 默认有上一页
 
 // 模拟 getApp
-(global as any).getApp = () => ({ globalData: { userId: 1 } });
+const mockGlobalData: any = { userId: 1, eventEmitter: { on: jest.fn(), off: jest.fn() } };
+(global as any).getApp = () => ({ globalData: mockGlobalData });
 
 beforeEach(() => {
   // 每个 test 前清空所有 mock 调用记录

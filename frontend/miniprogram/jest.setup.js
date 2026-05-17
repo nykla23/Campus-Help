@@ -59,7 +59,8 @@ global.Page = function(options) {
 global.getPageInstance = () => pageInstance;
 global.resetPageInstance = () => { pageInstance = null; };
 global.getCurrentPages = () => [{}, {}];
-global.getApp = () => ({ globalData: { userId: 1 } });
+const mockGlobalData = { userId: 1, eventEmitter: { on: jest.fn(), off: jest.fn() } };
+global.getApp = () => ({ globalData: mockGlobalData });
 
 beforeEach(() => {
   jest.clearAllMocks();

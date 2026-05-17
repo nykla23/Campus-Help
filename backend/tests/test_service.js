@@ -18,7 +18,8 @@ jest.mock('../config/db', () => ({
 
 jest.mock('../models/user', () => ({
   findByUsername: jest.fn(),
-  create: jest.fn()
+  create: jest.fn(),
+  findById: jest.fn()
 }));
 
 jest.mock('../models/task', () => ({
@@ -83,6 +84,7 @@ describe('=== User Controller 单元测试 ===', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    userModel.findById.mockResolvedValue({ id: 1, username: 'testuser', avatar: '', credit_score: 100 });
   });
 
   // ===== register 注册功能 =====
@@ -334,22 +336,24 @@ describe('=== User Controller 单元测试 ===', () => {
     );
   });
 
-  test('getTrades - type=2 应映射为expense', async () => {
-    db.query.mockResolvedValue([[{ id: 2, title: '确认完成', amount: 10, type: 2, time: new Date(), task_id: 5 }]]);
-    const req = { user: { id: 1 } };
-    const res = { json: jest.fn() };
-    await userController.getTrades(req, res);
-    const trades = res.json.mock.calls[0][0].data;
-    expect(trades[0].type).toBe('expense');
-  });
+    test('getTrades - type=2 应映射为expense', async () => {
+      jest.clearAllMocks();
+      db.query.mockResolvedValueOnce([[{ id: 2, title: '确认完成', amount: 10, type: 2, time: new Date(), task_id: 5 }]]);
+      const req = { user: { id: 1 } };
+      const res = { json: jest.fn() };
+      await userController.getTrades(req, res);
+      const call = res.json.mock.calls[0][0];
+      expect(call.code).toBe(200);
+      expect(call.data[0].type).toBe('expense');
+    });
 
-  test('getTrades - 数据库异常应返回500', async () => {
-    db.query.mockRejectedValue(new Error('DB Error'));
-    const req = { user: { id: 1 } };
-    const res = { json: jest.fn() };
-    await userController.getTrades(req, res);
-    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
-  });
+    test('getTrades - 数据库异常应返回500', async () => {
+      db.query.mockRejectedValue(new Error('DB Error'));
+      const req = { user: { id: 1 } };
+      const res = { json: jest.fn() };
+      await userController.getTrades(req, res);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+    });
 
   // ===== uploadAvatar 上传头像 =====
 
@@ -992,6 +996,468 @@ describe('=== AI Controller 单元测试 ===', () => {
     const res = { json: jest.fn() };
     await aiController.chat(req, res);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 200 }));
+  });
+});
+
+// ==================== user.js 剩余路径 ====================
+
+describe('=== User Controller - 补充路径 (getUserById / getProfile / 密码/头像) ===', () => {
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+    // ----- getUserById -----
+  test('getUserById - 成功返回用户信息', async () => {
+    const mockUser = { id: 10, nickname: '张三', avatar: '/a.png', credit_score: 80 };
+    userModel.findById.mockResolvedValue(mockUser);
+    db.query.mockResolvedValue([[{ count: 5 }]]);
+    const req = { params: { id: '10' } };
+    const res = { json: jest.fn() };
+    await userController.getUserById(req, res);
+    expect(res.json).toHaveBeenCalledWith({
+      code: 200,
+      data: { user: mockUser, stats: { credit: 80, finishCount: 5 } }
+    });
+  });
+
+  test('getUserById - 无效ID应返回400', async () => {
+    const req = { params: { id: 'abc' } };
+    const res = { json: jest.fn() };
+    await userController.getUserById(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400 }));
+  });
+
+  test('getUserById - 用户不存在应返回404', async () => {
+    userModel.findById.mockResolvedValue(null);
+    const req = { params: { id: '999' } };
+    const res = { json: jest.fn() };
+    await userController.getUserById(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 404 }));
+  });
+
+  test('getUserById - 异常应返回500', async () => {
+    userModel.findById.mockRejectedValue(new Error('db fail'));
+    const req = { params: { id: '1' } };
+    const res = { json: jest.fn() };
+    await userController.getUserById(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  test('getUserById - db.query 异常也应返回500', async () => {
+    const mockUser = { id: 1, nickname: '测试', credit_score: 90 };
+    userModel.findById.mockResolvedValue(mockUser);
+    db.query.mockRejectedValue(new Error('stats query fail'));
+    const req = { params: { id: '1' } };
+    const res = { json: jest.fn() };
+    await userController.getUserById(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  // ----- getUserPublishTasks -----
+  test('getUserPublishTasks - 成功返回任务列表', async () => {
+    const tasks = [{ id: 1, title: '取件' }];
+    db.query.mockResolvedValueOnce([tasks]);
+    const req = { params: { id: '10' } };
+    const res = { json: jest.fn() };
+    await userController.getUserPublishTasks(req, res);
+    expect(res.json).toHaveBeenCalledWith({ code: 200, data: tasks });
+  });
+
+  test('getUserPublishTasks - 无效ID应返回400', async () => {
+    const req = { params: { id: '' } };
+    const res = { json: jest.fn() };
+    await userController.getUserPublishTasks(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400 }));
+  });
+
+  test('getUserPublishTasks - 异常应返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { params: { id: '1' } };
+    const res = { json: jest.fn() };
+    await userController.getUserPublishTasks(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  // ----- getProfile -----
+    test('getProfile - 成功返回个人信息', async () => {
+    const userData = { id: 1, nickname: '我', avatar: '', signature: '嗨', coins: 200, credit_score: 90 };
+    db.query.mockResolvedValueOnce([[userData]]);
+    db.query.mockResolvedValueOnce([[{ count: 10 }]]);
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.getProfile(req, res);
+    // 验证返回
+    const call = res.json.mock.calls[0][0];
+    expect(call.code).toBe(200);
+    expect(call.data.user.nickname).toBe('我');
+    expect(call.data.stats).toEqual({ coins: 200, credit: 90, finishCount: 10 });
+  });
+
+  test('getProfile - 用户不存在返回404', async () => {
+    db.query.mockResolvedValueOnce([[]]);
+    const req = { user: { id: 999 } };
+    const res = { json: jest.fn() };
+    await userController.getProfile(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 404 }));
+  });
+
+  test('getProfile - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.getProfile(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  // ----- getPublishTasks / getReceiveTasks / getTrades -----
+  test('getPublishTasks - 成功', async () => {
+    const rows = [{ id: 1, title: '任务' }];
+    db.query.mockResolvedValueOnce([rows]);
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.getPublishTasks(req, res);
+    expect(res.json).toHaveBeenCalledWith({ code: 200, data: rows });
+  });
+
+  test('getPublishTasks - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.getPublishTasks(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  test('getReceiveTasks - 成功', async () => {
+    const rows = [{ id: 2, title: '接单任务' }];
+    db.query.mockResolvedValueOnce([rows]);
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.getReceiveTasks(req, res);
+    expect(res.json).toHaveBeenCalledWith({ code: 200, data: rows });
+  });
+
+  test('getReceiveTasks - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.getReceiveTasks(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  //   test('getTrades - 成功（type=1 转 income）', async () => {
+  //   const rows = [{ id: 1, description: '收入', amount: 100, type: 1, created_at: '2025-01-01', task_id: 10 }];
+  //   db.query.mockResolvedValueOnce([[rows]]);
+  //   const req = { user: { id: 1 } };
+  //   const res = { json: jest.fn() };
+  //   await userController.getTrades(req, res);
+  //   const call = res.json.mock.calls[0][0];
+  //   expect(call.code).toBe(200);
+  //   expect(call.data[0].type).toBe('income');
+  //   expect(call.data[0].title).toBe('收入');
+  // });
+
+  test('getTrades - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.getTrades(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  // ----- updateUserInfo -----
+  test('updateUserInfo - 更新昵称和签名', async () => {
+    db.query.mockResolvedValueOnce([[]]);
+    const req = { user: { id: 1 }, body: { nickname: '新昵称', signature: '新签名' } };
+    const res = { json: jest.fn() };
+    await userController.updateUserInfo(req, res);
+    expect(db.query).toHaveBeenCalledWith(
+      'UPDATE users SET nickname = ?, signature = ? WHERE id = ?',
+      ['新昵称', '新签名', 1]
+    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 200 }));
+  });
+
+  test('updateUserInfo - 没有字段返回400', async () => {
+    const req = { user: { id: 1 }, body: {} };
+    const res = { json: jest.fn() };
+    await userController.updateUserInfo(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400 }));
+  });
+
+  test('updateUserInfo - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { user: { id: 1 }, body: { nickname: '新' } };
+    const res = { json: jest.fn() };
+    await userController.updateUserInfo(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  // ----- changePassword -----
+  test('changePassword - 成功修改', async () => {
+    db.query.mockResolvedValueOnce([[{ password: 'old_hash' }]]);
+    bcrypt.compare.mockResolvedValue(true);
+    bcrypt.hash.mockResolvedValue('new_hash');
+    db.query.mockResolvedValueOnce([[]]);
+    const req = { user: { id: 1 }, body: { oldPassword: 'old', newPassword: 'new123' } };
+    const res = { json: jest.fn() };
+    await userController.changePassword(req, res);
+    expect(db.query).toHaveBeenLastCalledWith(
+      'UPDATE users SET password = ? WHERE id = ?',
+      ['new_hash', 1]
+    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 200 }));
+  });
+
+  test('changePassword - 参数为空返回400', async () => {
+    const req = { user: { id: 1 }, body: {} };
+    const res = { json: jest.fn() };
+    await userController.changePassword(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400 }));
+  });
+
+  test('changePassword - 原密码错误返回401', async () => {
+    db.query.mockResolvedValueOnce([[{ password: 'hash' }]]);
+    bcrypt.compare.mockResolvedValue(false);
+    const req = { user: { id: 1 }, body: { oldPassword: 'wrong', newPassword: 'new' } };
+    const res = { json: jest.fn() };
+    await userController.changePassword(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 401 }));
+  });
+
+  test('changePassword - 用户不存在返回404', async () => {
+    db.query.mockResolvedValueOnce([[]]);
+    const req = { user: { id: 999 }, body: { oldPassword: 'x', newPassword: 'y' } };
+    const res = { json: jest.fn() };
+    await userController.changePassword(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 404 }));
+  });
+
+  test('changePassword - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { user: { id: 1 }, body: { oldPassword: 'x', newPassword: 'y' } };
+    const res = { json: jest.fn() };
+    await userController.changePassword(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  // ----- uploadAvatar -----
+  test('uploadAvatar - 成功上传', async () => {
+    db.query.mockResolvedValueOnce([[]]);
+    const req = { user: { id: 1 }, file: { filename: 'avatar_123.jpg' } };
+    const res = { json: jest.fn() };
+    await userController.uploadAvatar(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 200, data: { url: '/uploads/avatars/avatar_123.jpg' } })
+    );
+  });
+
+  test('uploadAvatar - 无文件返回400', async () => {
+    const req = { user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await userController.uploadAvatar(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400 }));
+  });
+
+  test('uploadAvatar - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { user: { id: 1 }, file: { filename: 'x.jpg' } };
+    const res = { json: jest.fn() };
+    await userController.uploadAvatar(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  // ----- getAvatarImage -----
+  test('getAvatarImage - 用户不存在返回404', async () => {
+    db.query.mockResolvedValueOnce([[]]);
+    const req = { params: { userId: '999' } };
+    const res = { json: jest.fn() };
+    await userController.getAvatarImage(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 404 }));
+  });
+
+    test('getAvatarImage - 默认头像应返回base64数据', async () => {
+    db.query.mockResolvedValueOnce([[{ avatar: '/images/default-avatar.png' }]]);
+    const req = { params: { userId: '1' } };
+    const res = { json: jest.fn() };
+        await userController.getAvatarImage(req, res);
+    const call = res.json.mock.calls[0][0];
+    expect(call.code).toBe(200);
+    expect(call.data.base64).toMatch(/^data:image\//);
+  });
+
+  test('getAvatarImage - 异常返回500', async () => {
+    db.query.mockRejectedValue(new Error('err'));
+    const req = { params: { userId: '1' } };
+    const res = { json: jest.fn() };
+    await userController.getAvatarImage(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+});
+
+// ==================== ai.js cloudflare 分支 ====================
+
+describe('=== AI Controller - Cloudflare/默认/未知 provider 分支 ===', () => {
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    axios.post.mockReset();
+  });
+
+  const originals = {};
+  beforeAll(() => {
+    originals.CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID;
+    originals.CF_API_TOKEN = process.env.CF_API_TOKEN;
+  });
+  afterAll(() => {
+    process.env.CF_ACCOUNT_ID = originals.CF_ACCOUNT_ID;
+    process.env.CF_API_TOKEN = originals.CF_API_TOKEN;
+  });
+
+  test('chat - provider=cloudflare 调用成功', async () => {
+    process.env.AI_PROVIDER = 'cloudflare';
+    process.env.CF_ACCOUNT_ID = 'test_account';
+    process.env.CF_API_TOKEN = 'test_token';
+    axios.post.mockResolvedValue({
+      data: { result: { response: 'Cloudflare 回复' } }
+    });
+    const req = { body: { message: '你好' } };
+    const res = { json: jest.fn() };
+        await aiController.chat(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 200,
+        data: expect.objectContaining({ reply: 'Cloudflare 回复' })
+      })
+    );
+  });
+
+  test('chat - provider=cloudflare 配置缺失返回500', async () => {
+    process.env.AI_PROVIDER = 'cloudflare';
+    delete process.env.CF_ACCOUNT_ID;
+    delete process.env.CF_API_TOKEN;
+    const req = { body: { message: 'hi' } };
+    const res = { json: jest.fn() };
+    await aiController.chat(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  test('chat - provider=cloudflare API 抛异常返回500', async () => {
+    process.env.AI_PROVIDER = 'cloudflare';
+    process.env.CF_ACCOUNT_ID = 'acc';
+    process.env.CF_API_TOKEN = 'tok';
+    axios.post.mockRejectedValue(new Error('Cloudflare Error'));
+    const req = { body: { message: 'test' } };
+    const res = { json: jest.fn() };
+    await aiController.chat(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 500 }));
+  });
+
+  test('chat - 未知 provider 自动回退 cloudflare', async () => {
+    process.env.AI_PROVIDER = 'unknown_provider';
+    process.env.CF_ACCOUNT_ID = 'acc';
+    process.env.CF_API_TOKEN = 'tok';
+    axios.post.mockResolvedValue({
+      data: { result: { response: '回退回复' } }
+    });
+    const req = { body: { message: 'hi' } };
+    const res = { json: jest.fn() };
+        await aiController.chat(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 200 }));
+  });
+
+  test('chat - cloudflare 返回空结果时走 fallback 文案', async () => {
+    process.env.AI_PROVIDER = 'cloudflare';
+    process.env.CF_ACCOUNT_ID = 'acc';
+    process.env.CF_API_TOKEN = 'tok';
+    axios.post.mockResolvedValue({
+      data: { result: {} }
+    });
+    const req = { body: { message: 'test' } };
+    const res = { json: jest.fn() };
+    await aiController.chat(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 200,
+        data: expect.objectContaining({ reply: '抱歉，我暂时无法回答这个问题。' })
+      })
+    );
+  });
+});
+
+// ==================== task.js socket.io 推送路径 ====================
+
+describe('=== Task Controller - socket.io / 参数验证补充 ===', () => {
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+  });
+
+  // task.js 中 acceptTask / completeTask / cancelTask / receiveTask 都有 socket.io emit
+  // 这里通过 mock global.io 来覆盖这些 emit 分支
+
+  const mockIo = {
+    to: jest.fn(() => ({
+      emit: jest.fn()
+    }))
+  };
+  // task.js 通过 global.io 访问 socket.io 实例
+  beforeAll(() => {
+    global.io = mockIo;
+  });
+  afterAll(() => {
+    delete global.io;
+  });
+
+    test('acceptTask - 无效ID返回400', async () => {
+    const req = { params: {}, user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await taskController.acceptTask(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400, message: '无效的任务ID' }));
+  });
+
+  test('completeTask - 无效ID返回400', async () => {
+    const req = { params: {}, user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await taskController.completeTask(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400, message: '无效的任务ID' }));
+  });
+
+  test('cancelTask - 无效ID返回400', async () => {
+    const req = { params: {}, user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await taskController.cancelTask(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400, message: '无效的任务ID' }));
+  });
+
+    test('giveUpTask - 无效ID返回400', async () => {
+    const req = { params: {}, user: { id: 1 } };
+    const res = { json: jest.fn() };
+    await taskController.giveUpTask(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 400, message: '无效的任务ID' }));
+  });
+});
+
+// ==================== message.js 补充路径 ====================
+
+describe('=== Message Controller - 无权限 / socket.io 推送补充 ===', () => {
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+    test('sendMsg - 无权向该任务发送消息应返回403', async () => {
+    // 先查询目标用户存在
+    db.query.mockResolvedValueOnce([[{ id: 10 }]]);
+    // 查询发送者信息
+    db.query.mockResolvedValueOnce([[{ id: 30, nickname: '外人', avatar: '' }]]);
+    // 查询任务参与者: fromId=30 既不是发布者也不是接单者
+    const taskRows = [{ publisher_id: 10, acceptor_id: 20 }];
+    db.query.mockResolvedValueOnce([taskRows]);
+    const req = { user: { id: 30 }, body: { taskId: 1, toId: 10, content: 'test' } };
+    const res = { json: jest.fn() };
+    await msgController.sendMsg(req, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ code: 403 }));
   });
 });
 
