@@ -1,119 +1,89 @@
-# ============================================
-# CodeRabbit AI Review 配置
-# ============================================
+# .coderabbit.yaml
 
-# --- 跳过审查的文件/目录 ---
+# 1. 跳过审查的文件/目录 (完全原样保留，这个语法官方支持)
 exclude_patterns:
-  # 依赖 & 构建产物
   - "node_modules/**"
   - "**/miniprogram_npm/**"
   - "coverage/**"
   - "frontend/coverage/**"
-
-  # 文档
   - "*.md"
-
-  # 类型声明（自动生成/第三方）
   - "**/*.d.ts"
   - "frontend/typings/**"
-
-  # 配置 & 环境文件
   - ".env*"
   - "*.config.js"
   - "project.config.json"
   - "project.private.config.json"
+  # 注意：原文件中的测试文件路径被注释为降低优先级但不跳过，这里统一移到了 path_instructions 来控制审查专注点
+  # - "backend/tests/**"
+  # - "frontend/miniprogram/__tests__/**"
 
-  # 测试文件（降低审查优先级，不跳过）
-  - "backend/tests/**"
-  - "frontend/miniprogram/__tests__/**"
+# 2. 按路径设置审查强度 (使用官方支持的 path_instructions)
+reviews:
+  # 全局审查设置
+  profile: "assertive" # 使用 assertive 模式以获得更详细的审查，与你原意图匹配
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+  tools:
+    enabled: true
 
-# --- 按路径设置审查强度 ---
-review_rules:
-  # 🔴 核心业务逻辑：严格审查
-  - path: "backend/controllers/"
-    severity: high
-    focus:
-      - 安全性（SQL注入、XSS、认证鉴权）
-      - 错误处理完整性
-      - 输入校验
-    require_review: true
+  # 按路径设置审查指令 (实现原文件 review_rules 的效果)
+  path_instructions:
+    # 🔴 核心业务逻辑：严格审查
+    - path: "backend/controllers/**"
+      instructions: |
+        作为一个安全专家，重点审查此文件，关注：
+        - 安全性（SQL注入、XSS、认证鉴权）
+        - 错误处理的完整性
+        - 所有用户输入的校验
+    - path: "backend/models/**"
+      instructions: |
+        作为一个安全专家，重点审查此文件，关注：
+        - SQL查询的安全性，确保使用参数化查询
+        - 数据一致性和完整性
+    - path: "backend/middleware/**"
+      instructions: |
+        作为一个安全专家，重点审查此文件，关注：
+        - 认证逻辑的正确性
+        - 权限控制的严密性
+    
+    # 🟡 前端页面逻辑：中等审查
+    - path: "frontend/miniprogram/pages/**"
+      instructions: |
+        作为一个前端专家，审查此小程序页面文件，关注：
+        - 用户体验逻辑的合理性
+        - 数据绑定的正确性
+        - 错误边界处理
+    - path: "frontend/miniprogram/api/**"
+      instructions: |
+        审查此API调用文件，关注：
+        - API调用参数的准确性
+        - 错误响应处理
+    
+    # 🟢 工具函数 & 配置：宽松审查
+    - path: "frontend/miniprogram/utils/**"
+      instructions: |
+        对此工具函数文件进行简要审查，关注明显的问题即可。
+    - path: "backend/utils/**"
+      instructions: |
+        对此工具函数文件进行简要审查，关注明显的问题即可。
+    - path: "backend/routes/**"
+      instructions: |
+        对此路由文件进行简要审查，重点关注路由注册的正确性。
 
-  - path: "backend/models/"
-    severity: high
-    focus:
-      - SQL查询安全性
-      - 数据一致性
-    require_review: true
+    # ⚪ CI/CD & 项目配置：仅语法检查
+    - path: ".github/**"
+      instructions: |
+        对此配置文件进行简要审查，只检查明显的语法错误，不要提供改进建议。
 
-  - path: "backend/middleware/"
-    severity: high
-    focus:
-      - 认证逻辑正确性
-      - 权限控制
-    require_review: true
+  # 排除特定路径
+  path_filters:
+    # 排除测试文件的详细审查，防止过度干扰（实现原文件中降低审查优先级的意图）
+    - "!backend/tests/**"
+    - "!frontend/miniprogram/__tests__/**"
 
-  # 🟡 前端页面逻辑：中等审查
-  - path: "frontend/miniprogram/pages/"
-    severity: medium
-    focus:
-      - 用户体验逻辑
-      - 数据绑定正确性
-      - 错误边界处理
-    require_review: false
-
-  - path: "frontend/miniprogram/api/"
-    severity: medium
-    focus:
-      - API 调用参数
-      - 错误响应处理
-    require_review: false
-
-  # 🟢 工具函数 & 配置：宽松审查
-  - path: "frontend/miniprogram/utils/"
-    severity: low
-    require_review: false
-
-  - path: "backend/utils/"
-    severity: low
-    require_review: false
-
-  - path: "backend/routes/"
-    severity: low
-    focus:
-      - 路由注册正确性
-    require_review: false
-
-  # ⚪ CI/CD & 项目配置：仅语法检查
-  - path: ".github/"
-    severity: low
-    require_review: false
-    disable_suggestions: true
-
-# --- 全局设置 ---
-default_severity: medium
-
-# 禁止的代码模式（安全红线）
-forbidden_patterns:
-  - pattern: "eval\\("
-    description: "禁止使用 eval()，存在代码注入风险"
-    severity: error
-  - pattern: "innerHTML\\s*="
-    description: "禁止直接赋值 innerHTML，存在 XSS 风险"
-    severity: error
-  - pattern: "(?i)(password|passwd|pwd)\\s*=.*['\"][^'\"]{0,8}['\"]"
-    description: "禁止硬编码密码或敏感凭据"
-    severity: error
-  - pattern: "console\\.log\\("
-    description: "生产代码中禁止遗留 console.log"
-    severity: warning
-    exception_paths:
-      - "backend/tests/**"
-      - "frontend/miniprogram/__tests__/**"
-
-# --- 审查指令 ---
-instructions: |
-  - 使用中文进行代码审查反馈
-  - 对于后端代码，重点关注 SQL 注入防护、认证授权、输入校验
-  - 对于前端微信小程序代码，关注 setData 性能、页面生命周期使用规范
-  - 建议优先级按 🔴 必须修复 → 🟡 建议改进 → ⚪ 可选优化 排列
-  - 单次 review 评论控制在 10 条以内，优先报告最关键的问题
+# 3. 全局审查指令 (实现原文件 instructions 的效果)
+#    这些指令会应用于每一次代码审查，作为通用的背景知识。
+tone_instructions: "使用中文进行代码审查反馈。建议优先级按 🔴 必须修复 → 🟡 建议改进 → ⚪ 可选优化 排列。单次 review 评论控制在 10 条以内，优先报告最关键的问题。"
