@@ -86,22 +86,29 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata for Backend
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=,format=short
+      # 将仓库名转换为小写
+      - name: Convert repository name to lowercase
+        id: repo
+        run: |
+          echo "LOWER_REPO=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      # - name: Extract metadata for Backend
+      #   id: meta-backend
+      #   uses: docker/metadata-action@v5
+      #   with:
+      #     images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+      #     tags: |
+      #       type=raw,value=latest,enable={{is_default_branch}}
+      #       type=sha,prefix=,format=short
       - name: Build and Push Backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.LOWER_REPO }}-backend:latest
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.LOWER_REPO }}-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Build and Push Frontend
@@ -111,10 +118,48 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.LOWER_REPO }}-frontend:latest
+            ${{ env.REGISTRY }}/${{ steps.repo.outputs.LOWER_REPO }}-frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Check Image Sizes
         run: |
           docker images --filter=reference=${{ env.REGISTRY }}/* --format '{{.Repository}}:{{.Tag}} Size: {{.Size}}'
+
+
+  deploy:
+    name: Deploy to Aliyun ECS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.ALIYUN_HOST }}
+          username: ${{ secrets.ALIYUN_USERNAME }}
+          key: ${{ secrets.ALIYUN_SSH_KEY }}
+          script: |
+            cd ~/Campus-Help
+
+            # 拉取最新代码（更新 compose.prod.yaml 等配置文件）
+            git pull origin main
+
+            # 登录 GHCR
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # 拉取最新镜像
+            docker compose -f compose.prod.yaml pull
+
+            # 重新创建并启动容器（用最新镜像）
+            docker compose -f compose.prod.yaml up -d --force-recreate
+
+            # 清理旧镜像（保留最近3个）
+            docker image prune -a -f --filter "until=24h"
+
+            # 检查部署状态
+            echo "=== 部署状态 ==="
+            docker compose -f compose.prod.yaml ps
+            echo "=== 健康检查 ==="
+            sleep 5
+            curl -s http://localhost:3000/health || echo "健康检查失败"
