@@ -21,8 +21,8 @@ COPY --from=builder /app/node_modules ./node_modules
 
 # 复制前端源码（小程序代码 + 测试代码）
 COPY package.json ./
-COPY jest.config.js ./
-COPY jest.setup.js ./
+COPY miniprogram/jest.config.js ./
+COPY miniprogram/jest.setup.js ./
 COPY tsconfig.json ./
 COPY miniprogram/ ./miniprogram/
 # COPY __tests__/ ./__tests__/ 2>/dev/null || true
