@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# 设置 npm 镜像源（加速）
+RUN npm config set registry https://registry.npmmirror.com
+
 # 依赖安装
 COPY package.json package-lock.json ./
 RUN npm ci && npm cache clean --force && rm -rf /root/.npm
