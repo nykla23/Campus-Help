@@ -72,7 +72,7 @@ jobs:
     name: Build & Push to GHCR
     needs: [test, security-scan]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ci/')
+    
     permissions:
       contents: read
       packages: write
@@ -132,7 +132,7 @@ jobs:
     name: Deploy to Aliyun ECS
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/ci/')
+    
     steps:
       - name: Dry run for non-main branches
         if: github.ref != 'refs/heads/main'
