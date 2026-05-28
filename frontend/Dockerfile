@@ -25,7 +25,7 @@ COPY jest.config.js ./
 COPY jest.setup.js ./
 COPY tsconfig.json ./
 COPY miniprogram/ ./miniprogram/
-COPY __tests__/ ./__tests__/ 2>/dev/null || true
+# COPY __tests__/ ./__tests__/ 2>/dev/null || true
 
 # 设置权限
 RUN chown -R appuser:appgroup /app
