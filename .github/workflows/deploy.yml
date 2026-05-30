@@ -138,7 +138,7 @@ jobs:
         with:
           host: ${{ secrets.ALIYUN_HOST }}
           username: ${{ secrets.ALIYUN_USERNAME }}
-          key: ${{ secrets.ALIYUN_SSH_KEY }}
+          key: ${{ secrets.ALIYUN_PASSWORD }}
           script: |
             cd ~/Campus-Help
 
