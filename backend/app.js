@@ -5,12 +5,18 @@ const db = require('./config/db');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
-
+const logger = require('./utils/logger');
 const app = express();
-
+const { metricsMiddleware, metricsEndpoint, updateActiveUsers } = require('./middleware/metrics');
 // ... existing code ...
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use((req, res, next) => {
+  logger.info('请求日志', { method: req.method, url: req.url, ip: req.ip, module: 'http' });
+  next();
+});
+
 
 // CORS 配置 - 允许所有来源（开发环境）
 app.use(cors({
@@ -28,7 +34,13 @@ app.use('/uploads', (req, res, next) => {
 const userRouter = require('./routes/user');
 const authRouter = require('./routes/auth');
 const taskRouter = require('./routes/task');
+const { _url } = require('inspector');
+const healthRouter = require('./routes/health');
 
+
+app.use(metricsMiddleware);
+app.get('/metrics', metricsEndpoint);
+app.use('/health', healthRouter);
 app.use('/api/users', userRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/tasks', taskRouter);
@@ -58,9 +70,10 @@ app.get('/health', (req, res) => {
 });
 
 app.use((_err, req, res, _next) => {
-    console.error(_err.stack);
+    logger.error({ message: _err.message, stack: _err.stack, url: req.url });
     res.status(500).json({ code: 5000, message: '服务器内部错误' });
 });
+
 
 const server = http.createServer(app);
 
@@ -89,6 +102,8 @@ io.on('connection', (socket) => {
     }
     userSockets.set(String(userId), socket.id);
     console.log('[Socket.IO] 当前在线用户:', [...userSockets.keys()]);
+    // 更新活跃用户数
+    updateActiveUsers(userSockets.size);
   });
 
   // 用户加入任务房间（用于任务状态变更通知）
@@ -105,6 +120,7 @@ io.on('connection', (socket) => {
         break;
       }
     }
+    updateActiveUsers(userSockets.size);
   });
 });
 
