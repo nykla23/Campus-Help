@@ -1,7 +1,7 @@
-const BASE_URL = 'http://192.168.129.128:3000/api';
+const BASE_URL = 'http://112.124.21.214:3000/api';
 
 // 处理头像URL，拼接完整服务器地址
-const SERVER_BASE = 'http://192.168.129.128:3000';
+const SERVER_BASE = 'http://112.124.21.214:3000';
 
 /**
  * 获取头像的完整 URL

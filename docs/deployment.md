@@ -31,4 +31,4 @@
 | DB_NAME | 数据库名称 |
 
 ## 自动部署（可选）
-暂未配置 GitHub Actions，计划后续添加。
+配置 GitHub Actions。
