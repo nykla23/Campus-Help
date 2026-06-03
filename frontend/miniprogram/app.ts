@@ -25,7 +25,7 @@ App<IAppOption>({
     const token = wx.getStorageSync('token')
     if (token) {
       console.log('Token exists:', token)
-      this.connectSocket(); // 全局连接 WebSocket
+      this.connectSocket();
       wx.reLaunch({
         url: '/pages/index/index',
       })
@@ -37,7 +37,7 @@ App<IAppOption>({
     }
   },
 
-  // 🌐 全局 WebSocket 连接（Socket.IO 协议）
+  // 🌐 全局 WebSocket 连接（手动实现 Socket.IO v4 协议）
   connectSocket() {
     const userId = wx.getStorageSync('userId');
     if (!userId) return;
@@ -47,25 +47,32 @@ App<IAppOption>({
       fail: (err) => console.error('[Global Socket] 连接失败:', err)
     });
 
+    let namespaceReady = false; // 标记命名空间是否就绪
+
     socketTask.onOpen(() => {
       console.log('[Global Socket] 已连接');
       this.globalData.isSocketConnected = true;
-      // 等待 Socket.IO 握手完成后注册
-      setTimeout(() => {
-        socketTask.send({
-          data: `42${JSON.stringify(['register', String(userId)])}`
-        });
-      }, 300);
     });
 
     socketTask.onMessage((res) => {
       try {
         const data = res.data as string;
-        if (data.startsWith('42')) {
+        if (data.startsWith('0')) {
+          // Socket.IO opening 包：握手成功，收到 sid
+          console.log('[Global Socket] 握手成功:', data);
+        } else if (data.startsWith('40')) {
+          // 命名空间已就绪（/"），此时可以发送事件
+          console.log('[Global Socket] 命名空间就绪');
+          namespaceReady = true;
+          // 注册用户 ID，服务端绑定 userId ↔ socketId
+          socketTask.send({
+            data: `42${JSON.stringify(['register', String(userId)])}`
+          });
+        } else if (data.startsWith('42')) {
+          // Socket.IO EVENT 包：["eventName", data]
           const payload = JSON.parse(data.slice(2));
           const eventName = payload[0];
           const eventData = payload[1];
-          // 通过事件总线分发到各页面
           const emitter = this.globalData.eventEmitter;
           if (emitter) {
             emitter.emit(eventName, eventData);
@@ -73,14 +80,9 @@ App<IAppOption>({
         } else if (data.startsWith('3')) {
           // Socket.IO ping - 回复 pong
           socketTask.send({ data: '2' });
-        } else if (data.startsWith('40')) {
-          console.log('[Global Socket] 命名空间已就绪');
-        } else if (data.startsWith('0')) {
-          // Socket.IO 升级或错误
-          console.log('[Global Socket] 协议消息:', data);
         }
       } catch (_e) {
-        // 忽略非 JSON 消息（如二进制数据）
+        // 忽略非 JSON 消息
       }
     });
 
@@ -92,6 +94,7 @@ App<IAppOption>({
     socketTask.onClose(() => {
       console.log('[Global Socket] 连接已关闭');
       this.globalData.isSocketConnected = false;
+      namespaceReady = false;
       // 自动重连
       setTimeout(() => {
         if (!this.globalData.socketTask) {
