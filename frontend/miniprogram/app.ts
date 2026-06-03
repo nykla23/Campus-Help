@@ -47,8 +47,6 @@ App<IAppOption>({
       fail: (err) => console.error('[Global Socket] 连接失败:', err)
     });
 
-    let namespaceReady = false; // 标记命名空间是否就绪
-
     socketTask.onOpen(() => {
       console.log('[Global Socket] 已连接');
       this.globalData.isSocketConnected = true;
@@ -57,19 +55,22 @@ App<IAppOption>({
     socketTask.onMessage((res) => {
       try {
         const data = res.data as string;
-        if (data.startsWith('0')) {
-          // Socket.IO opening 包：握手成功，收到 sid
-          console.log('[Global Socket] 握手成功:', data);
-        } else if (data.startsWith('40')) {
-          // 命名空间已就绪（/"），此时可以发送事件
-          console.log('[Global Socket] 命名空间就绪');
-          namespaceReady = true;
+        const type = data.charAt(0);
+
+        if (type === '0') {
+          // Socket.IO opening 包：{sid, pingInterval, pingTimeout}
+          // 收到后需要连接默认命名空间 /
+          console.log('[Global Socket] 握手成功，连接命名空间');
+          socketTask.send({ data: '40' });
+        } else if (type === '4' && data.length >= 2 && data.charAt(1) === '0') {
+          // 命名空间 / 连接确认："40" 或 "40{...}"
+          console.log('[Global Socket] 命名空间就绪，注册用户');
           // 注册用户 ID，服务端绑定 userId ↔ socketId
           socketTask.send({
             data: `42${JSON.stringify(['register', String(userId)])}`
           });
         } else if (data.startsWith('42')) {
-          // Socket.IO EVENT 包：["eventName", data]
+          // Socket.IO EVENT 包：42["eventName", data]
           const payload = JSON.parse(data.slice(2));
           const eventName = payload[0];
           const eventData = payload[1];
@@ -77,8 +78,8 @@ App<IAppOption>({
           if (emitter) {
             emitter.emit(eventName, eventData);
           }
-        } else if (data.startsWith('3')) {
-          // Socket.IO ping - 回复 pong
+        } else if (type === '3') {
+          // Socket.IO pong 回复 -> 2 (ping)
           socketTask.send({ data: '2' });
         }
       } catch (_e) {
@@ -94,7 +95,6 @@ App<IAppOption>({
     socketTask.onClose(() => {
       console.log('[Global Socket] 连接已关闭');
       this.globalData.isSocketConnected = false;
-      namespaceReady = false;
       // 自动重连
       setTimeout(() => {
         if (!this.globalData.socketTask) {
