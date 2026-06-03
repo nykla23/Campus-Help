@@ -1,5 +1,6 @@
 // app.ts
-const WS_BASE = 'ws://112.124.21.214:3000';
+// @ts-ignore
+const config = require('./utils/config');
 
 App<IAppOption>({
   globalData: {
@@ -42,7 +43,7 @@ App<IAppOption>({
     if (!userId) return;
 
     const socketTask = wx.connectSocket({
-      url: WS_BASE + '/socket.io/?EIO=4&transport=websocket',
+      url: config.WS_HOST + '/socket.io/?EIO=4&transport=websocket',
       fail: (err) => console.error('[Global Socket] 连接失败:', err)
     });
 
