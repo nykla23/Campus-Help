@@ -59,9 +59,9 @@ App<IAppOption>({
 
         if (type === '0') {
           // Socket.IO opening 包：{sid, pingInterval, pingTimeout}
-          // 收到后需要连接默认命名空间 /
-          console.log('[Global Socket] 握手成功，连接命名空间');
-          socketTask.send({ data: '40' });
+          // 使用 transport=websocket 时，服务端会自动连接 namespace /
+          // 无需手动发送 "40"，等收到服务器的 "40" 即可
+          console.log('[Global Socket] 握手成功:', data);
         } else if (type === '4' && data.length >= 2 && data.charAt(1) === '0') {
           // 命名空间 / 连接确认："40" 或 "40{...}"
           console.log('[Global Socket] 命名空间就绪，注册用户');
