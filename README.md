@@ -74,9 +74,9 @@
 - 交易记录查询（收入/支出明细）
 
 ### 5. AI 智能客服
-- 基于 Cloudflare Workers AI（Llama 3.1-8B）
-- 支持自然语言问答
-- 保留最近 6 轮对话上下文
+- 基于 Cloudflare Workers AI（Llama 3.1-8B），也支持 Groq 和 DeepSeek
+- 支持自然语言问答，保留最近 10 轮对话上下文
+- **后端代理调用**：前端发送请求至 `/api/ai/chat`，后端从 `.env` 读取 API Key 后调用 AI 服务，密钥不暴露给客户端
 - 提供快捷问题入口
 
 ### 6. 实时消息拉取（轮询）
@@ -590,5 +590,5 @@ docker compose logs -f
 ## 📝 设计决策与说明
 
 - **消息系统**：基于自建 Web API（MySQL 存储消息）+ Socket.IO 实时通知实现。采用自建方案而非第三方 IM SDK，可完全控制数据、零外部依赖、无需额外付费
-- **AI 智能客服**：前端直接调用 Cloudflare Workers AI API，不经过后端代理转发。敏感凭证存储在项目 `.env` 文件中且不上传 GitHub，前端直连方式让所有用户可直接使用，无需各自申请 API Key
+- **AI 智能客服**：采用后端代理调用方案，前端发送请求至 `/api/ai/chat`，后端从 `.env` 读取 Cloudflare/Groq/DeepSeek API Key 后调用 AI 服务。敏感凭证完全存储在服务端，不暴露给客户端
 - **MySQL 部署**：阿里云 ECS 部署时本地数据库已成功迁移至云服务器 Docker 内的 MySQL 容器，云服务器中已包含完整本地数据
