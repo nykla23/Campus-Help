@@ -74,7 +74,7 @@
 - 交易记录查询（收入/支出明细）
 
 ### 5. AI 智能客服
-- 基于 Cloudflare Workers AI（Llama 3.1-8B），也支持 Groq 和 DeepSeek
+- 基于 Cloudflare Workers AI（Llama 3.1-8B）
 - 支持自然语言问答，保留最近 10 轮对话上下文
 - **后端代理调用**：前端发送请求至 `/api/ai/chat`，后端从 `.env` 读取 API Key 后调用 AI 服务，密钥不暴露给客户端
 - 提供快捷问题入口
@@ -590,5 +590,19 @@ docker compose logs -f
 ## 📝 设计决策与说明
 
 - **消息系统**：基于自建 Web API（MySQL 存储消息）+ Socket.IO 实时通知实现。采用自建方案而非第三方 IM SDK，可完全控制数据、零外部依赖、无需额外付费
-- **AI 智能客服**：采用后端代理调用方案，前端发送请求至 `/api/ai/chat`，后端从 `.env` 读取 Cloudflare/Groq/DeepSeek API Key 后调用 AI 服务。敏感凭证完全存储在服务端，不暴露给客户端
+- **AI 智能客服**：采用后端代理调用方案，前端发送请求至 `/api/ai/chat`，后端从 `.env` 读取 Cloudflare Workers AI API Key 后调用 AI 服务。敏感凭证完全存储在服务端，不暴露给客户端
+- **虚拟币事务一致性**：所有涉及余额变更的操作（发布冻结、确认划转、取消返还）均使用 MySQL 事务（`beginTransaction`/`commit`/`rollback`）包装，余额扣减采用原子 SQL（`UPDATE users SET coins = coins ± ? WHERE coins >= ?`），通过 `affectedRows` 判断是否扣减成功，避免并发竞态条件
+- **头像存储方案**：使用 Docker 命名卷（`backend_uploads_dev`）持久化头像文件到宿主机，容器重启不丢失。如需水平扩展多实例，后续可迁移至对象存储（OSS/S3）
+- **信用分字段**：`credit_score` 字段设计用于任务完成后的互评体系，评价会影响双方信用分。当前评价功能未实现，信用分仅在个人主页展示（默认值 100），未与业务逻辑绑定
 - **MySQL 部署**：阿里云 ECS 部署时本地数据库已成功迁移至云服务器 Docker 内的 MySQL 容器，云服务器中已包含完整本地数据
+
+---
+
+## 📋 已知限制与后续规划
+
+以下功能当前未实现，属于已知不足或后续可改进的方向：
+
+- **消息已读/未读**：`messages` 表未设计 `is_read` 字段，用户无法区分已读和未读消息。后续可在表中加 `is_read` 字段，进入聊天页时批量标记为已读
+- **deadline 超时自动处理**：任务表有 `deadline` 字段，但系统无后台定时任务自动处理过期任务。后续可用 `node-cron` 定期扫描并自动取消超时任务、返还虚拟币
+- **JWT 撤销机制**：当前无 refresh token 或 token 黑名单机制，token 泄露后 7 天内无法撤销，修改密码后旧 token 仍然有效。后续可引入 `token_version` 机制或黑名单表
+- **并发测试**：涉及虚拟币的核心操作未编写专门的并发和边界测试，后续可补充
