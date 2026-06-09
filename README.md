@@ -65,7 +65,7 @@
 ### 3. 消息系统
 - **消息列表**：按「任务 + 对方用户」聚合，显示最新消息预览
 - **聊天详情**：气泡式聊天布局，按时间升序显示
-- **发送消息**：任务关联的双方用户互通
+- **发送消息**：任务关联的双方用户互通，发送后通过轮询自动拉取新消息（3 秒间隔），接收方无需手动刷新即可看到
 
 ### 4. 虚拟币系统
 - 发布任务时冻结悬赏币
@@ -79,10 +79,9 @@
 - 保留最近 6 轮对话上下文
 - 提供快捷问题入口
 
-### 6. 实时消息推送（Socket.IO）
-- 发送消息后通过 Socket.IO 实时推送给接收方
-- 用户在线状态管理
-- 支持多端同步、消息实时展示
+### 6. 实时消息拉取（轮询）
+- 发送消息后，接收方在聊天页面每 3 秒自动拉取新消息，无需手动刷新
+- 服务端已集成 Socket.IO 实时推送逻辑，前端通过轮询兜底保障消息可达
 
 ---
 
@@ -261,11 +260,14 @@ npm install
 
 1. `project.config.json` 中已配置 AppID，可直接使用；如需更换为自有小程序，请在 [微信公众平台](https://mp.weixin.qq.com) 注册后修改 `project.config.json` 中的 `appid` 字段
 
-2. 编辑 `miniprogram/utils/config.js`，配置后端 API 地址：
+2. 编辑 `miniprogram/utils/config.js`，配置后端 API 地址和 WebSocket 地址：
+   - `SERVER_HOST`：HTTP API 地址
+   - `WS_HOST`：由 `SERVER_HOST` 自动推导（`http://` → `ws://`），无需手动填写
 
 ```javascript
 module.exports = {
   SERVER_HOST: 'http://127.0.0.1:3000',
+  get WS_HOST() { return this.SERVER_HOST.replace(/^http/, 'ws'); },
   get API_BASE_URL() { return `${this.SERVER_HOST}/api`; },
 };
 ```
