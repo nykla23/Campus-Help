@@ -46,6 +46,13 @@
 ### 问题 2：prom-client 异步方法
 **解决**：`client.register.metrics()` 在新版本中为异步方法，添加 `await` 关键字。
 
+```bash
+# 健康检查
+curl http://112.124.21.214:3000/health
+
+# Prometheus 指标
+curl http://112.124.21.214:3000/metrics | grep -E "http_request|active_users"
+```
 
 ## 心得体会
 

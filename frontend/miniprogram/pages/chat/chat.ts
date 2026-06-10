@@ -16,6 +16,8 @@ Page({
     myAvatar: '',
     myId: 0,
     statusBarHeight: 0,
+    // 轮询
+    _pollTimer: null as any,
     // 滑动返回
     touchStartX: 0,
     touchCurrentX: 0,
@@ -58,6 +60,28 @@ Page({
     if (emitter) {
       emitter.on('newMessage', this._onNewMessage);
     }
+
+    // 启动轮询（兜底：Socket.IO 未连通时自动拉取新消息）
+    this._startPolling();
+  },
+
+  // 轮询最新消息（每 3 秒检查一次）
+  _startPolling() {
+    const timer = setInterval(() => {
+      if (!this.data.taskId || !this.data.targetId) return;
+      getChatDetail(this.data.taskId, this.data.targetId).then((res) => {
+        if (res.code === 200 && Array.isArray(res.data) && res.data.length > 0) {
+          const list = this.data.msgList;
+          const latest = res.data[res.data.length - 1];
+          // 只有确实有新消息才更新，避免覆盖未保存的本地临时消息
+          const lastId = list.length > 0 ? (list[list.length - 1].id || 0) : 0;
+          if (latest.id > lastId) {
+            this.loadChat(false);
+          }
+        }
+      }).catch(() => {});
+    }, 3000);
+    this.data._pollTimer = timer;
   },
 
   // 加载双方头像
@@ -79,6 +103,11 @@ Page({
     const emitter = app.globalData.eventEmitter;
     if (emitter) {
       emitter.off('newMessage', this._onNewMessage);
+    }
+    // 停止轮询
+    if (this.data._pollTimer) {
+      clearInterval(this.data._pollTimer);
+      this.data._pollTimer = null;
     }
   },
 
@@ -172,8 +201,8 @@ Page({
     }
   },
 
-  async loadChat() {
-    wx.showLoading({ title: '加载中...' });
+  async loadChat(showLoading = true) {
+    if (showLoading) wx.showLoading({ title: '加载中...' });
     try {
       const res = await getChatDetail(this.data.taskId, this.data.targetId);
       console.log('聊天记录原始响应:', JSON.stringify(res));

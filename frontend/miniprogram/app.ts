@@ -1,5 +1,6 @@
 // app.ts
-const WS_BASE = 'ws://112.124.21.214:3000';
+// @ts-ignore
+const config = require('./utils/config');
 
 App<IAppOption>({
   globalData: {
@@ -24,7 +25,7 @@ App<IAppOption>({
     const token = wx.getStorageSync('token')
     if (token) {
       console.log('Token exists:', token)
-      this.connectSocket(); // 全局连接 WebSocket
+      this.connectSocket();
       wx.reLaunch({
         url: '/pages/index/index',
       })
@@ -36,50 +37,53 @@ App<IAppOption>({
     }
   },
 
-  // 🌐 全局 WebSocket 连接（Socket.IO 协议）
+  // 🌐 全局 WebSocket 连接（手动实现 Socket.IO v4 协议）
   connectSocket() {
     const userId = wx.getStorageSync('userId');
     if (!userId) return;
 
     const socketTask = wx.connectSocket({
-      url: WS_BASE + '/socket.io/?EIO=4&transport=websocket',
+      url: config.WS_HOST + '/socket.io/?EIO=4&transport=websocket',
       fail: (err) => console.error('[Global Socket] 连接失败:', err)
     });
 
     socketTask.onOpen(() => {
       console.log('[Global Socket] 已连接');
       this.globalData.isSocketConnected = true;
-      // 等待 Socket.IO 握手完成后注册
-      setTimeout(() => {
-        socketTask.send({
-          data: `42${JSON.stringify(['register', String(userId)])}`
-        });
-      }, 300);
     });
 
     socketTask.onMessage((res) => {
       try {
         const data = res.data as string;
-        if (data.startsWith('42')) {
+        const type = data.charAt(0);
+
+        if (type === '0') {
+          // Socket.IO opening 包：{sid, pingInterval, pingTimeout}
+          // 使用 transport=websocket 时，服务端会自动连接 namespace /
+          // 无需手动发送 "40"，等收到服务器的 "40" 即可
+          console.log('[Global Socket] 握手成功:', data);
+        } else if (type === '4' && data.length >= 2 && data.charAt(1) === '0') {
+          // 命名空间 / 连接确认："40" 或 "40{...}"
+          console.log('[Global Socket] 命名空间就绪，注册用户');
+          // 注册用户 ID，服务端绑定 userId ↔ socketId
+          socketTask.send({
+            data: `42${JSON.stringify(['register', String(userId)])}`
+          });
+        } else if (data.startsWith('42')) {
+          // Socket.IO EVENT 包：42["eventName", data]
           const payload = JSON.parse(data.slice(2));
           const eventName = payload[0];
           const eventData = payload[1];
-          // 通过事件总线分发到各页面
           const emitter = this.globalData.eventEmitter;
           if (emitter) {
             emitter.emit(eventName, eventData);
           }
-        } else if (data.startsWith('3')) {
-          // Socket.IO ping - 回复 pong
+        } else if (type === '3') {
+          // Socket.IO pong 回复 -> 2 (ping)
           socketTask.send({ data: '2' });
-        } else if (data.startsWith('40')) {
-          console.log('[Global Socket] 命名空间已就绪');
-        } else if (data.startsWith('0')) {
-          // Socket.IO 升级或错误
-          console.log('[Global Socket] 协议消息:', data);
         }
       } catch (_e) {
-        // 忽略非 JSON 消息（如二进制数据）
+        // 忽略非 JSON 消息
       }
     });
 
