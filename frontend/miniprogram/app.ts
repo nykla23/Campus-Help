@@ -1,5 +1,4 @@
 // app.ts
-// @ts-ignore
 const config = require('./utils/config');
 
 App<IAppOption>({
