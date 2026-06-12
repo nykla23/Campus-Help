@@ -18,6 +18,7 @@ global.wx = {
   chooseImage: jest.fn(),
   uploadFile: jest.fn(),
   stopPullDownRefresh: jest.fn(),
+  getSystemInfoSync: jest.fn(() => ({ statusBarHeight: 20 })),
   request: jest.fn()
 };
 

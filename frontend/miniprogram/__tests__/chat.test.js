@@ -9,7 +9,6 @@ jest.mock('../utils/api', () => ({
   getFullAvatarUrl: (url) => !url ? '/images/default-avatar.png' : (url.startsWith('http') ? url : 'http://localhost:3000' + url)
 }));
 const api = require('../utils/api');
-wx.getSystemInfoSync = jest.fn(() => ({ statusBarHeight: 20 }));
 require('../pages/chat/chat.ts');
 
 describe('聊天页面 Chat', () => {
