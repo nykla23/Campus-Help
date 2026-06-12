@@ -6,17 +6,11 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.js'],
   moduleFileExtensions: ['js', 'json', 'ts'],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
-      diagnostics: false,
-      tsconfig: {
-        target: 'es2020',
-        module: 'commonjs',
-        strict: false,
-        noUnusedLocals: false,
-        noUnusedParameters: false,
-        esModuleInterop: true,
-        skipLibCheck: true
-      }
+    '^.+\\.tsx?$': ['babel-jest', {
+      presets: [
+        ['@babel/preset-env', { targets: { node: 'current' } }],
+        '@babel/preset-typescript'
+      ]
     }],
     '^.+\\.jsx?$': 'babel-jest'
   },
