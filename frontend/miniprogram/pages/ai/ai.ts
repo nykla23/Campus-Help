@@ -11,6 +11,11 @@ interface ChatHistoryItem {
   content: string;
 }
 
+function getStorageKey(): string {
+  const userId = wx.getStorageSync('userId') || 'anonymous';
+  return `aiChatHistory_${userId}`;
+}
+
 Page({
   data: {
     msgList: [], // MsgItem[]
@@ -22,8 +27,7 @@ Page({
       '如何发布任务？',
       '如何接取任务？',
       '任务状态说明',
-      '金币如何获得？',
-      '信用评分规则'
+      '金币如何获得？'
     ]
   },
 
@@ -39,8 +43,8 @@ Page({
     }
     this.setData({ myAvatar });
 
-    // 从本地存储读取对话历史
-    const savedHistory = wx.getStorageSync('aiChatHistory') || [];
+    // 从本地存储读取对话历史（按用户隔离）
+    const savedHistory = wx.getStorageSync(getStorageKey()) || [];
     this.chatHistory = savedHistory;
 
     // 恢复消息列表
@@ -67,9 +71,9 @@ Page({
   },
 
   onUnload() {
-    // 退出时保存对话历史到本地
+    // 退出时保存对话历史到本地（按用户隔离）
     if (this.chatHistory.length > 0) {
-      wx.setStorageSync('aiChatHistory', this.chatHistory);
+      wx.setStorageSync(getStorageKey(), this.chatHistory);
     }
   },
 
@@ -127,8 +131,8 @@ Page({
           loading: false
         });
 
-        // 实时保存历史
-        wx.setStorageSync('aiChatHistory', this.chatHistory);
+        // 实时保存历史（按用户隔离）
+        wx.setStorageSync(getStorageKey(), this.chatHistory);
       } else {
         this.showError(res.message || 'AI 暂时无法回答，请稍后再试');
         this.chatHistory.pop();

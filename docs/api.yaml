@@ -1,196 +1,152 @@
 openapi: 3.0.0
 info:
   title: Campus Help API
-  description: 校园帮小程序后端接口文档
+  description: >
+    校园帮小程序后端接口文档（基于代码自动生成）。
+    认证方式：除注册/登录/头像/健康检查等外，均需 Bearer Token。
   version: 1.0.0
+  contact:
+    name: Campus Help Team
+
 servers:
-  - url: http://localhost:3000/api
+  - url: http://localhost:3000
     description: 本地开发环境
 
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-  schemas:
-    ApiResponse:
-      type: object
-      properties:
-        code:
-          type: integer
-          example: 0
-        data:
-          type: object
-        message:
-          type: string
-          example: success
-      required:
-        - code
-        - message
-
-    ApiResponseList:
-      type: object
-      properties:
-        code:
-          type: integer
-          example: 0
-        data:
-          type: object
-          properties:
-            total:
-              type: integer
-            page:
-              type: integer
-            limit:
-              type: integer
-            list:
-              type: array
-              items:
-                type: object
-        message:
-          type: string
-          example: success
-
-    UserRegister:
-      type: object
-      required:
-        - username
-        - password
-        - confirmPassword
-      properties:
-        username:
-          type: string
-        nickname:
-          type: string
-        password:
-          type: string
-        confirmPassword:
-          type: string
-
-    UserLogin:
-      type: object
-      required:
-        - username
-        - password
-      properties:
-        username:
-          type: string
-        password:
-          type: string
-
-    UserUpdateProfile:
-      type: object
-      properties:
-        nickname:
-          type: string
-        signature:
-          type: string
-
-    UserChangePassword:
-      type: object
-      required:
-        - oldPassword
-        - newPassword
-      properties:
-        oldPassword:
-          type: string
-        newPassword:
-          type: string
-
-    TaskCreate:
-      type: object
-      required:
-        - title
-        - reward
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        reward:
-          type: integer
-        location:
-          type: string
-        type:
-          type: integer
-        deadline:
-          type: string
-          format: date-time
-
-    ReviewCreate:
-      type: object
-      required:
-        - taskId
-        - toUserId
-        - rating
-      properties:
-        taskId:
-          type: integer
-        toUserId:
-          type: integer
-        rating:
-          type: integer
-        comment:
-          type: string
-
-    MessageSend:
-      type: object
-      required:
-        - taskId
-        - targetId
-        - content
-      properties:
-        taskId:
-          type: integer
-        targetId:
-          type: integer
-        content:
-          type: string
-
 paths:
-  # ====================== 用户模块 ======================
-  /users/register:
+  # ==================== 根路径 ====================
+  /:
+    get:
+      summary: 根路径
+      description: 返回服务运行状态文本
+      tags:
+        - 系统
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 校园帮 API 服务运行中
+
+  # ==================== 健康检查 ====================
+  /health:
+    get:
+      summary: 健康检查
+      description: 返回服务状态、up 时间、数据库连接状态
+      tags:
+        - 系统
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                    description: 进程运行秒数
+                  services:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: ok
+        '503':
+          description: 服务降级（数据库异常）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: degraded
+                  timestamp:
+                    type: string
+                    format: date-time
+                  uptime:
+                    type: number
+                  services:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: down
+
+  # ==================== Prometheus 指标 ====================
+  /metrics:
+    get:
+      summary: Prometheus 指标
+      description: 返回 Prometheus 格式的监控指标
+      tags:
+        - 系统
+      responses:
+        '200':
+          description: 指标数据
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  # ==================== 用户模块 ====================
+  /api/users:
     post:
       summary: 用户注册
-      tags: [用户模块]
+      description: 注册新用户，需提供用户名、昵称、密码和确认密码。服务端校验两次密码是否一致及用户名是否唯一，注册成功返回 JWT Token。
+      tags:
+        - 用户
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserRegister'
+              $ref: '#/components/schemas/RegisterRequest'
       responses:
         '200':
-          description: 成功
+          description: 注册结果（通过 body 中的 code 字段区分成功/失败）
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/RegisterResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
 
-  /users/login:
+  /api/auth/login:
     post:
       summary: 用户登录
-      tags: [用户模块]
+      description: 用户登录，使用用户名和密码认证。通过 bcrypt 校验密码，成功后返回包含 userId 的 JWT Token。
+      tags:
+        - 用户
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserLogin'
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: 成功
+          description: 登录结果（通过 body 中的 code 字段区分成功/失败）
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/LoginResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
 
-  /users/profile:
+  /api/users/profile:
     get:
       summary: 获取当前用户信息
-      tags: [用户模块]
+      description: 返回当前登录用户的个人信息和统计数据
+      tags:
+        - 用户
       security:
         - bearerAuth: []
       responses:
@@ -199,12 +155,68 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /users/updateProfile:
+  /api/users/tasks/publish:
+    get:
+      summary: 我发布的任务
+      description: 获取当前用户发布的所有任务
+      tags:
+        - 用户
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTasksResponse'
+
+  /api/users/tasks/receive:
+    get:
+      summary: 我接单的任务
+      description: 获取当前用户接取的所有任务
+      tags:
+        - 用户
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTasksResponse'
+
+  /api/users/trades:
+    get:
+      summary: 获取交易记录
+      description: 获取当前用户的虚拟币交易流水
+      tags:
+        - 用户
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradesResponse'
+
+  /api/users/update:
     post:
       summary: 修改个人信息
-      tags: [用户模块]
+      description: 可更新昵称、个性签名、头像地址
+      tags:
+        - 用户
       security:
         - bearerAuth: []
       requestBody:
@@ -212,19 +224,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserUpdateProfile'
+              $ref: '#/components/schemas/UpdateUserRequest'
       responses:
         '200':
-          description: 成功
+          description: 更新成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/SimpleResponse'
 
-  /users/updatePassword:
+  /api/users/change-password:
     post:
       summary: 修改密码
-      tags: [用户模块]
+      description: 需要原密码和新密码
+      tags:
+        - 用户
       security:
         - bearerAuth: []
       requestBody:
@@ -232,19 +246,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserChangePassword'
+              $ref: '#/components/schemas/ChangePasswordRequest'
       responses:
         '200':
-          description: 成功
+          description: 修改成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/SimpleResponse'
 
-  /users/uploadAvatar:
+  /api/users/upload-avatar:
     post:
       summary: 上传头像
-      tags: [用户模块]
+      description: 仅支持 JPG/PNG/GIF/WEBP，大小不超过 2MB
+      tags:
+        - 用户
       security:
         - bearerAuth: []
       requestBody:
@@ -257,251 +273,21 @@ paths:
                 avatar:
                   type: string
                   format: binary
+                  description: 头像文件
       responses:
         '200':
-          description: 成功
+          description: 上传成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/UploadAvatarResponse'
 
-  /users/myPublishTasks:
+  /api/users/avatar/{userId}:
     get:
-      summary: 我发布的任务
-      tags: [用户模块]
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseList'
-
-  /users/myReceiveTasks:
-    get:
-      summary: 我接单的任务
-      tags: [用户模块]
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseList'
-
-  /users/transactions:
-    get:
-      summary: 我的交易记录
-      tags: [用户模块]
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseList'
-
-  # ====================== 任务模块 ======================
-  /tasks/list:
-    get:
-      summary: 获取任务列表
-      tags: [任务模块]
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-        - name: limit
-          in: query
-          schema:
-            type: integer
-        - name: status
-          in: query
-          schema:
-            type: integer
-        - name: type
-          in: query
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseList'
-
-  /tasks/publish:
-    post:
-      summary: 发布任务
-      tags: [任务模块]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TaskCreate'
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  /tasks/detail/{taskId}:
-    get:
-      summary: 任务详情
-      tags: [任务模块]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  /tasks/accept/{taskId}:
-    post:
-      summary: 接单
-      tags: [任务模块]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  /tasks/giveUp/{taskId}:
-    post:
-      summary: 放弃任务
-      tags: [任务模块]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  /tasks/complete/{taskId}:
-    post:
-      summary: 我已完成任务
-      tags: [任务模块]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  /tasks/confirm/{taskId}:
-    post:
-      summary: 发布者确认完成
-      tags: [任务模块]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  /tasks/cancel/{taskId}:
-    post:
-      summary: 取消任务
-      tags: [任务模块]
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: taskId
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  # ====================== 评价模块 ======================
-  /reviews/add:
-    post:
-      summary: 提交评价
-      tags: [评价模块]
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ReviewCreate'
-      responses:
-        '200':
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
-  /reviews/list/{userId}:
-    get:
-      summary: 获取用户评价列表
-      tags: [评价模块]
+      summary: 获取用户头像（base64）
+      description: 无需认证，返回 base64 格式的头像数据。小程序真机兼容方案。
+      tags:
+        - 用户
       parameters:
         - name: userId
           in: path
@@ -514,13 +300,300 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseList'
+                $ref: '#/components/schemas/AvatarResponse'
 
-  # ====================== 消息模块 ======================
-  /messages/conversations:
+  /api/users/{id}:
     get:
-      summary: 消息会话列表
-      tags: [消息模块]
+      summary: 查看其他用户公开信息
+      description: 获取指定用户的公开资料和统计数据（需登录）
+      tags:
+        - 用户
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserResponse'
+
+  /api/users/{id}/tasks:
+    get:
+      summary: 查看其他用户发布的任务列表
+      description: 获取指定用户发布的所有任务（需登录）
+      tags:
+        - 用户
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTasksResponse'
+
+  # ==================== 任务模块 ====================
+  /api/tasks:
+    get:
+      summary: 获取任务列表
+      description: 支持分页、按状态/类型/关键词筛选
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: integer
+            description: 0-待接取 1-进行中 2-待确认 3-已完成 4-已取消
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: integer
+            description: 1-取件代送 2-跑腿代办 3-学习辅导 4-其他
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 关键词搜索（匹配标题或描述）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: 发布任务
+      description: 发布新任务，从发布者账户冻结对应金币
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishTaskRequest'
+      responses:
+        '200':
+          description: 发布成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishTaskResponse'
+        '400':
+          description: 参数错误或余额不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{id}:
+    get:
+      summary: 获取任务详情
+      description: 包括发布者和接单者的详细信息
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetailResponse'
+        '404':
+          description: 任务不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{id}/accept:
+    post:
+      summary: 接单
+      description: 接取指定任务。不能接自己发布的任务。任务状态从"待接取"变为"进行中"。
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 接单结果（通过 body 中的 code 字段区分成功/失败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SimpleResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{id}/complete:
+    post:
+      summary: 接单者提交完成
+      description: 接单者完成任务后调用，将任务状态改为"待确认"
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 提交结果（通过 body 中的 code 字段区分成功/失败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SimpleResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{id}/cancel:
+    post:
+      summary: 发布者取消任务
+      description: 仅"待接取"状态下可取消，金币返还给发布者。仅发布者可操作。
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 取消结果（通过 body 中的 code 字段区分成功/失败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SimpleResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{id}/giveup:
+    post:
+      summary: 接单者放弃任务
+      description: 仅"进行中"状态下可放弃，任务恢复为"待接取"。仅接单者可操作。
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 放弃结果（通过 body 中的 code 字段区分成功/失败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SimpleResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tasks/{id}/confirm:
+    post:
+      summary: 发布者确认完成
+      description: 确认接单者完成任务，触发金币结算（从发布者扣除，转入接单者），状态变为"已完成"。
+      tags:
+        - 任务
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 确认结果（通过 body 中的 code 字段区分成功/失败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SimpleResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== 消息模块 ====================
+  /api/messages/list:
+    get:
+      summary: 获取消息列表
+      description: 按任务+对方用户分组，每个任务显示最新一条消息
+      tags:
+        - 消息
       security:
         - bearerAuth: []
       responses:
@@ -529,12 +602,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseList'
+                $ref: '#/components/schemas/MessageListResponse'
 
-  /messages/chat/{taskId}/{targetId}:
+  /api/messages/chat/{taskId}/{targetId}:
     get:
       summary: 获取聊天记录
-      tags: [消息模块]
+      description: 获取指定任务中与目标用户的完整聊天记录。会校验当前用户是否为任务参与者。
+      tags:
+        - 消息
       security:
         - bearerAuth: []
       parameters:
@@ -554,24 +629,694 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/ChatDetailResponse'
+        '403':
+          description: 无权查看该聊天
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  /messages/send:
+  /api/messages/send:
     post:
       summary: 发送消息
-      tags: [消息模块]
+      description: 向指定用户发送消息。仅任务参与方可发送。会通过 Socket.IO 实时推送。
+      tags:
+        - 消息
       security:
         - bearerAuth: []
       requestBody:
         required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/MessageSend'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
       responses:
         '200':
-          description: 成功
+          description: 发送结果（通过 body 中的 code 字段区分成功/失败）
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/SendMessageResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== AI 智能客服 ====================
+  /api/ai/chat:
+    post:
+      summary: AI 智能客服
+      description: 向 AI 发送消息，获取自动回复。支持 Groq / DeepSeek / Cloudflare Workers AI 三种后端。
+      tags:
+        - AI
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIChatRequest'
+      responses:
+        '200':
+          description: AI 回复结果（通过 body 中的 code 字段区分成功/失败）
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/AIChatResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 在请求头中传入 Bearer Token 进行身份验证
+
+  schemas:
+
+    # ==================== 通用结构 ====================
+    ErrorResponse:
+      type: object
+      description: 通用错误响应
+      properties:
+        code:
+          type: integer
+          description: 错误码：400/401/403/404/500/1001/1004/1005/1007 等
+          example: 400
+        message:
+          type: string
+          description: 错误描述
+          example: 参数缺失
+      required:
+        - code
+
+    SimpleResponse:
+      type: object
+      description: 通用操作结果响应
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: 操作成功
+
+    # ==================== 用户模块 Schema ====================
+    RegisterRequest:
+      type: object
+      description: 注册请求体
+      required:
+        - username
+        - nickname
+        - password
+        - confirmPassword
+      properties:
+        username:
+          type: string
+          description: 用户名
+          example: zhangsan
+        nickname:
+          type: string
+          description: 昵称
+          example: 张三
+        password:
+          type: string
+          description: 密码
+          example: "123456"
+        confirmPassword:
+          type: string
+          description: 确认密码，后端校验必须与 password 一致
+          example: "123456"
+
+    RegisterResponse:
+      type: object
+      description: 注册成功响应
+      properties:
+        code:
+          type: integer
+          example: 0
+        data:
+          type: object
+          properties:
+            userId:
+              type: integer
+              example: 1
+            token:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIs...
+        message:
+          type: string
+          example: 注册成功
+
+    LoginRequest:
+      type: object
+      description: 登录请求体
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: zhangsan
+        password:
+          type: string
+          example: "123456"
+
+    LoginResponse:
+      type: object
+      description: 登录成功响应
+      properties:
+        code:
+          type: integer
+          example: 0
+        data:
+          type: object
+          properties:
+            userId:
+              type: integer
+              example: 1
+            token:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIs...
+        message:
+          type: string
+          example: 登录成功
+
+    ProfileResponse:
+      type: object
+      description: 个人信息响应
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: integer
+                nickname:
+                  type: string
+                avatar:
+                  type: string
+                  nullable: true
+                signature:
+                  type: string
+                coins:
+                  type: integer
+                credit_score:
+                  type: integer
+            stats:
+              type: object
+              properties:
+                coins:
+                  type: integer
+                credit:
+                  type: integer
+                finishCount:
+                  type: integer
+                  description: 完成任务数（作为接单者）
+
+    PublicUserResponse:
+      type: object
+      description: 其他用户公开信息响应
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              description: 用户公开信息（id, nickname, avatar, signature, coins, credit_score）
+            stats:
+              type: object
+              properties:
+                credit:
+                  type: integer
+                finishCount:
+                  type: integer
+
+    UpdateUserRequest:
+      type: object
+      description: 更新个人信息请求体（至少提供一个字段）
+      properties:
+        nickname:
+          type: string
+        signature:
+          type: string
+        avatar:
+          type: string
+          description: 头像URL地址
+
+    ChangePasswordRequest:
+      type: object
+      description: 修改密码请求体
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
+
+    UploadAvatarResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            url:
+              type: string
+              example: /uploads/avatars/1712345678901.jpg
+        message:
+          type: string
+          example: 头像更新成功
+
+    AvatarResponse:
+      type: object
+      description: 头像 base64 数据响应
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            base64:
+              type: string
+              description: base64 编码的图片数据（含 data:image/...;base64, 前缀），无头像时为空字符串
+
+    # ==================== 任务模块 Schema ====================
+    PublishTaskRequest:
+      type: object
+      description: 发布任务请求体
+      required:
+        - type
+        - title
+        - description
+        - reward
+      properties:
+        type:
+          type: integer
+          description: 任务类型：1-取件代送 2-跑腿代办 3-学习辅导 4-其他
+          example: 1
+        title:
+          type: string
+          description: 任务标题
+          example: 取快递
+        description:
+          type: string
+          description: 任务详细描述
+          example: 韵达快递，取件码12345
+        reward:
+          type: integer
+          description: 悬赏金币数（必须大于 0）
+          example: 10
+        location:
+          type: string
+          description: 地点（可选）
+          example: 菜鸟驿站
+        deadline:
+          type: string
+          format: date-time
+          description: 截止时间 ISO8601（可选）
+          example: "2024-03-10T18:00:00Z"
+
+    PublishTaskResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        data:
+          type: object
+          properties:
+            taskId:
+              type: integer
+              example: 101
+        message:
+          type: string
+          example: 任务发布成功
+
+    TaskListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        data:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 50
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            list:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskSummary'
+
+    TaskSummary:
+      type: object
+      properties:
+        taskId:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        reward:
+          type: integer
+        location:
+          type: string
+          nullable: true
+        type:
+          type: integer
+        status:
+          type: integer
+          description: 0-待接取 1-进行中 2-待确认 3-已完成 4-已取消
+        createdAt:
+          type: string
+          format: date-time
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+        publisher:
+          type: object
+          properties:
+            userId:
+              type: integer
+            nickname:
+              type: string
+            avatar:
+              type: string
+              nullable: true
+            creditScore:
+              type: integer
+
+    TaskDetailResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+            title:
+              type: string
+            description:
+              type: string
+            reward:
+              type: integer
+            location:
+              type: string
+              nullable: true
+            type:
+              type: integer
+            typeText:
+              type: string
+              description: 任务类型中文描述
+            status:
+              type: integer
+            statusText:
+              type: string
+              description: 任务状态中文描述
+            deadline:
+              type: string
+              format: date-time
+              nullable: true
+            createTime:
+              type: string
+              format: date-time
+            publisher:
+              $ref: '#/components/schemas/UserBrief'
+            acceptor:
+              $ref: '#/components/schemas/UserBrief'
+              nullable: true
+
+    UserBrief:
+      type: object
+      properties:
+        id:
+          type: integer
+        nickname:
+          type: string
+        avatar:
+          type: string
+        credit:
+          type: integer
+
+    # ==================== 用户任务列表（我发布的/我接单的）====================
+    UserTasksResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              publisher_id:
+                type: integer
+              acceptor_id:
+                type: integer
+                nullable: true
+              title:
+                type: string
+              description:
+                type: string
+              reward:
+                type: integer
+              location:
+                type: string
+                nullable: true
+              type:
+                type: integer
+              status:
+                type: integer
+              deadline:
+                type: string
+                format: date-time
+                nullable: true
+              created_at:
+                type: string
+                format: date-time
+              updated_at:
+                type: string
+                format: date-time
+              avatar:
+                type: string
+                nullable: true
+              nickname:
+                type: string
+              credit_score:
+                type: integer
+
+    # ==================== 交易记录 Schema ====================
+    TradesResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              title:
+                type: string
+                description: 交易描述
+                example: 完成任务-取快递
+              amount:
+                type: integer
+                description: 金额
+                example: 10
+              type:
+                type: string
+                enum:
+                  - income
+                  - expense
+                description: income-收入 expense-支出
+              time:
+                type: string
+                format: date-time
+              taskId:
+                type: integer
+                nullable: true
+
+    # ==================== 消息模块 Schema ====================
+    MessageListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              task_id:
+                type: integer
+              user_id:
+                type: integer
+                description: 对方用户ID
+              nickname:
+                type: string
+                description: 对方昵称
+              avatar:
+                type: string
+                nullable: true
+              msg_id:
+                type: integer
+                nullable: true
+                description: 最新消息ID
+              preview:
+                type: string
+                nullable: true
+                description: 最新消息内容预览
+              time:
+                type: string
+                format: date-time
+                nullable: true
+                description: 最新消息时间
+
+    ChatDetailResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              from_id:
+                type: integer
+              to_id:
+                type: integer
+              task_id:
+                type: integer
+              content:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+              from_avatar:
+                type: string
+                nullable: true
+              to_avatar:
+                type: string
+                nullable: true
+
+    SendMessageRequest:
+      type: object
+      description: 发送消息请求体
+      required:
+        - toId
+        - taskId
+        - content
+      properties:
+        toId:
+          type: integer
+          description: 接收方用户ID
+          example: 2
+        taskId:
+          type: integer
+          description: 关联任务ID
+          example: 101
+        content:
+          type: string
+          description: 消息内容（不能为空）
+          example: 麻烦把快递送到宿舍楼下，谢谢！
+
+    SendMessageResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: 发送成功
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: 消息ID
+            created_at:
+              type: string
+              format: date-time
+
+    # ==================== AI Schema ====================
+    AIChatRequest:
+      type: object
+      description: AI 聊天请求体
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: 用户消息内容（不能为空）
+          example: 如何发布任务？
+        history:
+          type: array
+          description: 历史消息列表（可选），用于上下文记忆
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+                enum:
+                  - user
+                  - assistant
+              content:
+                type: string
+
+    AIChatResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            reply:
+              type: string
+              description: AI 回复内容
+              example: 发布任务请点击底部"发布"标签...
+            id:
+              type: string
+              description: 回复ID
+              example: "1712345678901"
