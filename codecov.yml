@@ -1,0 +1,18 @@
+# Codecov 配置
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%  # 允许整体覆盖率下降2%
+    patch:
+      default:
+        target: 80%   # diff 覆盖率目标设为80%
+        threshold: 10% # 允许diff覆盖率波动10%
+
+# 仅统计应用源代码，不统计测试文件和配置文件
+ignore:
+  - "**/__tests__/**"
+  - "**/*.test.js"
+  - "**/*.config.js"
+  - "**/jest.setup.js"
