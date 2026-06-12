@@ -22,6 +22,17 @@ describe('聊天页面 Chat', () => {
     api.getTaskDetail.mockImplementation(() => Promise.resolve({ code: 200, data: {} }));
   });
 
+  afterEach(() => {
+    // 1. 先尝试调用页面的 onUnload（它会清除自己的定时器）
+    if (page && typeof page.onUnload === 'function') {
+      page.onUnload();
+    }
+    // 2. 清除 Jest 假定时器（如果使用了 useFakeTimers）
+    jest.clearAllTimers();
+    // 3. 可选：恢复所有 mock
+    jest.restoreAllMocks();
+  });
+
   describe('组件渲染 / 交互', () => {
 
     test('onInput 更新输入框', () => {
