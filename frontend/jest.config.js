@@ -1,25 +1,27 @@
 /** @type {import('jest').Config} */
 // 配置文件位于 frontend/jest.config.js，所有相对路径相对于此文件
 module.exports = {
-  rootDir: './miniprogram',
+  rootDir: '.',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.js'],
   moduleFileExtensions: ['js', 'json', 'ts'],
   transform: {
-    '^.+\\.[jt]sx?$': ['babel-jest', {
+    '^.+\\.tsx?$': ['babel-jest', {
       presets: [
         ['@babel/preset-env', { targets: { node: 'current' } }],
         '@babel/preset-typescript'
       ]
-    }]
+    }],
+    '^.+\\.jsx?$': 'babel-jest'
   },
-  setupFilesAfterEnv: ['./jest.setup.js'],
+  transformIgnorePatterns: [],
+  setupFilesAfterEnv: ['./miniprogram/jest.setup.js'],
   collectCoverageFrom: [
-    'pages/**/*.ts',
-    'utils/**/*.ts',
-    'api/**/*.ts'
+    'miniprogram/pages/**/*.ts',
+    'miniprogram/utils/**/*.ts',
+    'miniprogram/api/**/*.ts'
   ],
-  coverageDirectory: '../coverage',
+  coverageDirectory: './coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   verbose: true,
   forceExit: true

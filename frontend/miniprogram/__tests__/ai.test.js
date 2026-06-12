@@ -83,9 +83,10 @@ describe('AI智能客服 AI', () => {
     });
 
     test('onUnload 有历史保存storage', () => {
+      wx.getStorageSync.mockImplementation((key) => key === 'userId' ? '123' : '');
       page.chatHistory = [{ role: 'user', content: 't' }];
       page.onUnload();
-      expect(wx.setStorageSync).toHaveBeenCalledWith('aiChatHistory', page.chatHistory);
+      expect(wx.setStorageSync).toHaveBeenCalledWith('aiChatHistory_123', page.chatHistory);
     });
 
     test('onUnload 无历史不保存', () => {

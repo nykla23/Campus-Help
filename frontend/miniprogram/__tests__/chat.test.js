@@ -9,7 +9,6 @@ jest.mock('../utils/api', () => ({
   getFullAvatarUrl: (url) => !url ? '/images/default-avatar.png' : (url.startsWith('http') ? url : 'http://localhost:3000' + url)
 }));
 const api = require('../utils/api');
-wx.getSystemInfoSync = jest.fn(() => ({ statusBarHeight: 20 }));
 require('../pages/chat/chat.ts');
 
 describe('聊天页面 Chat', () => {
@@ -20,6 +19,17 @@ describe('聊天页面 Chat', () => {
     api.sendMsgApi.mockImplementation(() => Promise.resolve({ code: 200, message: 'ok' }));
     api.getChatDetail.mockImplementation(() => Promise.resolve({ code: 200, data: [] }));
     api.getTaskDetail.mockImplementation(() => Promise.resolve({ code: 200, data: {} }));
+  });
+
+  afterEach(() => {
+    // 1. 先尝试调用页面的 onUnload（它会清除自己的定时器）
+    if (page && typeof page.onUnload === 'function') {
+      page.onUnload();
+    }
+    // 2. 清除 Jest 假定时器（如果使用了 useFakeTimers）
+    jest.clearAllTimers();
+    // 3. 可选：恢复所有 mock
+    jest.restoreAllMocks();
   });
 
   describe('组件渲染 / 交互', () => {
