@@ -1,7 +1,5 @@
 const client = require('prom-client');
-const collectDefaultMetrics = client.collectDefaultMetrics;
-
-collectDefaultMetrics({timeout: 5000});
+const logger = require('../utils/logger');
 
 const httpRequestCounter = new client.Counter({
     name: 'http_request_total',
@@ -16,12 +14,6 @@ const httpRequestDuration = new client.Histogram({
     buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10]
 });
 
-
-const metricsEndpoint = (req, res) => {
-    res.set('Content-Type', client.register.contentType);
-    res.end(client.register.metrics());
-};
-
 const httpRequestErrors = new client.Counter({
     name: 'http_request_errors_total',
     help: 'Total number of HTTP request errors',
@@ -32,6 +24,17 @@ const activeUsers = new client.Gauge({
     name: 'active_users',
     help: 'Number of currently active users (based on WebSocket connections)'
 });
+
+const metricsEndpoint = async (req, res) => {
+    try {
+        res.set('Content-Type', client.register.contentType);
+        const metrics = await client.register.metrics();
+        res.end(metrics);
+    } catch (err) {
+        logger.error({ message: '获取 metrics 失败', error: err.message, stack: err.stack });
+        res.status(500).json({ code: 5000, message: '获取监控指标失败' });
+    }
+};
 
 const metricsMiddleware = (req, res, next) => {
     const start = Date.now();
@@ -55,7 +58,6 @@ const metricsMiddleware = (req, res, next) => {
 function updateActiveUsers(count) {
     activeUsers.set(count);
 }
-
 
 module.exports = {
     metricsMiddleware,
