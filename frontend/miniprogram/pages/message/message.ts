@@ -1,4 +1,4 @@
-import { getMsgList, getFullAvatarUrl, downloadAvatar } from '../../utils/api';
+import { getMsgList, downloadAvatar } from '../../utils/api';
 import { formatMsgListTime } from '../../utils/common';
 
 Page({

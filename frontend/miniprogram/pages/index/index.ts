@@ -1,5 +1,5 @@
 import { getTaskList } from '../../api/task';
-import { getFullAvatarUrl, downloadAvatar, preloadAvatars } from '../../utils/api';
+import { downloadAvatar, preloadAvatars } from '../../utils/api';
 import { getStatusText, getTypeText, formatListTime } from '../../utils/common';
 
 Page({

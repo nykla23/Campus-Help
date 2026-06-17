@@ -1,4 +1,4 @@
-import { getOtherUserInfo, getUserPublishTasks, getFullAvatarUrl, downloadAvatar } from '../../utils/api';
+import { getOtherUserInfo, getUserPublishTasks, downloadAvatar } from '../../utils/api';
 import { getStatusText, getTypeTextNoAll, formatListTime } from '../../utils/common';
 
 Page({
