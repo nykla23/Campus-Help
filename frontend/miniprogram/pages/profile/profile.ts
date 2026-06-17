@@ -8,7 +8,10 @@ import {
   updateUserInfo,
   uploadAvatar,
   changePassword,
-  getFullAvatarUrl
+  getFullAvatarUrl,
+  downloadAvatar,
+  fetchAvatarBase64,
+  preloadAvatars
 } from '../../utils/api';
 import { getStatusText, getTypeTextNoAll, formatListTime } from '../../utils/common';
 
@@ -74,23 +77,43 @@ Page({
   adaptTaskItem(item: any): any {
     return {
       id: item.id,
-      avatar: getFullAvatarUrl(item.avatar),
+      userId: item.publisher_id,       // 发布者ID，用于加载base64头像
+      avatar: '/images/default-avatar.png', // 先用默认头像占位
       nickname: item.nickname || '匿名用户',
       credit: item.credit_score || 0,
       status: this.adaptStatus(item.status),
       title: item.title,
-      desc: item.description,           // 后端 description 映射到 desc
+      desc: item.description,
       tag: this.adaptTaskType(item.type),
       location: item.location,
-      coin: item.reward,               // 后端 reward 映射到 coin
+      coin: item.reward,
       time: this.formatTime(item.created_at, item.deadline)
     };
   },
 
+  // 批量加载任务列表头像，返回填充好头像的新数组
+  async _resolveTaskAvatars(taskList: any[]): Promise<any[]> {
+    const userIds = taskList
+      .map(item => item.userId)
+      .filter(id => id !== undefined && id !== null);
+    if (userIds.length === 0) return taskList;
+
+    // 批量预加载
+    await preloadAvatars(userIds);
+    
+    // 逐个替换头像
+    for (const item of taskList) {
+      if (!item.userId) continue;
+      const avatarPath = await downloadAvatar(item.userId);
+      if (avatarPath) {
+        item.avatar = avatarPath;
+      }
+    }
+    return taskList;
+  },
+
   // 交易记录适配
   adaptTradeItem(item: any): any {
-    // 假设后端返回的 type 是数字 1(收入) 或 2(支出)
-    // 如果后端已经映射为字符串 'income'/'expense'，则直接使用 item.type
     const typeStr = typeof item.type === 'number'
       ? (item.type === 1 ? 'income' : 'expense')
       : item.type;
@@ -112,29 +135,31 @@ Page({
       console.log('profileRes:', profileRes);
       if (profileRes.code === 200) {
         const userData = profileRes.data.user;
-        // 处理头像URL，拼接完整服务器地址
-        const fullAvatar = getFullAvatarUrl(userData.avatar);
-        userData.avatar = fullAvatar;
+        // PC端兼容：用base64加载自己的头像
+        const avatarSrc = await fetchAvatarBase64(userData.id || wx.getStorageSync('userId'));
+        userData.avatar = avatarSrc;
         this.setData({
           userInfo: userData,
           stats: profileRes.data.stats
         });
-        // 同步存储头像到本地，其他页面可共用
-        wx.setStorageSync('avatar', fullAvatar);
+        // 同步存储头像到本地（base64），其他页面可共用
+        wx.setStorageSync('avatar', avatarSrc);
       }
 
-      // 2. 我发布的任务（适配后）
+      // 2. 我发布的任务（适配后 + 批量加载头像 base64）
       const publishRes = await getMyPublishTasks();
       if (publishRes.code === 200) {
         const adapted = publishRes.data.map((item: any) => this.adaptTaskItem(item));
-        this.setData({ publishList: adapted });
+        const resolved = await this._resolveTaskAvatars(adapted);
+        this.setData({ publishList: resolved });
       }
 
-      // 3. 我接单的任务（适配后）
+      // 3. 我接单的任务（适配后 + 批量加载头像 base64）
       const acceptRes = await getMyReceiveTasks();
       if (acceptRes.code === 200) {
         const adapted = acceptRes.data.map((item: any) => this.adaptTaskItem(item));
-        this.setData({ acceptList: adapted });
+        const resolved = await this._resolveTaskAvatars(adapted);
+        this.setData({ acceptList: resolved });
       }
 
       // 4. 交易记录（适配后）
@@ -182,28 +207,20 @@ Page({
     });
   },
 
-  // ========== 新增：弹窗交互逻辑 ==========
-  // 显示设置菜单
+  // ========== 弹窗交互逻辑 ==========
   showSettingMenu() {
-    this.setData({
-      showSettingMenuFlag: true
-    });
+    this.setData({ showSettingMenuFlag: true });
   },
-  // 隐藏设置菜单
   hideSettingMenu() {
-    this.setData({
-      showSettingMenuFlag: false
-    });
+    this.setData({ showSettingMenuFlag: false });
   },
-  // 隐藏所有弹窗
   hideAllPopups() {
     this.setData({
       showSettingMenuFlag: false,
       showEditNicknameFlag: false,
       showEditSignatureFlag: false,
       showEditAvatarFlag: false,
-      showChangePasswordFlag: false,  
-      // 可选：清空临时数据
+      showChangePasswordFlag: false,
       tempNickname: '',
       tempSignature: '',
       tempAvatar: '',
@@ -213,20 +230,12 @@ Page({
     });
   },
 
-  // 显示修改昵称弹窗
   showEditNickname() {
-    this.setData({
-      showSettingMenuFlag: false, // 先隐藏菜单
-      showEditNicknameFlag: true
-    });
+    this.setData({ showSettingMenuFlag: false, showEditNicknameFlag: true });
   },
-  // 输入昵称
   inputNickname(e: WechatMiniprogram.InputEvent) {
-    this.setData({
-      tempNickname: e.detail.value
-    });
+    this.setData({ tempNickname: e.detail.value });
   },
-  // 保存昵称
   async saveNickname() {
     if (!this.data.tempNickname) {
       wx.showToast({ title: '昵称不能为空', icon: 'none' });
@@ -236,11 +245,7 @@ Page({
       const res = await updateUserInfo({ nickname: this.data.tempNickname });
       if (res.code === 200) {
         wx.showToast({ title: '修改成功' });
-        // 更新本地数据
-        this.setData({
-          'userInfo.nickname': this.data.tempNickname,
-          showEditNicknameFlag: false
-        });
+        this.setData({ 'userInfo.nickname': this.data.tempNickname, showEditNicknameFlag: false });
       } else {
         wx.showToast({ title: res.msg || '修改失败', icon: 'none' });
       }
@@ -250,29 +255,18 @@ Page({
     }
   },
 
-  // 显示修改签名弹窗
   showEditSignature() {
-    this.setData({
-      showSettingMenuFlag: false,
-      showEditSignatureFlag: true
-    });
+    this.setData({ showSettingMenuFlag: false, showEditSignatureFlag: true });
   },
-  // 输入签名
   inputSignature(e: WechatMiniprogram.InputEvent) {
-    this.setData({
-      tempSignature: e.detail.value
-    });
+    this.setData({ tempSignature: e.detail.value });
   },
-  // 保存签名
   async saveSignature() {
     try {
       const res = await updateUserInfo({ signature: this.data.tempSignature });
       if (res.code === 200) {
         wx.showToast({ title: '修改成功' });
-        this.setData({
-          'userInfo.signature': this.data.tempSignature,
-          showEditSignatureFlag: false
-        });
+        this.setData({ 'userInfo.signature': this.data.tempSignature, showEditSignatureFlag: false });
       } else {
         wx.showToast({ title: res.msg || '修改失败', icon: 'none' });
       }
@@ -282,29 +276,21 @@ Page({
     }
   },
 
-  // 显示修改头像弹窗
   showEditAvatar() {
-    this.setData({
-      showSettingMenuFlag: false,
-      showEditAvatarFlag: true
-    });
+    this.setData({ showSettingMenuFlag: false, showEditAvatarFlag: true });
   },
-  // 选择头像（仅预览，不上传）
   chooseAvatar() {
     wx.chooseImage({
       count: 1,
       sizeType: ['compressed'],
       sourceType: ['album', 'camera'],
-      success: (res) => {
-        this.setData({ tempAvatar: res.tempFilePaths[0] });
-      },
+      success: (res) => { this.setData({ tempAvatar: res.tempFilePaths[0] }); },
       fail: (err) => {
         console.error('选择图片失败:', err);
         wx.showToast({ title: '选择图片失败', icon: 'none' });
       }
     });
   },
-  // 保存头像（上传）
   async saveAvatar() {
     if (!this.data.tempAvatar) {
       wx.showToast({ title: '请先选择图片', icon: 'none' });
@@ -314,23 +300,13 @@ Page({
     try {
       const res = await uploadAvatar(this.data.tempAvatar);
       if (res.code === 200 && res.data && res.data.url) {
-        // 处理头像URL，拼接完整服务器地址
         const newAvatarUrl = getFullAvatarUrl(res.data.url);
-        // 强制添加时间戳避免缓存
         const avatarWithTimestamp = `${newAvatarUrl}${newAvatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`;
-        
-        this.setData({
-          'userInfo.avatar': avatarWithTimestamp,
-          showEditAvatarFlag: false,
-          tempAvatar: ''
-        });
+        this.setData({ 'userInfo.avatar': avatarWithTimestamp, showEditAvatarFlag: false, tempAvatar: '' });
         wx.hideLoading();
         wx.showToast({ title: '头像更新成功' });
-        // 更新本地存储（不含时间戳，让其他页面自己加）
         wx.setStorageSync('avatar', newAvatarUrl);
-        // 重新加载个人数据确保最新状态
         this.loadProfileData();
-        
       } else {
         wx.showToast({ title: res.message || '上传失败', icon: 'none' });
       }
@@ -343,10 +319,7 @@ Page({
   },
 
   showChangePassword() {
-    this.setData({
-      showSettingMenuFlag: false,
-      showChangePasswordFlag: true
-    });
+    this.setData({ showSettingMenuFlag: false, showChangePasswordFlag: true });
   },
 
   inputOldPwd(e) { this.setData({ tempOldPwd: e.detail.value }); },
@@ -368,7 +341,6 @@ Page({
       const res = await changePassword({ oldPassword: tempOldPwd, newPassword: tempNewPwd });
       if (res.code === 200) {
         wx.showToast({ title: res.message, icon: 'success' });
-        // 清空 token 并跳转到登录页
         wx.removeStorageSync('token');
         wx.reLaunch({ url: '/pages/login/login' });
       } else {

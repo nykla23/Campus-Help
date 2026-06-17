@@ -1,4 +1,4 @@
-import { getChatDetail, sendMsgApi, getTaskDetail, getFullAvatarUrl, fetchAvatarBase64 } from '../../utils/api';
+import { getChatDetail, sendMsgApi, getTaskDetail, downloadAvatar } from '../../utils/api';
 import { formatChatTimeShort, formatChatTimeDivider } from '../../utils/common';
 
 const app = getApp<IAppOption>();
@@ -35,20 +35,16 @@ Page({
     const targetName = decodeURIComponent(options.targetName || '聊天');
     const myId = Number(wx.getStorageSync('userId') || 0);
     
-    // 从本地存储获取自己的头像
-    const storedAvatar = wx.getStorageSync('avatar') || '';
-    const myAvatar = storedAvatar.startsWith('http') ? storedAvatar : getFullAvatarUrl(storedAvatar);
-    
     this.setData({
       taskId,
       targetId,
       targetName,
       targetAvatar: '/images/default-avatar.png', // 先使用默认值
       myId,
-      myAvatar
+      myAvatar: '/images/default-avatar.png' // 先使用默认值
     });
     
-    // 异步加载双方头像为 base64
+    // 异步加载双方头像为 base64（每次显示页面时也刷新）
     this.loadAvatars(targetId, myId);
     
     wx.setNavigationBarTitle({ title: targetName || '聊天' });
@@ -86,16 +82,32 @@ Page({
 
   // 加载双方头像
   async loadAvatars(targetId: string, myId: number) {
-    // 加载自己的头像
-    const myAvatarB64 = await fetchAvatarBase64(myId);
-    if (myAvatarB64) {
-      this.setData({ myAvatar: myAvatarB64 });
+    const [myAvatarPath, targetAvatarPath] = await Promise.all([
+      downloadAvatar(myId),
+      downloadAvatar(targetId)
+    ]);
+    const updateData: any = {};
+    if (myAvatarPath) updateData.myAvatar = myAvatarPath;
+    if (targetAvatarPath) updateData.targetAvatar = targetAvatarPath;
+    if (Object.keys(updateData).length > 0) {
+      this.setData(updateData);
+      // 同时更新消息列表中用到的头像
+      this._refreshMsgAvatars();
     }
-    // 加载对方头像
-    const targetAvatarB64 = await fetchAvatarBase64(targetId);
-    if (targetAvatarB64) {
-      this.setData({ targetAvatar: targetAvatarB64 });
-    }
+  },
+
+  // 用最新的 myAvatar / targetAvatar 刷新消息列表中的头像
+  _refreshMsgAvatars() {
+    if (this.data.msgList.length === 0) return;
+    const { myAvatar, targetAvatar, myId } = this.data;
+    const list = this.data.msgList.map((item: any) => {
+      const isSend = String(item.from_id) === String(myId) || item.type === 'send';
+      return {
+        ...item,
+        avatar: isSend ? (myAvatar || '/images/default-avatar.png') : (targetAvatar || '/images/default-avatar.png')
+      };
+    });
+    this.setData({ msgList: list });
   },
 
   onUnload() {
@@ -113,7 +125,6 @@ Page({
 
   // 处理新消息事件
   _onNewMessage(msg: any) {
-    //const that = this; // 保存 this 引用
     // 只处理当前聊天相关的消息
     if (String(msg.task_id) !== String(this.data.taskId)) return;
     const isTarget = String(msg.from_id) === String(this.data.targetId);
@@ -144,9 +155,10 @@ Page({
 
     list.push({
       id: msg.id,
+      from_id: msg.from_id,
       type: isSend ? 'send' : 'receive',
       content: msg.content,
-      avatar: avatar,
+      avatar: avatar || '/images/default-avatar.png',
       timeShort: this.formatTimeShort(msgDate),
       showTime,
       timeStr,
@@ -170,20 +182,16 @@ Page({
         const task = res.data;
         this.setData({ 'chatInfo.taskTitle': task.title });
         let targetNickname = this.data.targetName;
-        let targetAvatar = this.data.targetAvatar;
         
         if (task.publisher.id == this.data.targetId) {
           targetNickname = task.publisher.nickname;
-          targetAvatar = task.publisher.avatar;
         } else if (task.acceptor && task.acceptor.id == this.data.targetId) {
           targetNickname = task.acceptor.nickname;
-          targetAvatar = task.acceptor.avatar;
         }
         
         if (targetNickname) {
           this.setData({
             targetName: targetNickname,
-            targetAvatar: getFullAvatarUrl(targetAvatar),
             'chatInfo.nickname': targetNickname
           });
           wx.setNavigationBarTitle({ title: targetNickname });
@@ -223,15 +231,14 @@ Page({
           lastTime = msgDate;
           
           const isSend = item.from_id == myId;
-          const rawFromAvatar = item.from_avatar || '';
-          const isValidImageUrl = rawFromAvatar && (rawFromAvatar.startsWith('http') || rawFromAvatar.startsWith('/uploads'));
-          const fromAvatar = isValidImageUrl ? getFullAvatarUrl(rawFromAvatar) : '';
-          const avatar = isSend 
-            ? (fromAvatar || myAvatar)
-            : (fromAvatar || targetAvatar);
+          // PC端兼容：始终使用已加载的 base64 头像
+          const avatar = isSend
+            ? (myAvatar || '/images/default-avatar.png')
+            : (targetAvatar || '/images/default-avatar.png');
           
           return {
             id: item.id,
+            from_id: item.from_id,
             type: isSend ? 'send' : 'receive',
             content: item.content,
             avatar: avatar,
@@ -241,13 +248,6 @@ Page({
             created_at: item.created_at
           };
         });
-        
-        if (list.length > 0) {
-          const firstReceive = list.find((m: any) => m.type === 'receive');
-          if (firstReceive && firstReceive.avatar !== '/images/default-avatar.png') {
-            this.setData({ targetAvatar: firstReceive.avatar });
-          }
-        }
         
         this.setData({
           msgList: list,
@@ -298,9 +298,10 @@ Page({
 
     list.push({
       id: tempId,
+      from_id: _myId,
       type: 'send',
       content: content,
-      avatar: this.data.myAvatar,
+      avatar: this.data.myAvatar || '/images/default-avatar.png',
       timeShort: this.formatTimeShort(msgDate),
       showTime,
       timeStr,

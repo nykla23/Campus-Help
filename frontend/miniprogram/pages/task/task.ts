@@ -1,4 +1,4 @@
-import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl, fetchAvatarBase64 } from '../../utils/api';
+import { getTaskDetail, acceptTask, completeTask, cancelTask, giveUpTask, confirmCompleteTask, getFullAvatarUrl, downloadAvatar } from '../../utils/api';
 
 const app = getApp<IAppOption>();
 
@@ -68,13 +68,13 @@ Page({
         if (taskData.acceptor && taskData.acceptor.id) {
           taskData.acceptor.id = Number(taskData.acceptor.id);
         }
-        // 使用 base64 加载头像
+        // 使用 downloadFile 加载头像（本地临时路径，PC端兼容）
         if (taskData.publisher) {
-          const pubAvatar = await fetchAvatarBase64(taskData.publisher.id);
+          const pubAvatar = await downloadAvatar(taskData.publisher.id, taskData.publisher.avatar);
           taskData.publisher.avatar = pubAvatar || getFullAvatarUrl(taskData.publisher.avatar);
         }
         if (taskData.acceptor) {
-          const accAvatar = await fetchAvatarBase64(taskData.acceptor.id);
+          const accAvatar = await downloadAvatar(taskData.acceptor.id, taskData.acceptor.avatar);
           taskData.acceptor.avatar = accAvatar || getFullAvatarUrl(taskData.acceptor.avatar);
         }
         taskData.deadlineStr = taskData.deadline ? taskData.deadline.substring(0, 16).replace('T', ' ') : '';

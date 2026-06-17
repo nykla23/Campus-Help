@@ -1,4 +1,4 @@
-import { getOtherUserInfo, getUserPublishTasks, getFullAvatarUrl } from '../../utils/api';
+import { getOtherUserInfo, getUserPublishTasks, downloadAvatar } from '../../utils/api';
 import { getStatusText, getTypeTextNoAll, formatListTime } from '../../utils/common';
 
 Page({
@@ -36,7 +36,9 @@ Page({
       // 处理用户信息
       if (userRes.code === 200 && userRes.data) {
         const user = userRes.data.user;
-        user.avatar = getFullAvatarUrl(user.avatar);
+        // PC端微信禁止HTTP图片，使用base64加载头像
+        const avatarSrc = await downloadAvatar(this.data.userId);
+        user.avatar = avatarSrc;
         this.setData({
           userInfo: user,
           stats: userRes.data.stats,
