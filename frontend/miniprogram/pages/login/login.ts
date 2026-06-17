@@ -1,5 +1,5 @@
 import { login, getProfile } from '../../api/user';
-import { getFullAvatarUrl } from '../../utils/api';
+import { downloadAvatar } from '../../utils/api';
 
 const app = getApp<IAppOption>();
 
@@ -29,16 +29,16 @@ Page({
           wx.setStorageSync('token', res.data.token);
           wx.setStorageSync('userId', res.data.userId);
           
-          // 登录成功后获取头像并建立全局 WebSocket
-          getProfile().then(profileRes => {
+          // 登录成功后获取头像（base64，兼容PC端）并建立全局 WebSocket
+          getProfile().then(async (profileRes) => {
             console.log('登录获取头像:', profileRes);
             wx.hideLoading();
-            const user = profileRes.data && profileRes.data.user;
-            if (user && user.avatar) {
-              const avatar = user.avatar;
-              const fullAvatar = getFullAvatarUrl(avatar);
-              wx.setStorageSync('avatar', fullAvatar);
-              console.log('保存的头像:', fullAvatar);
+            const userId = res.data.userId;
+            // 使用 downloadFile 下载头像到本地临时路径（PC端兼容）
+            const avatarPath = await downloadAvatar(userId);
+            if (avatarPath) {
+              wx.setStorageSync('avatar', avatarPath);
+              console.log('保存的头像:', avatarPath);
             }
             // 建立全局 WebSocket 连接
             if (app.connectSocket) {

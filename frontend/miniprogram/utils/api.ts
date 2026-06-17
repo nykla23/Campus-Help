@@ -4,8 +4,8 @@ const BASE_URL = 'http://112.124.21.214:3000/api';
 const SERVER_BASE = 'http://112.124.21.214:3000';
 
 /**
- * 获取头像的完整 URL
- * 对于网络图片（/uploads 开头），拼接服务器地址
+ * 获取头像的完整 URL（用于 downloadFile 下载）
+ * 仅作为内部辅助函数使用
  */
 export function getFullAvatarUrl(avatarUrl: string): string {
   if (!avatarUrl) return '/images/default-avatar.png';
@@ -19,23 +19,54 @@ export function getFullAvatarUrl(avatarUrl: string): string {
 }
 
 /**
- * 通过后端 API 获取头像 base64（解决小程序真机网络图片限制）
- * 使用缓存避免重复请求
+ * 下载头像到本地临时路径
+ * 
+ * 由于PC端微信禁止<image>直接加载HTTP图片，
+ * 本函数使用 wx.downloadFile 将网络图片下载到本地临时路径（wxfile://），
+ * 该路径可直接用于 <image src>，不受HTTP限制。
+ * 
+ * 使用两级缓存：
+ * 1. 内存缓存 — 避免重复下载
+ * 2. Storage缓存 — 跨页面/跨生命周期复用
+ * 
+ * @param userId  用户ID（数字或字符串）
+ * @param avatarUrl  数据库中的原始avatar字段值，用于获取下载URL
+ * @returns  本地临时路径 或 默认头像路径
+ */
+const avatarCache: Map<string, string> = new Map();
+const CACHE_PREFIX = 'avatar_tmp_';
+
+/**
+ * 通过后端 /api/user/avatar/:userId 获取 base64（备选方案）
+ * 当 downloadFile 不可用时 fallback 使用
+ * 
+ * 但推荐使用 downloadAvatar 方案，因为 base64 太大容易超出 setData 限制
  */
 const avatarBase64Cache: Map<string, string> = new Map();
+
 export function fetchAvatarBase64(userId: number | string): Promise<string> {
   const cacheKey = String(userId);
+
   if (avatarBase64Cache.has(cacheKey)) {
     return Promise.resolve(avatarBase64Cache.get(cacheKey)!);
   }
+
+  const stored = wx.getStorageSync('avatar_b64_' + cacheKey);
+  if (stored) {
+    avatarBase64Cache.set(cacheKey, stored);
+    return Promise.resolve(stored);
+  }
+
   return new Promise((resolve) => {
     wx.request({
       url: BASE_URL + '/user/avatar/' + cacheKey,
       method: 'GET',
       success: (res: any) => {
         if (res.statusCode === 200 && res.data && res.data.code === 200 && res.data.data && res.data.data.base64) {
-          avatarBase64Cache.set(cacheKey, res.data.data.base64);
-          resolve(res.data.data.base64);
+          const b64 = res.data.data.base64;
+          avatarBase64Cache.set(cacheKey, b64);
+          try { wx.setStorageSync('avatar_b64_' + cacheKey, b64); } catch (_e) { /* 忽略 */ }
+          resolve(b64);
         } else {
           resolve('/images/default-avatar.png');
         }
@@ -48,30 +79,53 @@ export function fetchAvatarBase64(userId: number | string): Promise<string> {
 }
 
 /**
- * 将网络图片下载为本地临时路径（使用 downloadFile）
- * 也尝试通过 API 获取 base64
+ * 下载头像到本地临时文件（推荐方案，性能更好）
+ * 
+ * 先查内存缓存 → Storage缓存 → downloadFile下载 → 缓存
+ * 
+ * @param userId  用户ID
+ * @param avatarUrl  原始avatar URL（用于拼接下载地址）
+ * @returns  本地临时路径（wxfile://...）或 默认头像路径
  */
-export function downloadAvatar(avatarUrl: string): Promise<string> {
+export async function downloadAvatar(userId: number | string, avatarUrl?: string): Promise<string> {
+  const cacheKey = String(userId);
+
+  // 1. 内存缓存
+  if (avatarCache.has(cacheKey)) {
+    return avatarCache.get(cacheKey)!;
+  }
+
+  // 2. Storage缓存
+  const stored = wx.getStorageSync(CACHE_PREFIX + cacheKey);
+  if (stored) {
+    avatarCache.set(cacheKey, stored);
+    return stored;
+  }
+
+  // 3. 如果没有提供 avatarUrl，通过 base64 接口获取（只能获得 base64，但作为兜底）
+  if (!avatarUrl) {
+    const b64 = await fetchAvatarBase64(userId);
+    return b64;
+  }
+
+  // 4. 通过 downloadFile 下载
   const fullUrl = getFullAvatarUrl(avatarUrl);
-  // 如果是本地图片路径，直接返回
+  // 如果已经是本地路径或默认路径，直接返回
   if (fullUrl.startsWith('/images/') || fullUrl.startsWith('wxfile://') || !fullUrl.startsWith('http')) {
-    return Promise.resolve(fullUrl);
+    if (fullUrl.startsWith('/images/')) {
+      avatarCache.set(cacheKey, fullUrl);
+      return fullUrl;
+    }
+    return fullUrl;
   }
-  // 默认头像
-  if (avatarUrl === '/images/default-avatar.png' || !avatarUrl) {
-    return Promise.resolve('/images/default-avatar.png');
-  }
-  // 本地缓存
-  if (avatarCache.has(fullUrl)) {
-    return Promise.resolve(avatarCache.get(fullUrl)!);
-  }
-  // 通过 downloadFile 下载
+
   return new Promise((resolve) => {
     wx.downloadFile({
       url: fullUrl,
       success: (res) => {
         if (res.statusCode === 200 && res.tempFilePath) {
-          avatarCache.set(fullUrl, res.tempFilePath);
+          avatarCache.set(cacheKey, res.tempFilePath);
+          try { wx.setStorageSync(CACHE_PREFIX + cacheKey, res.tempFilePath); } catch (_e) { /* 忽略 */ }
           resolve(res.tempFilePath);
         } else {
           resolve('/images/default-avatar.png');
@@ -82,6 +136,16 @@ export function downloadAvatar(avatarUrl: string): Promise<string> {
       }
     });
   });
+}
+
+/**
+ * 批量预加载头像到本地临时文件
+ */
+export async function preloadAvatars(userIds: (string | number)[]): Promise<void> {
+  const uniqueIds = [...new Set(userIds.map(String))];
+  await Promise.allSettled(
+    uniqueIds.map(id => downloadAvatar(id).catch(() => {}))
+  );
 }
 
 // 定义发布任务的请求参数类型
@@ -136,7 +200,7 @@ export function request<T = any>(
       url: fullUrl,
       method,
       data: requestData,
-      dataType: 'json',  // 明确告诉微信将响应解析为 JSON 对象
+      dataType: 'json',
       header: {
         'Content-Type': 'application/json',
         ...(options.noAuth ? {} : { Authorization: "Bearer " + getToken() }),

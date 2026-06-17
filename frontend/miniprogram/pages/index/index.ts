@@ -1,5 +1,5 @@
 import { getTaskList } from '../../api/task';
-import { getFullAvatarUrl } from '../../utils/api';
+import { getFullAvatarUrl, downloadAvatar, preloadAvatars } from '../../utils/api';
 import { getStatusText, getTypeText, formatListTime } from '../../utils/common';
 
 Page({
@@ -79,7 +79,6 @@ Page({
   // 遮罩点击：关闭弹窗
   hideFilter() { 
     this.setData({ showFilter: false });
-    // this.refreshList();
   },
 
   // 弹窗内类型点击
@@ -108,8 +107,8 @@ Page({
     wx.switchTab({ url: '/pages/message/message' });
   },
 
-  // 核心：刷新任务列表（带所有筛选参数）
-  refreshList(isSearch = false) {
+  // ========== 核心：刷新任务列表 ==========
+  async refreshList(isSearch = false) {
     console.log('refreshList 调用，keyword:', this.data.keyword, 'isSearch:', isSearch);
     let { activeTab, activeType } = this.data;
     const { limit, selectedFilter, keyword } = this.data;
@@ -128,12 +127,14 @@ Page({
     const sort = selectedFilter;
     const searchKeyword = keyword.trim() || undefined;
 
-        console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
-        this.setData({ page: 1, loading: true });
-    getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword }).then(res => {
+    console.log('请求参数:', { page: 1, limit, status, type, sort, keyword: searchKeyword });
+    this.setData({ page: 1, loading: true });
+    try {
+      const res = await getTaskList({ page: 1, limit, status, type, sort, keyword: searchKeyword });
       console.log('API响应:', JSON.stringify(res));
       if (res.code === 0 && res.data) {
-        const list = this._adaptTaskList(res.data.list);
+        // 先适配数据（头像用默认占位），再批量加载 base64，最后一次性 setData
+        const list = await this._adaptAndLoadAvatars(res.data.list);
         console.log('适配后列表:', JSON.stringify(list));
         this.setData({
           taskList: list,
@@ -146,11 +147,11 @@ Page({
       } else {
         wx.showToast({ title: res.message, icon: 'none' });
       }
-    }).catch(() => {
+    } catch (_e) {
       wx.showToast({ title: "网络异常", icon: "none" });
-    }).finally(() => {
+    } finally {
       this.setData({ loading: false });
-    });
+    }
   },
 
   // 下拉刷新
@@ -169,7 +170,7 @@ Page({
   },
 
   // 加载更多（页码增加，带所有筛选）
-  loadMore() {
+  async loadMore() {
     console.log('=== loadMore 被调用 ===');
     console.log('当前状态: page =', this.data.page, 'total =', this.data.total, 'taskList长度 =', this.data.taskList.length, 'loading =', this.data.loading);
     
@@ -184,45 +185,74 @@ Page({
       const type: number | undefined = activeType === 0 ? undefined : activeType;
       const sort = selectedFilter;
 
-      //console.log('请求参数:', { page: nextPage, limit, status, type, sort, keyword });
       this.setData({ loading: true });
-                  getTaskList({ page: nextPage, limit, status, type, sort, keyword })
-        .then(res => {
-          console.log('loadMore 收到响应:', res);
-          if (res.code === 0 && res.data) {
-            const newTasks = this._adaptTaskList(res.data.list);
-            console.log('新任务数量:', newTasks.length);
-            this.setData({
-              taskList: this.data.taskList.concat(newTasks),
-              total: res.data.total,
-              page: nextPage
-            });
-            console.log('拼接后 taskList 长度:', this.data.taskList.length);
-          } else {
-            console.warn('响应异常:', res);
-          }
-        })
-        .catch(err => {
-          console.error('loadMore 请求失败:', err);
-        })
-        .finally(() => {
-          this.setData({ loading: false });
-        });
+      try {
+        const res = await getTaskList({ page: nextPage, limit, status, type, sort, keyword });
+        console.log('loadMore 收到响应:', res);
+        if (res.code === 0 && res.data) {
+          const newTasks = await this._adaptAndLoadAvatars(res.data.list);
+          console.log('新任务数量:', newTasks.length);
+          this.setData({
+            taskList: this.data.taskList.concat(newTasks),
+            total: res.data.total,
+            page: nextPage
+          });
+          console.log('拼接后 taskList 长度:', this.data.taskList.length);
+        } else {
+          console.warn('响应异常:', res);
+        }
+      } catch (err) {
+        console.error('loadMore 请求失败:', err);
+      } finally {
+        this.setData({ loading: false });
+      }
     } else {
       console.log('条件不满足，跳过加载');
     }
   },
 
-        // 字段适配
+  /**
+   * 适配后端数据 + 批量加载 base64 头像
+   * 返回的数组中 avatar 已是 base64 或默认路径，可直接用于渲染
+   */
+  async _adaptAndLoadAvatars(list: any[]): Promise<any[]> {
+    // 1. 适配数据（先占位）
+    const adapted = this._adaptTaskList(list);
+    
+    // 2. 收集所有 userId
+    const userIds = adapted
+      .map(item => item.userId)
+      .filter(id => id !== undefined && id !== null);
+    if (userIds.length === 0) return adapted;
+
+    // 3. 批量预加载（并行请求，利用缓存）
+    await preloadAvatars(userIds);
+    
+    // 4. 逐个替换头像为本地临时路径
+    for (const item of adapted) {
+      if (!item.userId) continue;
+      const avatarPath = await downloadAvatar(item.userId);
+      if (avatarPath) {
+        item.avatar = avatarPath;
+      }
+    }
+    
+    return adapted;
+  },
+
+  /**
+   * 将后端返回的任务列表适配为前端卡片数据格式
+   */
   _adaptTaskList(list: any[]) {
     return (list || []).map(item => {
-      const rawAvatarUrl = item.avatar || (item.publisher && item.publisher.avatar);
+      const publisher = item.publisher || {};
+      const userId = publisher.userId || item.publisher_id;
       return {
         id: item.taskId,
-        userId: item.publisher_id || (item.publisher && item.publisher.id),
-        avatar: getFullAvatarUrl(rawAvatarUrl) || '/images/default-avatar.png',
-        nickname: item.nickname || (item.publisher && item.publisher.nickname) || '匿名用户',
-        credit: item.credit_score || (item.publisher && item.publisher.creditScore) || '0',
+        userId: userId,
+        avatar: '/images/default-avatar.png', // 占位，稍后在 _adaptAndLoadAvatars 中替换
+        nickname: item.nickname || publisher.nickname || '匿名用户',
+        credit: item.credit_score || publisher.creditScore || '0',
         title: item.title,
         desc: item.description,
         tag: this._adaptTaskType(item.type),
@@ -241,11 +271,9 @@ Page({
 
   onLoad() {
     this.refreshList();
-    
   },
 
   onShow() {
-
     console.log('index onShow 触发')
     
     // 如果当前正在搜索中（keyword 不为空），不要清空搜索条件
