@@ -5,6 +5,10 @@ jest.mock('../api/user', () => ({
   login: jest.fn(() => Promise.resolve({ code: 0, data: { token: 't', userId: 1 } })),
   getProfile: jest.fn(() => Promise.resolve({ code: 200, data: { user: {} } }))
 }));
+jest.mock('../utils/api', () => ({
+  downloadAvatar: jest.fn().mockResolvedValue('/images/default-avatar.png'),
+  getFullAvatarUrl: (url) => !url ? '/images/default-avatar.png' : (url.startsWith('http') ? url : 'http://localhost:3000' + url)
+}));
 const { login, getProfile } = require('../api/user');
 
 require('../pages/login/login.ts');
@@ -13,6 +17,7 @@ describe('Login Page', () => {
   const page = global.getPageInstance();
 
   beforeEach(() => {
+    jest.clearAllMocks();
     page.setData({ username: '', password: '' });
     login.mockClear();
     getProfile.mockClear();
@@ -61,19 +66,15 @@ describe('Login Page', () => {
   describe('Mock API tests', () => {
 
     test('login success - stores token and switches tab', async () => {
-      // 设置mock返回值（使用Once避免影响后续测试）
       login.mockImplementationOnce(() => Promise.resolve({ code: 0, data: { token: 'abc-123', userId: 1 } }));
-      // getProfile也用Once，返回成功结果
-      getProfile.mockImplementationOnce(() => Promise.resolve({ 
+      getProfile.mockImplementationOnce(() => Promise.resolve({
         code: 200, data: { user: { avatar: '/uploads/avatar.jpg' } }
-      }).catch(() => {})); // catch防止unhandled
-      
+      }));
+
       page.setData({ username: 'admin', password: '123456' });
-      
-      // 调用登录
-      const _result = await page.onLogin();
-      
-      // 验证同步行为：login被正确调用，参数匹配
+
+      await page.onLogin();
+
       expect(login).toHaveBeenCalledWith({ username: 'admin', password: '123456' });
       expect(wx.setStorageSync).toHaveBeenCalledWith('token', 'abc-123');
     });
@@ -87,10 +88,11 @@ describe('Login Page', () => {
 
     test('login success triggers switch tab', async () => {
       login.mockResolvedValueOnce({ code: 0, data: { token: 'ok', userId: 99 } });
-      getProfile.mockImplementationOnce(() => Promise.resolve({ code: 200, data: { user: { avatar: '' } } }));
+      getProfile.mockResolvedValueOnce({ code: 200, data: { user: { avatar: '' } } });
       page.setData({ username: 'u', password: 'p' });
-      await page.onLogin();
-      await new Promise(r => setTimeout(r, 30));
+      page.onLogin();
+      // onLogin 使用 void，无法直接 await，等待微任务执行完成
+      await new Promise(r => setTimeout(r, 50));
       expect(wx.switchTab).toHaveBeenCalled();
     });
   });

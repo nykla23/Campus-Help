@@ -3,7 +3,8 @@
  */
 jest.mock('../utils/api', () => ({
   aiChat: jest.fn(),
-  getFullAvatarUrl: (url) => url || '/images/default-avatar.png'
+  getFullAvatarUrl: (url) => url || '/images/default-avatar.png',
+  downloadAvatar: jest.fn().mockResolvedValue('/images/default-avatar.png')
 }));
 const api = require('../utils/api');
 require('../pages/ai/ai.ts');
@@ -48,7 +49,7 @@ describe('AI智能客服 AI', () => {
   describe('Mock API 测试', () => {
 
     test('AI对话成功添加消息', async () => {
-      page.setData({ inputMsg: '你好', loading: false });
+      page.setData({ inputMsg: '你好', loading: false, msgList: [] });
       await page.sendMsg();
       expect(api.aiChat).toHaveBeenCalled();
       expect(page.data.msgList.length).toBeGreaterThanOrEqual(2);
@@ -69,7 +70,6 @@ describe('AI智能客服 AI', () => {
     });
 
     test('onShow 无历史显示欢迎消息', () => {
-      // getStorageSync 需要返回字符串（源码中调用了startsWith）
       wx.getStorageSync.mockImplementation((key) => key === 'avatar' ? '' : []);
       page.onShow();
       expect(page.data.msgList[0].type).toBe('receive');
@@ -92,7 +92,6 @@ describe('AI智能客服 AI', () => {
     test('onUnload 无历史不保存', () => {
       page.chatHistory = [];
       page.onUnload();
-      // 不应该调用setStorage存储空数组（源码判断length > 0）
     });
   });
 });

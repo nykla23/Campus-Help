@@ -9,6 +9,9 @@ jest.mock('../utils/api', () => ({
   updateUserInfo: jest.fn(),
   uploadAvatar: jest.fn(),
   changePassword: jest.fn(),
+  downloadAvatar: jest.fn().mockResolvedValue('/images/default-avatar.png'),
+  fetchAvatarBase64: jest.fn().mockResolvedValue('data:image/png;base64,mockavatar'),
+  preloadAvatars: jest.fn().mockResolvedValue(undefined),
   getFullAvatarUrl: (url) => {
     if (!url) return '/images/default-avatar.png';
     if (url === '/images/default-avatar.png') return url;
@@ -32,17 +35,15 @@ describe('个人主页 Profile', () => {
     api.changePassword.mockResolvedValue({ code: 200, message: 'ok' });
   });
 
-  // getTypeTextNoAll 映射: ['', '取件代送', '跑腿代办', '学习辅导', '其他']  type从1开始
-  // getStatusText 映射:     {0:'待接取', 1:'进行中', 2:'待确认', 3:'已完成', 4:'已取消'}
   describe('组件渲染 / 交互 - 数据适配函数', () => {
 
     test('adaptTaskType 类型映射（基于 getTypeTextNoAll，type 从 1 开始）', () => {
-      expect(page.adaptTaskType(1)).toBe('取件代送');   // type 1
-      expect(page.adaptTaskType(2)).toBe('跑腿代办');   // type 2
-      expect(page.adaptTaskType(3)).toBe('学习辅导');   // type 3
-      expect(page.adaptTaskType(4)).toBe('其他');       // type 4
-      expect(page.adaptTaskType(0)).toBe('其他');       // type 0 → ''||fallback → '其他'
-      expect(page.adaptTaskType(99)).toBe('其他');      // 99 → fallback '其他'
+      expect(page.adaptTaskType(1)).toBe('取件代送');
+      expect(page.adaptTaskType(2)).toBe('跑腿代办');
+      expect(page.adaptTaskType(3)).toBe('学习辅导');
+      expect(page.adaptTaskType(4)).toBe('其他');
+      expect(page.adaptTaskType(0)).toBe('其他');
+      expect(page.adaptTaskType(99)).toBe('其他');
     });
 
     test('adaptStatus 状态映射（基于 getStatusText）', () => {
@@ -155,15 +156,6 @@ describe('个人主页 Profile', () => {
       page.setData({ tempAvatar: '' });
       await page.saveAvatar();
       expect(wx.showToast).toHaveBeenCalledWith({ title: '请先选择图片', icon: 'none' });
-    });
-  });
-
-  describe('工具函数 getFullAvatarUrl', () => {
-    test('各场景URL处理', () => {
-      expect(api.getFullAvatarUrl('')).toBe('/images/default-avatar.png');
-      expect(api.getFullAvatarUrl('/images/default-avatar.png')).toBe('/images/default-avatar.png');
-      expect(api.getFullAvatarUrl('http://example.com/a.png')).toBe('http://example.com/a.png');
-      expect(api.getFullAvatarUrl('/uploads/a.png')).toBe('http://localhost:3000/uploads/a.png');
     });
   });
 });

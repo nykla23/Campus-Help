@@ -5,7 +5,9 @@ jest.mock('../api/task', () => ({
   getTaskList: jest.fn()
 }));
 jest.mock('../utils/api', () => ({
-  getFullAvatarUrl: (url) => url || '/images/default-avatar.png'
+  getFullAvatarUrl: (url) => url || '/images/default-avatar.png',
+  downloadAvatar: jest.fn().mockResolvedValue('/images/default-avatar.png'),
+  preloadAvatars: jest.fn().mockResolvedValue(undefined)
 }));
 
 const taskApi = require('../api/task');
@@ -15,7 +17,7 @@ describe('Index Page (任务列表)', () => {
   const page = global.getPageInstance();
 
   beforeEach(() => {
-    taskApi.getTaskList.mockClear();
+    jest.clearAllMocks();
     wx.showToast.mockClear();
     wx.showLoading.mockClear();
     wx.hideLoading.mockClear();
@@ -114,19 +116,17 @@ describe('Index Page (任务列表)', () => {
     });
   });
 
-  // getTypeText 映射: ['', '取件代送', '跑腿代办', '学习辅导', '其他']
   describe('数据适配 _adaptTaskList', () => {
     test('_adaptTaskType 返回正确映射（基于 getTypeText）', () => {
-      expect(page._adaptTaskType(1)).toBe('取件代送');   // type 1
-      expect(page._adaptTaskType(2)).toBe('跑腿代办');     // type 2
-      expect(page._adaptTaskType(3)).toBe('学习辅导');     // type 3
-      expect(page._adaptTaskType(4)).toBe('其他');         // type 4
-      expect(page._adaptTaskType(5)).toBe('');             // type 5+ 不存在
-      expect(page._adaptTaskType(0)).toBe('');             // type 0 = 空
+      expect(page._adaptTaskType(1)).toBe('取件代送');
+      expect(page._adaptTaskType(2)).toBe('跑腿代办');
+      expect(page._adaptTaskType(3)).toBe('学习辅导');
+      expect(page._adaptTaskType(4)).toBe('其他');
+      expect(page._adaptTaskType(5)).toBe('');
+      expect(page._adaptTaskType(0)).toBe('');
       expect(page._adaptTaskType(99)).toBe('');
     });
 
-    // getStatusText 映射: {0:'待接取', 1:'进行中', 2:'待确认', 3:'已完成', 4:'已取消'}
     test('_adaptStatus 返回正确映射（基于 getStatusText）', () => {
       expect(page._adaptStatus(0)).toBe('待接取');
       expect(page._adaptStatus(1)).toBe('进行中');
@@ -158,8 +158,8 @@ describe('Index Page (任务列表)', () => {
       expect(adapted).toHaveLength(1);
       expect(adapted[0].id).toBe(1);
       expect(adapted[0].title).toBe('代取快递');
-      expect(adapted[0].tag).toBe('跑腿代办');  // type 2 → 跑腿代办
-      expect(adapted[0].status).toBe('待接取');  // status 0 → 待接取
+      expect(adapted[0].tag).toBe('跑腿代办');
+      expect(adapted[0].status).toBe('待接取');
       expect(adapted[0].coin).toBe(5);
       expect(adapted[0].nickname).toBe('张三');
     });
@@ -190,8 +190,6 @@ describe('Index Page (任务列表)', () => {
     test('refreshList 网络异常显示网络异常 toast', async () => {
       taskApi.getTaskList.mockRejectedValueOnce(new Error('network error'));
       await page.refreshList();
-      // refreshList 内部 .catch() 调用 showToast，等待微任务
-      await new Promise(r => setTimeout(r, 0));
       expect(wx.showToast).toHaveBeenCalledWith({ title: '网络异常', icon: 'none' });
     });
   });
