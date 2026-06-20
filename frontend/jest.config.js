@@ -6,11 +6,18 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.js'],
   moduleFileExtensions: ['js', 'json', 'ts'],
   transform: {
-    '^.+\\.tsx?$': ['babel-jest', {
-      presets: [
-        ['@babel/preset-env', { targets: { node: 'current' } }],
-        '@babel/preset-typescript'
-      ]
+    '^.+\\.tsx?$': ['ts-jest', {
+      diagnostics: false,
+      tsconfig: {
+        target: 'ES2020',
+        module: 'commonjs',
+        strict: false,
+        esModuleInterop: true,
+        allowJs: true,
+        sourceMap: false,
+        isolatedModules: true,
+        moduleResolution: 'node'
+      }
     }],
     '^.+\\.jsx?$': 'babel-jest'
   },
@@ -24,5 +31,6 @@ module.exports = {
   coverageDirectory: './coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   verbose: true,
-  forceExit: true
+  forceExit: true,
+  detectOpenHandles: true
 };

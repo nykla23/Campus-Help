@@ -3,6 +3,7 @@
  */
 jest.mock('../utils/api', () => ({
   getMsgList: jest.fn(),
+  downloadAvatar: jest.fn().mockResolvedValue('/images/default-avatar.png'),
   getFullAvatarUrl: (url) => !url ? '' : (url === '/images/default-avatar.png' ? url : (url.startsWith('http') ? url : 'http://localhost:3000' + url))
 }));
 const api = require('../utils/api');
@@ -12,6 +13,7 @@ describe('消息列表页 Message', () => {
   const page = global.getPageInstance();
 
   beforeEach(() => {
+    jest.clearAllMocks();
     api.getMsgList.mockClear();
     wx.showToast.mockClear();
     wx.navigateTo.mockClear();
@@ -67,7 +69,6 @@ describe('消息列表页 Message', () => {
     test('loadList missing fields use defaults', async () => {
       api.getMsgList.mockResolvedValueOnce({ code: 200, data: [{ msg_id: 2, user_id: 20, avatar: '', preview: 'msg', task_id: 1 }] });
       await page.loadList();
-      // 源码中 preview 如果有值就用原值，nickname 没有才用默认值
       expect(page.data.msgList[0].preview).toBe('msg');
     });
 
@@ -86,7 +87,6 @@ describe('消息列表页 Message', () => {
     test('loadList network error shows error toast', async () => {
       api.getMsgList.mockRejectedValueOnce(new Error('net'));
       try { await page.loadList(); } catch (_e) {}
-      // 确保触发了错误提示
       const errorCalls = wx.showToast.mock.calls.filter(c => c[0]?.icon === 'none');
       expect(errorCalls.length).toBeGreaterThan(0);
     });

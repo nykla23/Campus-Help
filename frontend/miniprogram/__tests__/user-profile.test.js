@@ -4,6 +4,7 @@
 jest.mock('../utils/api', () => ({
   getOtherUserInfo: jest.fn(),
   getUserPublishTasks: jest.fn(),
+  downloadAvatar: jest.fn().mockResolvedValue('/images/default-avatar.png'),
   getFullAvatarUrl: (url) => !url ? '/images/default-avatar.png' : (url.startsWith('http') ? url : 'http://localhost:3000' + url)
 }));
 const api = require('../utils/api');
@@ -14,6 +15,7 @@ describe('他人主页 UserProfile', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    wx.getStorageSync.mockReturnValue('42');
     api.getOtherUserInfo.mockResolvedValue({ code: 200, data: { user: { avatar: '', nickname: '路人甲', signature: '' }, stats: { credit: 80, finishCount: 5 } } });
     api.getUserPublishTasks.mockResolvedValue({ code: 200, data: [] });
   });
@@ -24,7 +26,6 @@ describe('他人主页 UserProfile', () => {
       page.onLoad({});
       expect(wx.showToast).toHaveBeenCalledWith({ title: '参数缺失', icon: 'none' });
       expect(page.data.loading).toBe(false);
-      // setTimeout 异步，在同步测试中直接验证即可
     });
 
     test('onLoad 有userId应设置字段并加载数据', () => {
@@ -50,6 +51,7 @@ describe('他人主页 UserProfile', () => {
       api.getUserPublishTasks.mockResolvedValueOnce({
         code: 200, data: [{ id: 1, title: '任务1', description: '描述', reward: 10, location: 'A栋', status: 1, type: 2, created_at: '2025-06-01T10:00:00' }]
       });
+      wx.getStorageSync.mockReturnValue('99');
       page.setData({ userId: '99' });
       await page.loadAllData();
       expect(api.getOtherUserInfo).toHaveBeenCalledWith('99');

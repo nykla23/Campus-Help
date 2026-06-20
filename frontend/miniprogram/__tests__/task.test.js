@@ -8,12 +8,11 @@ jest.mock('../utils/api', () => ({
   cancelTask: jest.fn(),
   giveUpTask: jest.fn(),
   confirmCompleteTask: jest.fn(),
-  fetchAvatarBase64: jest.fn().mockResolvedValue('data:image/png;base64,mock'),
+  downloadAvatar: jest.fn().mockResolvedValue('/images/default-avatar.png'),
   getFullAvatarUrl: (url) => url || '/images/default-avatar.png'
 }));
 const api = require('../utils/api');
 
-wx.getStorageSync.mockReturnValue('42');
 require('../pages/task/task.ts');
 
 describe('Task Detail Page', () => {
@@ -23,6 +22,7 @@ describe('Task Detail Page', () => {
 
   beforeEach(() => {
     Object.values(api).forEach(m => typeof m === 'function' && m.mockClear && m.mockClear());
+    jest.clearAllMocks();
     wx.getStorageSync.mockReturnValue('42');
     wx.showToast.mockClear();
     wx.showLoading.mockClear();
@@ -64,7 +64,7 @@ describe('Task Detail Page', () => {
     test('loadTaskDetail success handles response', async () => {
       api.getTaskDetail.mockResolvedValueOnce({
         code: 200,
-        data: { id: 1, title: '测试任务', publisher: { id: '1' }, acceptor: null }
+        data: { id: 1, title: '测试任务', publisher: { id: '1' }, acceptor: null, createTime: '', deadline: '' }
       });
       page.setData({ taskId: '1' });
       await page.loadTaskDetail();
