@@ -13,11 +13,10 @@ module.exports = {
         module: 'commonjs',
         strict: false,
         esModuleInterop: true,
-        moduleResolution: 'node16',
         allowJs: true,
-        sourceMap: true,
+        sourceMap: false,
         isolatedModules: true,
-        rootDir: '.'
+        moduleResolution: 'node'
       }
     }],
     '^.+\\.jsx?$': 'babel-jest'

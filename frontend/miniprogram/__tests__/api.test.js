@@ -71,8 +71,6 @@ describe('API 工具函数', () => {
     });
 
     test('网络异常返回默认头像', async () => {
-      wx.request.mockImplementation((_opts, _fn) => {});
-      // 让 request 调用 fail
       wx.request.mockImplementation((opts) => {
         opts.fail({ errMsg: 'request:fail' });
       });
@@ -90,15 +88,14 @@ describe('API 工具函数', () => {
       await api.fetchAvatarBase64(999);
       expect(wx.request).toHaveBeenCalledTimes(1);
 
-      // 第二次调用应使用缓存，不请求
       await api.fetchAvatarBase64(999);
-      expect(wx.request).toHaveBeenCalledTimes(1); // 未增加
+      expect(wx.request).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('request 通用请求', () => {
 
-    test('默认带Authorization', async () => {
+    test('请求带上Authorization', async () => {
       wx.getStorageSync.mockReturnValue('mock-token');
       wx.request.mockImplementation((opts) => {
         opts.success({ statusCode: 200, data: { code: 0 } });
@@ -162,8 +159,8 @@ describe('API 工具函数', () => {
       const headers = wx.request.mock.calls[0][0].header;
       expect(headers.Authorization).toBeUndefined();
     });
-
   });
+
   describe('uploadAvatar', () => {
 
     test('上传成功解析返回数据', async () => {
